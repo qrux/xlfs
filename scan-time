@@ -1,0 +1,3 @@
+#! /bin/bash
+
+./scan | grep "^real" | cut -f 2 | awk -F m '{total+=$1; sec+=$2}END{total += (sec / 60) ; print total}'

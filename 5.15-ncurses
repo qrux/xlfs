@@ -1,0 +1,6 @@
+./configure --prefix=/tools --with-shared \
+    --without-debug --without-ada --enable-overwrite
+
+make
+
+make install

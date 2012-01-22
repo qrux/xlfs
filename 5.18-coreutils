@@ -1,0 +1,10 @@
+patch -Np1 -i ../coreutils-8.14-test_fix-1.patch
+
+./configure --prefix=/tools --enable-install-program=hostname
+
+make
+
+make install
+
+cp -v src/su /tools/bin/su-tools
+

@@ -1,0 +1,96 @@
+#! /bin/bash
+set -e
+set +h
+
+echo "################################################################"
+echo "#"
+echo "# -----=====>>>>> LFS ENVIRONMENT PREPARED <<<<<=====-----"
+echo "#"
+echo "################################################################"
+
+pushd /home/lfs
+su lfs -c "./lfs-05-build-as-lfs"
+popd
+
+echo "################################################################"
+echo "#"
+echo "# -----=====>>>>> LFS-user PASS: PHASE COMPLETE <<<<<=====-----"
+echo "#"
+echo "################################################################"
+
+chown -R root:root $LFS/tools
+
+./6.02-PREP_VIRT_KERNEL_FS
+
+echo "################################################################"
+echo "#"
+echo "# -----=====>>>>> LFS VIRT-KERNEL FSes PREPARED <<<<<=====-----"
+echo "#"
+echo "################################################################"
+
+cd $LFS/lfs
+
+sed "s,#! /bin/bash,#! /tools/bin/bash," build-all | \
+	sed 's,./build ,./build-jail ,' | \
+	sed 's,./run ,./run-jail ,' > build-all-jail
+sed "s,#! /bin/bash,#! /tools/bin/bash," build > build-jail
+sed "s,#! /bin/bash,#! /tools/bin/bash," run > run-jail
+chmod 0755 *-jail
+
+/bin/cp -v xlapp-linux-3.1-kernel.config src
+
+chroot "$LFS" /tools/bin/env -i \
+    HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
+	/tools/bin/bash +h /lfs/lfs-06.05-build
+
+echo "################################################################"
+echo "#"
+echo "# -----=====>>>>> LFS-chroot, 1: PHASE COMPLETE <<<<<=====-----"
+echo "#"
+echo "################################################################"
+
+chroot "$LFS" /tools/bin/env -i \
+    HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
+        /bin/bash +h /lfs/lfs-06.31-restart-bash
+
+echo "################################################################"
+echo "#"
+echo "# -----=====>>>>> LFS-chroot, 2: PHASE COMPLETE <<<<<=====-----"
+echo "#"
+echo "################################################################"
+
+chroot "$LFS" /usr/bin/env -i \
+    HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin \
+        /bin/bash +h /lfs/lfs-07.02-notools-jail3
+
+echo "################################################################"
+echo "#"
+echo "# -----=====>>>>> LFS-chroot, 3: PHASE COMPLETE <<<<<=====-----"
+echo "#"
+echo "################################################################"
+
+chroot "$LFS" /usr/bin/env -i \
+    HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin \
+        /bin/bash +h /lfs/lfs-b0-prep-blfs
+
+echo "################################################################"
+echo "#"
+echo "# -----=====>>>>> BLFS-prep (root): PHASE COMPLETE <<<<<=====-----"
+echo "#"
+echo "################################################################"
+
+chroot "$LFS" /usr/bin/env -i \
+    HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin \
+        /bin/bash +h /lfs/lfs-b1-build-as-blfs
+
+echo "################################################################"
+echo "#"
+echo "# -----=====>>>>> BLFS-b1 (blfs): PHASE COMPLETE <<<<<=====-----"
+echo "#"
+echo "################################################################"
+

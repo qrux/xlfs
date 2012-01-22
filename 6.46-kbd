@@ -1,0 +1,16 @@
+#! /bin/bash
+
+patch -Np1 -i ../kbd-1.15.2-backspace-1.patch
+
+./configure --prefix=/usr --datadir=/lib/kbd
+
+make
+
+make install
+
+mv -v /usr/bin/{kbd_mode,loadkeys,openvt,setfont} /bin
+
+mkdir -v /usr/share/doc/kbd-1.15.2
+cp -R -v doc/* \
+         /usr/share/doc/kbd-1.15.2
+

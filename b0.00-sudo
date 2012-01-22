@@ -1,0 +1,19 @@
+#! /bin/bash
+
+./configure --prefix=/usr \
+            --libexecdir=/usr/lib \
+            --with-ignore-dot \
+            --with-all-insults \
+            --enable-shell-sets-home \
+            --disable-root-sudo \
+            --with-logfac=auth \
+            --without-pam \
+            --without-sendmail
+
+make
+
+make install
+
+echo "# Allow people in group ADMIN to run all commands without a password" >> /etc/sudoers
+echo "lfs       ALL = NOPASSWD: ALL" >> /etc/sudoers
+echo "blfs      ALL = NOPASSWD: ALL" >> /etc/sudoers

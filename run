@@ -1,0 +1,64 @@
+#! /bin/bash
+set -e
+set +h
+
+PROG_PATH=$0
+PROG_DIR=$(dirname $PROG_PATH)
+PROG_NAME=$(basename $PROG_PATH)
+CONF_FILE="${PROG_DIR}/machine.config"
+
+. $CONF_FILE
+
+__PROG_NAME=$1
+if [ -z $__PROG_NAME ] ; then
+	echo
+	echo "  Usage: run <lfs-run-script>"
+	echo
+	exit
+fi
+
+__PROG_NAME=$(basename $__PROG_NAME)
+__SECTION=$(echo $__PROG_NAME | cut -d \- -f 1)
+__PKG=$(echo $__PROG_NAME | cut -d \- -f 2-)
+__CHAPTER=$(echo $__SECTION | cut -d \. -f 1)
+__CHAPTER_CONF_FILE="opts-${__CHAPTER}"
+
+# Precaution against running on host system...
+if [ -d /mnt/lfs ] ; then
+	echo "This looks like the HOST system (not LFS)..."
+	echo "SECTION: $__CHAPTER"
+	if [ 5 -ne $__CHAPTER ] ; then echo "Aborting!" ; false ; fi
+fi
+
+if [ -f $__CHAPTER_CONF_FILE ] ; then
+        echo "  Using chapter config-file: $__CHAPTER_CONF_FILE..."
+        . $__CHAPTER_CONF_FILE
+fi
+
+echo    "################################################################"
+echo    "#"
+echo    "#  RUNNING - $__SECTION - $__PKG"
+echo    "#"
+echo -n "#    Working in directory: " ; pwd
+echo    "#"
+echo    "################################################################"
+
+################################################################
+# Run LFS script
+################################################################
+
+__RUN_SCRIPT="./${__PROG_NAME}"
+
+if [ -f $__RUN_SCRIPT ] ; then
+        . $__RUN_SCRIPT
+else
+        echo "  Run script [ $__RUN_SCRIPT ] doesn\'t exist; aborting"
+        false
+fi
+
+echo "################################################################"
+echo "#"
+echo "#  [ $__SECTION - $__PKG ] run successfully; continuing"
+echo "#"
+echo "################################################################"
+

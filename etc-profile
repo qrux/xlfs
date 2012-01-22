@@ -1,0 +1,192 @@
+##################################################
+#
+# Personal aliases
+#
+##################################################
+
+LANG=
+export LANG
+
+path () 
+{ 
+    if test -x /usr/bin/$1; then
+        ${1+"/usr/bin/$@"};
+    else
+        if test -x /bin/$1; then
+            ${1+"/bin/$@"};
+        fi;
+    fi
+}
+
+_bred="$(path tput bold 2> /dev/null; path tput setaf 1 2> /dev/null)"
+_byel="$(path tput bold 2> /dev/null; path tput setaf 3 2> /dev/null)"
+_bgrn="$(path tput bold 2> /dev/null; path tput setaf 2 2> /dev/null)"
+_sgr0="$(path tput sgr0 2> /dev/null)"
+
+if [ $UID = 0 ] ; then
+	PS1="\h [\w] # "
+	PS1="\[$_bred\]$PS1\[$_sgr0\]"
+elif [ $UID -lt 100 ] ; then
+	PS1="\h ($USER) [\w] > "
+	PS1="\[$_byel\]$PS1\[$_sgr0\]"
+else
+	PS1="\h [\w] $ "
+	PS1="\[$_bgrn\]$PS1\[$_sgr0\]"
+fi
+PS1="X/L $PS1"
+export PS1
+
+unset _bred _bgrn _sgr0
+
+#
+# Are we on a Mac?  If so, change the LANG setting
+# (so we have full UTF-8 capabilities).
+#
+OS_NAME=`uname`
+if [ $OS_NAME = "Darwin" ] ; then
+	LS="/bin/ls -G -F" ; export LS
+elif [ $OS_NAME = "Linux" ] ; then
+	LS="/bin/ls --color -F -N -T 0" ; export LS
+else
+	LS="/bin/ls -F"
+fi
+
+alias ls="${LS} -C"
+alias la="${LS} -aC"
+alias lr="${LS} -aCR"
+
+alias dir="${LS} -l"
+alias dira="${LS} -al"
+alias dirr="${LS} -alR"
+alias dirt="${LS} -lrt"
+
+alias mv='/bin/mv -i'
+alias cp='/bin/cp -i'
+
+alias j="jobs"
+alias today="date '+%-d %b %Y'"
+alias todate="date '+%Y%m%d'"
+alias totime="date '+%Y%m%d_%H%M%S'"
+
+#
+# Berkeley Exit Function
+#
+.()
+{
+	SCRIPT=$1
+	if [ -z $SCRIPT ] ; then
+		exit
+	else
+		source $SCRIPT
+	fi
+}
+
+#
+# h
+#
+h()
+{
+        PATTERN=$1
+
+        if [ "$PATTERN" = "" ] ; then
+                history
+        else
+                history | grep $PATTERN
+        fi
+}
+
+#
+# kill something process
+#
+killproc ()
+{
+	kill `ps aux | grep "${1}" | grep -v grep | awk '{print $2}'`
+}
+
+#
+# hidden grep
+#
+_grep()
+{
+	grep "${@}"
+}
+
+#
+# ps
+#
+p ()
+{
+	ARGS="${*}"
+
+	if [ "$ARGS" = "" ] ; then
+		if [ `uname -s` = "SunOS" ] ; then
+			/bin/ps -ef | sort
+		elif [ `uname -s` = "Linux" ] ; then
+			/bin/ps axo user,pid,vsz,rsz,%mem,cmd --sort=vsize | grep -v grep
+		elif [ `uname -s` = "Darwin" ] ; then
+			/bin/ps axo user,pid,vsz,rss,%mem,command -m | sed 's/\ *$//' | grep -v grep
+		else
+			/bin/ps aux | sort
+		fi
+	else
+		if [ `uname -s` = "SunOS" ] ; then
+			/bin/ps -ef | egrep "$ARGS" | grep -v grep | sort
+		elif [ `uname -s` = "Linux" ] ; then
+			/bin/ps axo user,pid,vsz,rsz,%mem,cmd --sort=vsize | egrep "$ARGS" | grep -v grep
+		elif [ `uname -s` = "Darwin" ] ; then
+			/bin/ps axo user,pid,vsz,rss,%mem,command -m | sed 's/\ *$//' | egrep "$ARGS" | grep -v grep
+		else
+			/bin/ps aux | egrep "$ARGS" | grep -v grep | sort
+		fi
+	fi
+
+}
+
+#
+# ps | grep -v
+#
+pv ()
+{
+	ARGS="${*}"
+
+	if [ `uname -s` = "SunOS" ] ; then
+		/bin/ps -ef | egrep -v "$ARGS" | grep -v grep
+	elif [ `uname -s` = "Linux" ] ; then
+		/bin/ps axo user,pid,vsz,rsz,%mem,cmd --sort=vsize | egrep -v "$ARGS" | grep -v grep
+	elif [ `uname -s` = "Darwin" ] ; then
+		/bin/ps axo user,pid,vsz,rss,%mem,command -m | sed 's/\ *$//' | egrep -v "$ARGS" | grep -v grep
+	else
+		/bin/ps aux | egrep -v "$ARGS" | grep -v grep
+	fi
+}
+
+#
+# ps | grep "${USER}"
+#
+pme ()
+{
+	p "${USER}"
+}
+
+#
+# POSIX man behavior
+#
+export MAN_POSIXLY_CORRECT=1
+
+#
+# Personal bin
+#
+if [ -d $HOME/bin ] ; then
+	PATH=$HOME/bin:$PATH
+fi
+
+#
+# .personal
+#
+PERSONAL_ALIAS=".alias-$USER"
+
+if [ -e $HOME/.alias-$USER ] ; then
+	. $HOME/.alias-$USER
+fi
+
+unset PERSONAL_ALIAS

@@ -1,0 +1,11 @@
+#! /bin/bash
+
+./configure --prefix=/usr     \
+            --sysconfdir=/etc \
+            --with-ssl=openssl
+
+make
+
+make check
+
+sudo make install

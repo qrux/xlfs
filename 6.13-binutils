@@ -1,0 +1,21 @@
+expect -c "spawn ls"
+
+rm -fv etc/standards.info
+sed -i.bak '/^INFO/s/standards.info //' etc/Makefile.in
+
+sed -i "/exception_defines.h/d" ld/testsuite/ld-elf/new.cc
+sed -i "s/-fvtable-gc //" ld/testsuite/ld-selective/selective.exp
+
+mkdir -v ../binutils-build
+cd ../binutils-build
+
+../binutils-2.21.1/configure --prefix=/usr --enable-shared
+
+make tooldir=/usr
+
+make -k check
+
+make tooldir=/usr install
+
+cp -v ../binutils-2.21.1/include/libiberty.h /usr/include
+

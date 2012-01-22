@@ -1,0 +1,10 @@
+patch -Np1 -i ../bash-4.2-fixes-3.patch
+
+./configure --prefix=/tools --without-bash-malloc
+
+make
+
+make install
+
+ln -vs bash /tools/bin/sh
+

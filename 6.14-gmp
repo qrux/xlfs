@@ -1,0 +1,20 @@
+sed -i 's/np + dn, qn/& - dn/' mpn/generic/dcpi1_bdiv_q.c
+
+./configure --prefix=/usr --enable-cxx --enable-mpbsd
+
+make
+
+make check 2>&1 | tee gmp-check-log
+
+__GMP_TEST_COUNT=$(awk '/tests passed/{total+=$2} ; END{print total}' gmp-check-log)
+if [ 162 -ne $__GMP_TEST_COUNT ] ; then
+	echo "GMP tests failed; exiting"
+	false;
+fi
+
+make install
+
+mkdir -v /usr/share/doc/gmp-5.0.2
+cp    -v doc/{isa_abi_headache,configuration} doc/*.html \
+         /usr/share/doc/gmp-5.0.2
+

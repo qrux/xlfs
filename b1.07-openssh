@@ -1,0 +1,48 @@
+#! /bin/bash
+
+echo $PATH
+
+sudo install -v -m700 -d /var/lib/sshd
+sudo chown -v root:sys /var/lib/sshd
+sudo /usr/sbin/groupadd -g 50 sshd
+sudo /usr/sbin/useradd -c 'sshd PrivSep' -d /var/lib/sshd -g sshd \
+    -s /bin/false -u 50 sshd
+
+sed -i 's@-lcrypto@/usr/lib/libcrypto.a -ldl@' configure
+
+sed -i.bak '/K5LIBS=/s/ -ldes//' configure
+./configure --prefix=/usr \
+            --sysconfdir=/etc/ssh \
+            --datadir=/usr/share/sshd \
+            --libexecdir=/usr/lib/openssh \
+            --with-md5-passwords \
+            --with-privsep-path=/var/lib/sshd \
+            --with-tcp-wrappers
+
+make
+
+# Additionally, the testsuite requires an installed copy of scp
+# to complete the multiplexing tests.
+#
+# To run the test suite, first copy the scp program to /usr/bin.
+SCP_PATH=$(find . -type f -name scp)
+if [ -z $SCP_PATH ] ; then
+	false
+elif [ ! -x $SCP_PATH ] ; then
+	false
+else
+	sudo cp $SCP_PATH /usr/bin
+fi
+
+make test 2>&1 | tee check.log
+__SSH_FATAL_ERROR_COUNT=$(grep FATAL check.log | wc -l)
+if [ 0 -lt $__SSH_FATAL_ERROR_COUNT ] ; then
+	grep FATAL check.log
+	echo "SSH testing failed; aborting"
+	false
+fi
+
+sudo /usr/bin/make install
+sudo /usr/bin/install -v -m755 -d /usr/share/doc/openssh-5.9p1
+sudo /usr/bin/install -v -m644 INSTALL LICENCE OVERVIEW README* \
+    /usr/share/doc/openssh-5.9p1

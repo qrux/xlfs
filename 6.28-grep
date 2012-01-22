@@ -1,0 +1,11 @@
+#! /bin/bash
+
+sed -i 's/cp/#&/' tests/unibyte-bracket-expr
+
+./configure --prefix=/usr --bindir=/bin
+
+make
+
+make check
+
+make install

@@ -1,0 +1,11 @@
+#! /bin/bash
+
+patch -Np1 -i ../patch-2.6.1-test_fix-1.patch
+
+./configure --prefix=/usr
+
+make
+
+make check
+
+make install

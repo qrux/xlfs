@@ -1,0 +1,65 @@
+patch -Np1 -i ../gcc-4.6.1-startfiles_fix-1.patch
+
+cp -v gcc/Makefile.in{,.orig}
+sed 's@\./fixinc\.sh@-c true@' gcc/Makefile.in.orig > gcc/Makefile.in
+
+cp -v gcc/Makefile.in{,.tmp}
+sed 's/^T_CFLAGS =$/& -fomit-frame-pointer/' gcc/Makefile.in.tmp \
+  > gcc/Makefile.in
+
+for file in \
+ $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+do
+  cp -uv $file{,.orig}
+  sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' \
+  -e 's@/usr@/tools@g' $file.orig > $file
+  echo '
+#undef STANDARD_INCLUDE_DIR
+#define STANDARD_INCLUDE_DIR 0
+#define STANDARD_STARTFILE_PREFIX_1 ""
+#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+  touch $file.orig
+done
+
+case $(uname -m) in
+  x86_64)
+    for file in $(find gcc/config -name t-linux64) ; do \
+      cp -v $file{,.orig}
+      sed '/MULTILIB_OSDIRNAMES/d' $file.orig > $file
+    done
+  ;;
+esac
+
+tar -jxf ../mpfr-3.1.0.tar.bz2
+mv -v mpfr-3.1.0 mpfr
+tar -jxf ../gmp-5.0.2.tar.bz2
+mv -v gmp-5.0.2 gmp
+tar -zxf ../mpc-0.9.tar.gz
+mv -v mpc-0.9 mpc
+
+mkdir -v ../gcc-build
+cd ../gcc-build
+
+CC="$LFS_TGT-gcc -B/tools/lib/" \
+    AR=$LFS_TGT-ar RANLIB=$LFS_TGT-ranlib \
+    ../gcc-4.6.1/configure --prefix=/tools \
+    --with-local-prefix=/tools --enable-clocale=gnu \
+    --enable-shared --enable-threads=posix \
+    --enable-__cxa_atexit --enable-languages=c,c++ \
+    --disable-libstdcxx-pch --disable-multilib \
+    --disable-bootstrap --disable-libgomp \
+    --without-ppl --without-cloog \
+    --with-mpfr-include=$(pwd)/../gcc-4.6.1/mpfr/src \
+    --with-mpfr-lib=$(pwd)/mpfr/src/.libs
+
+make
+
+make install
+
+ln -vs gcc /tools/bin/cc
+
+echo 'main(){}' > dummy.c
+cc dummy.c
+readelf -l a.out | grep ': /tools'
+
+rm -v dummy.c a.out

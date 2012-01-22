@@ -1,0 +1,15 @@
+#! /bin/bash
+
+echo "lfs:x:101:"  >> /etc/group
+echo "blfs:x:202:" >> /etc/group
+/usr/sbin/grpconv
+echo "lfs:x:101:101:LFS User:/home/lfs:/bin/bash"    >> /etc/passwd
+echo "blfs:x:202:202:BLFS User:/home/blfs:/bin/bash" >> /etc/passwd
+/usr/sbin/pwconv
+
+/bin/mkdir /home/{lfs,blfs}
+/bin/cp -a blfs-* /home/blfs
+/bin/chown -R lfs:lfs /home/lfs
+/bin/chown -R blfs:blfs /home/blfs
+
+/bin/chown -R blfs:blfs /lfs

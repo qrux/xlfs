@@ -1,0 +1,13 @@
+#! /bin/bash
+
+cat > /etc/hosts <<EOF
+# Begin /etc/hosts (network card version)
+
+127.0.0.1 localhost
+
+# IP			HOSTNAME		[alias1, alias 2, ...]
+${XLAPP_HOST_IP}	${XLAPP_DNS_FQDN}	${XLAPP_HOST_HOSTNAME}
+
+# End /etc/hosts (network card version)
+EOF
+

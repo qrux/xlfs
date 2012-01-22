@@ -1,0 +1,102 @@
+#! /bin/bash
+
+DL=$(readelf -l /bin/sh | sed -n 's@.*interpret.*/tools\(.*\)]$@\1@p')
+sed -i "s|libs -o|libs -L/usr/lib -Wl,-dynamic-linker=$DL -o|" \
+        scripts/test-installation.pl
+unset DL
+
+sed -i -e 's/"db1"/& \&\& $name ne "nss_test1"/' scripts/test-installation.pl
+
+sed -i 's|@BASH@|/bin/bash|' elf/ldd.bash.in
+
+patch -Np1 -i ../glibc-2.14.1-fixes-1.patch
+
+patch -Np1 -i ../glibc-2.14.1-gcc_fix-1.patch
+
+sed -i '195,213 s/PRIVATE_FUTEX/FUTEX_CLOCK_REALTIME/' \
+nptl/sysdeps/unix/sysv/linux/x86_64/pthread_rwlock_timed{rd,wr}lock.S
+
+mkdir -v ../glibc-build
+cd ../glibc-build
+
+case `uname -m` in
+  i?86) echo "CFLAGS += -march=i486 -mtune=native -O3 -pipe" > configparms ;;
+esac
+
+../glibc-2.14.1/configure --prefix=/usr \
+    --disable-profile --enable-add-ons \
+    --enable-kernel=2.6.25 --libexecdir=/usr/lib/glibc
+
+make
+
+cp -v ../glibc-2.14.1/iconvdata/gconv-modules iconvdata
+#
+# Well, GLIBC will have errors, so we turn bash error-
+# handling off...
+#
+set +e
+#test make -k check 2>&1 | tee glibc-check-log
+set -e
+#
+# Now, turn bash error-handling back on, and check for
+# the specific errors that are common.  If we find any
+# other errors, then FAIL; otherwise, PASS.
+#
+#test cp glibc-check-log ~/glibc-2.14.1-LFS-test-check-log-$(totime)
+#test __GLIBC_FAIL_COUNT=$(grep Error glibc-check-log | grep sources | wc -l)
+#test __GLIBC_OKAY_FAIL_COUNT=$(grep Error glibc-check-log | grep sources | egrep -v "posix/annexc|nptl/tst-clock2|nptl/tst-attr3|rt/tst-cpuclock2|misc/tst-writev|elf/check-textrel|nptl/tst-getpid2|stdio-common/bug22|posix/bug-regex32" | wc -l)
+
+#test if [ 0 -lt $__GLIBC_OKAY_FAIL_COUNT ] ; then
+	#test grep Error glibc-check-log | grep sources
+	#test echo "glibc-2.14.1 FAILED testing with unexpected errors; aborting"
+	#test false
+#test elif [ 0 -lt $__GLIBC_FAIL_COUNT ] ; then
+	#test grep Error glibc-check-log | grep sources
+	#test echo "glibc-2.14.1 had some acceptable failures; continuing"
+#test fi
+
+touch /etc/ld.so.conf
+
+make install
+
+cp -v ../glibc-2.14.1/sunrpc/rpc/*.h /usr/include/rpc
+cp -v ../glibc-2.14.1/sunrpc/rpcsvc/*.h /usr/include/rpcsvc
+cp -v ../glibc-2.14.1/nis/rpcsvc/*.h /usr/include/rpcsvc
+
+make localedata/install-locales
+
+cat > /etc/nsswitch.conf << "EOF"
+# Begin /etc/nsswitch.conf
+
+passwd: files
+group: files
+shadow: files
+
+hosts: files dns
+networks: files
+
+protocols: files
+services: files
+ethers: files
+rpc: files
+
+# End /etc/nsswitch.conf
+EOF
+
+cp -v --remove-destination /usr/share/zoneinfo/$XLAPP_TARGET_TZ \
+    /etc/localtime
+
+cat > /etc/ld.so.conf << "EOF"
+# Begin /etc/ld.so.conf
+/usr/local/lib
+/opt/lib
+
+EOF
+
+cat >> /etc/ld.so.conf << "EOF"
+# Add an include directory
+include /etc/ld.so.conf.d/*.conf
+
+EOF
+mkdir /etc/ld.so.conf.d
+

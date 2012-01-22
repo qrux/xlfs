@@ -1,0 +1,65 @@
+#! /bin/bash
+set -e
+set +h
+
+JUST_TESTING=0
+
+while getopts "s:e:n" OPT ; do
+	case "$OPT" in
+		s) START="$OPTARG";;
+		e) END="$OPTARG";;
+		n) JUST_TESTING=1;;
+		?) echo "Unknown options; exiting" ; exit 3;;
+	esac
+done
+
+if [ -z $START ] ; then
+	echo
+	echo "  Usage: $0 -s <start-section> -e <end-section>"
+	echo
+	exit 1
+fi
+if [ -z $END ] ; then
+	echo
+	echo "  Usage: $0 -s <start-section> -e <end-section>"
+	echo
+	exit 1
+fi
+
+echo "Starting at $START and ending at $END (both inclusive)..."
+HAS_STARTED=0
+
+STARTING_CHAPTER=5
+
+for PHASE in $(seq $STARTING_CHAPTER 9) b0 b1 b2 ; do
+	for SCRIPT_NUM in $(seq 0 99) ; do
+		if [ 10 -gt $SCRIPT_NUM ] ; then
+			SCRIPT_NUM="0${SCRIPT_NUM}"
+		fi
+
+		CURRENT="${PHASE}.${SCRIPT_NUM}"
+
+		if [ 0 -eq $HAS_STARTED ] ; then
+			if [ $CURRENT == $START ] ; then
+				HAS_STARTED=1
+			else
+				continue
+			fi
+		fi
+
+		SCRIPT=$(echo ${CURRENT}*)
+		if [ -x $SCRIPT ] ; then
+			echo "  Running $SCRIPT..."
+			if [ 1 -ne $JUST_TESTING ] ; then
+				if [ 1 -eq $HAS_STARTED ] ; then time ./run $SCRIPT ; fi
+			fi
+		elif [ -e $SCRIPT ] ; then
+			echo "  Building $SCRIPT (with ${MAKEFLAGS})..."
+			if [ 1 -ne $JUST_TESTING ] ; then
+				if [ 1 -eq $HAS_STARTED ] ; then time ./build $SCRIPT ; fi
+		fi
+			fi
+
+		if [ $CURRENT == $END ] ; then exit ; fi
+	done
+done

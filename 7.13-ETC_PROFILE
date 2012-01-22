@@ -1,0 +1,5 @@
+#! /bin/bash
+
+cp etc-profile /etc/profile
+
+sed "s,^LANG=.*,LANG=\"$XLAPP_TARGET_LANG\",g" etc-profile > /etc/profile

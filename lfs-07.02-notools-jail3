@@ -1,0 +1,8 @@
+#! /bin/bash
+set +h
+
+export LFS="/"
+
+cd /lfs
+pwd
+./build-all -s 7.02 -e 9.01

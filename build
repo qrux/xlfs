@@ -1,0 +1,98 @@
+#! /bin/bash
+set -e
+set +h
+
+export MAKEFLAGS="-j 4"
+if [ "blfs" == "$USER" ] ; then
+	echo "User [ $USER ] ; adjusting path."
+	PATH=$PATH:/sbin:/usr/sbin
+fi
+
+totime()
+{
+	date '+%Y%m%d_%H%M%S'
+}
+
+PROG_PATH=$0
+PROG_DIR=$(dirname $PROG_PATH)
+PROG_NAME=$(basename $PROG_PATH)
+CONF_FILE="${PROG_DIR}/machine.config"
+
+echo "  Using machine template: $CONF_FILE..."
+. $CONF_FILE
+
+__PROG_NAME=$1
+if [ -z $__PROG_NAME ] ; then
+	echo
+	echo "  Usage: build <lfs-build-script>"
+	echo
+	exit
+fi
+
+__PROG_NAME=$(basename $__PROG_NAME)
+__SECTION=$(echo $__PROG_NAME | cut -d \- -f 1)
+__PKG=$(echo $__PROG_NAME | cut -d \- -f 2-)
+BUILD="${__PKG}-build"
+
+__CHAPTER=$(echo $__SECTION | cut -d \. -f 1)
+__CHAPTER_CONF_FILE="opts-${__CHAPTER}"
+
+#cd $__SOURCES_DIR
+PROG_DIR=$(pwd)
+cd ./src
+
+#if [ -f $__CHAPTER_CONF_FILE ] ; then
+	#echo "  Using chapter config-file: $__CHAPTER_CONF_FILE..."
+	#. $__CHAPTER_CONF_FILE
+#fi
+
+TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG.tar*")
+if [ -z $TARBALL ] ; then
+	TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG*.tar*")
+fi
+
+echo "(Cleaning up files from previous builds...)"
+find . -mindepth 1 -maxdepth 1 -type d
+find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
+
+echo    "################################################################"
+echo    "#"
+echo    "#  BUILDING - $__SECTION - $__PKG (with ${MAKEFLAGS})"
+echo    "#"
+echo    "#    Unpacking $TARBALL..." ; tar xf $TARBALL ; UNPACK_DIR=$(find . -mindepth 1 -maxdepth 1 -type d -name "$__PKG*") ; cd $UNPACK_DIR
+echo -n "#    Working in directory: " ; pwd
+echo    "#"
+echo    "################################################################"
+
+unset BUILD
+unset TARBALL
+
+################################################################
+# Run LFS script
+################################################################
+
+#__BUILD_SCRIPT="${__SCRIPTS_DIR}/${__PROG_NAME}"
+__BUILD_SCRIPT="${PROG_DIR}/${__PROG_NAME}"
+
+if [ -f $__BUILD_SCRIPT ] ; then
+	. $__BUILD_SCRIPT
+	#. ./${__PROG_NAME}
+else
+	echo "  Build script [ $__BUILD_SCRIPT ] doesn\'t exist; aborting"
+	false
+fi
+
+################################################################
+# Cleanup after this (NO EDITS BEYOND THIS POINT)
+################################################################
+
+#cd $__SOURCES_DIR
+#echo "  Cleaning up source/build dirs..."
+#find . -mindepth 1 -maxdepth 1 -type d
+#find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
+
+echo "################################################################"
+echo "#"
+echo "#  [ $__SECTION - $__PKG ] built successfully; continuing"
+echo "#"
+echo "################################################################"

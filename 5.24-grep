@@ -1,0 +1,6 @@
+./configure --prefix=/tools \
+    --disable-perl-regexp
+
+make
+
+make install

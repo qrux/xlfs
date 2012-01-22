@@ -1,0 +1,4 @@
+#! /bin/bash
+
+echo 7.0 > /etc/lfs-release
+

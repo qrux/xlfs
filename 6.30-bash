@@ -1,0 +1,21 @@
+#! /bin/bash
+
+patch -Np1 -i ../bash-4.2-fixes-3.patch
+
+./configure --prefix=/usr --bindir=/bin \
+    --htmldir=/usr/share/doc/bash-4.2 --without-bash-malloc \
+    --with-installed-readline
+
+make
+
+chown -Rv nobody .
+
+su-tools nobody -s /bin/bash -c "make tests"
+
+make install
+
+echo "####"
+echo "####"
+echo "#### NOTE -- exit now, and chroot-jail back in (use script jail2), to run the new bash"
+echo "####"
+echo "####"

@@ -1,0 +1,3 @@
+#! /bin/bash
+
+echo "HOSTNAME=${XLAPP_HOST_HOSTNAME}" > /etc/sysconfig/network

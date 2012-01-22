@@ -1,0 +1,159 @@
+#! /bin/bash
+set -e
+set +h
+
+XLAPP_CONFIG_FILE=machine.config
+
+./lfs-conf
+
+if [ ! -e $XLAPP_CONFIG_FILE ] ; then
+	echo "X/LAPP config file could not be produced; aborting"
+	false
+fi
+
+. $XLAPP_CONFIG_FILE
+if [ -z $XLAPP_LFS ] ; then
+	echo "  Problem with X/LAPP config file (XLAPP_LFS is not set); aborting"
+	false
+fi
+
+export LFS=$XLAPP_LFS
+export __SOURCE_DIR="${LFS}/lfs"
+
+LFS_DOT_BASHRC=dot.bashrc-lfs
+#cat ${LFS_DOT_BASHRC}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS,"
+cat ${LFS_DOT_BASHRC}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $LFS_DOT_BASHRC
+LFS_05_BUILD=lfs-05-build-as-lfs
+cat ${LFS_05_BUILD}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $LFS_05_BUILD
+
+unset SKIP_TESTS
+while getopts "n" OPT ; do
+	case "$OPT" in
+		n) SKIP_TESTS=1 ;;
+		?) echo "Unknown option $OPT; continuing...";;
+	esac
+done
+
+# We need to test if $LFS is /; if so, abort.  Otherwise, this will be devastating.
+if [ -z $LFS ] ; then echo "LFS is unset, which is improper; aborting!!" ; exit ; fi
+if [ "$LFS" == "" ] ; then echo "LFS is set to an empty string, an invalid value; aborting!!" ; exit ; fi
+if [ "$LFS" == "/" ] ; then echo "LFS is set to the root directory, an invalid value; aborting!!" ; exit ; fi
+pushd $LFS
+if [ $(pwd) == "/" ] ; then echo "LFS is equivalent to the root directory, which is improper; aborting!!" ; exit ; fi
+popd
+
+set +e
+umount $LFS/sys
+umount $LFS/proc
+umount $LFS/dev/pts
+umount $LFS/dev/shm
+umount $LFS/dev
+set -e
+
+mkdir -pv $LFS
+
+mount | grep "$LFS"
+if [ 0 == $? ] ; then
+	echo "LFS partition already mounted; unmounting"
+	umount $LFS
+fi
+
+mount -v $LFS
+rm -rf $LFS/*
+
+mkdir -pv $__SOURCE_DIR
+chmod -v a+wt $__SOURCE_DIR
+
+cp -a * $__SOURCE_DIR
+if [ -z $SKIP_TESTS ] ; then
+	for CHAP_SIX_PKG in $(grep -l "^#test " 6*) ; do
+		echo "  Uncommenting tests for package [ $CHAP_SIX_PKG ]..."
+		cat $CHAP_SIX_PKG | sed 's/^\(\s*\)#test /\1/' > $__SOURCE_DIR/$CHAP_SIX_PKG
+	done
+fi
+
+pushd $__SOURCE_DIR/src
+md5sum -c md5sums
+if [ 0 -ne $? ] ; then echo "MD5 sums failed to match; aborting hard." ; exit 1 ; fi
+popd
+
+#
+# Starting book
+#
+mkdir -pv $LFS/tools
+if [ -L /tools ] ; then
+	rm -f /tools
+fi
+ln -sv $LFS/tools /
+
+id lfs
+if [ 0 -eq $? ] ; then
+	echo "LFS user already existed; removing..."
+	userdel lfs
+	groupdel lfs
+fi
+
+groupadd lfs
+useradd -s /bin/bash -g lfs -m -k /dev/null lfs
+/bin/cp -fv dot.bashrc-lfs /home/lfs/.bashrc
+/bin/cp -fv dot.bash_profile-lfs /home/lfs/.bash_profile
+/bin/cp -fv lfs-05-build-as-lfs /home/lfs
+/bin/chown -v lfs:lfs /home/lfs/.bash* /home/lfs/lfs-*
+/bin/chmod -v 0755 /home/lfs/lfs-*
+
+chown -v lfs:lfs $LFS/tools
+chown -v lfs:lfs $__SOURCE_DIR
+chown -Rv lfs:lfs $__SOURCE_DIR/src
+
+if [ ! -z $SKIP_TESTS ] ; then
+	_EXTRA_BUILD_MESSAGE="system (WITHOUT tests)"
+else
+	_EXTRA_BUILD_MESSAGE="FULLY-TESTED system"
+fi
+
+echo
+echo
+echo "  LFS-preparation is ready; building X/LAPP ${_EXTRA_BUILD_MESSAGE}..."
+echo
+echo "    (Use tail -f $__SOURCE_DIR/lfs.out to see build output.)"
+echo
+echo
+
+#
+# Start compiling stuff!
+#
+rm -f $__SOURCE_DIR/lfs.out
+find src -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
+
+cd $__SOURCE_DIR
+time ./lfs-actual > $__SOURCE_DIR/lfs.out 2>&1
+
+#
+# Copy the kernel to the existing /boot...
+#
+totime()
+{
+	date '+%Y%m%d_%H%M%S'
+}
+
+CURRENT_TS=$(totime)
+for file in $(echo $LFS/boot/*) ; do
+	filebase=$(basename $file)
+	cp $file /boot/$filebase-$CURRENT_TS
+	cp $file /boot
+done
+
+LFS_KERNEL=$(ls /boot/vmlinuz*-$CURRENT_TS)
+
+echo "################################################################"
+echo "################################################################"
+echo "#"
+echo "# [ $LFS_KERNEL ] installed to /boot"
+echo "#   /boot/vmlinuz-3.1-lfs-7.0 - Updated."
+echo "#"
+echo "#   LFS - BUILD FINISHED.  Adjust host system to boot LFS build."
+echo "#"
+echo "################################################################"
+echo "################################################################"
+
+

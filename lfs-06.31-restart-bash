@@ -1,0 +1,8 @@
+#! /bin/bash
+set +h
+
+export LFS="/"
+
+cd /lfs
+pwd
+./build-all -s 6.31 -e 6.61

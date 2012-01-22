@@ -1,0 +1,16 @@
+#! /bin/bash
+
+set +h
+umask 022
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+export PATH
+
+export LFS="/"
+
+cd /lfs
+find src -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
+chmod a+rw src
+pwd
+su -c "./build-all -s b1.01 -e b1.08" blfs
+
+./build-all -s b1.09 -e b1.09

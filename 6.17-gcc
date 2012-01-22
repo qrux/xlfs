@@ -1,0 +1,69 @@
+#! /bin/bash
+
+sed -i 's/install_to_$(INSTALL_DEST) //' libiberty/Makefile.in
+
+case `uname -m` in
+  i?86) sed -i 's/^T_CFLAGS =$/& -fomit-frame-pointer/' \
+        gcc/Makefile.in ;;
+esac
+
+sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in
+
+patch -Np1 -i ../gcc-4.6.1-locale-1.patch
+
+mkdir -v ../gcc-build
+cd ../gcc-build
+
+../gcc-4.6.1/configure --prefix=/usr \
+    --libexecdir=/usr/lib --enable-shared \
+    --enable-threads=posix --enable-__cxa_atexit \
+    --enable-clocale=gnu --enable-languages=c,c++ \
+    --disable-multilib --disable-bootstrap --with-system-zlib
+
+make
+
+ulimit -s 16384
+
+#
+# GCC has a lot of tests, and some very complex ones can fail.
+#
+set +e
+#test make -k check
+set -e
+
+#test ../gcc-4.6.1/contrib/test_summary > ~/gcc-4.6.1-test_summary-LFS-$(totime)
+
+#test __GCC_FAIL_COUNT=$(../gcc-4.6.1/contrib/test_summary | grep FAIL | wc -l)
+#test __GCC_OKAY_FAIL_COUNT=$(../gcc-4.6.1/contrib/test_summary | grep FAIL | egrep -v "gcc.c-torture/compile/limits-exprparen.c|libmudflap.c/pass49-frag.c" | wc -l)
+
+#test if [ 0 -lt $__GCC_OKAY_FAIL_COUNT ] ; then
+	#test ../gcc-4.6.1/contrib/test_summary | grep FAIL
+	#test echo "GCC testing failed; aborting"
+	#test false
+#test elif [ 0 -lt $__GCC_FAIL_COUNT ] ; then
+	#test ../gcc-4.6.1/contrib/test_summary | grep FAIL
+	#test echo "GCC testing had some failures, but these might be okay; continuing anyway..."
+#test fi
+
+make install
+
+ln -sv ../usr/bin/cpp /lib
+
+ln -sv gcc /usr/bin/cc
+
+echo 'main(){}' > dummy.c
+cc dummy.c -v -Wl,--verbose &> dummy.log
+readelf -l a.out | grep ': /lib'
+
+grep -o '/usr/lib.*/crt[1in].*succeeded' dummy.log
+
+grep -B4 '^ /usr/include' dummy.log
+
+grep 'SEARCH.*/usr/lib' dummy.log |sed 's|; |\n|g'
+
+grep "/lib.*/libc.so.6 " dummy.log
+
+grep found dummy.log
+
+rm -v dummy.c a.out dummy.log
+

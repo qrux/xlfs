@@ -1,0 +1,18 @@
+#! /bin/bash
+
+./configure --prefix=/usr --libexecdir=/usr/sbin \
+    --localstatedir=/var --disable-ifconfig \
+    --disable-logger --disable-syslogd --disable-whois \
+    --disable-servers
+
+make
+
+make check
+
+make install
+make -C doc html
+make -C doc install-html docdir=/usr/share/doc/inetutils-1.8
+
+mv -v /usr/bin/{hostname,ping,ping6} /bin
+mv -v /usr/bin/traceroute /sbin
+

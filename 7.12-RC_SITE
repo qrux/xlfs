@@ -1,0 +1,9 @@
+#! /bin/bash
+
+if [ -e /etc/sysconfig/rc.site-ORIG ] ; then /bin/cp -f /etc/sysconfig/rc.site-ORIG /etc/sysconfig/rc.site ; fi
+/bin/cp -f /etc/sysconfig/rc.site /etc/sysconfig/rc.site-ORIG
+
+sed "s,^DISTRO=.*,DISTRO=\"$XLAPP_CONF_DISTRO\",g" /etc/sysconfig/rc.site > /tmp/rc.site && mv /tmp/rc.site /etc/sysconfig/rc.site
+sed "s,^DISTRO_CONTACT=.*,DISTRO=\"$XLAPP_CONF_DISTRO_CONTACT\",g" /etc/sysconfig/rc.site > /tmp/rc.site && mv /tmp/rc.site /etc/sysconfig/rc.site
+sed "s,^DISTRO_MINI=.*,DISTRO=\"$XLAPP_CONF_DISTRO_MINI\",g" /etc/sysconfig/rc.site > /tmp/rc.site && mv /tmp/rc.site /etc/sysconfig/rc.site
+

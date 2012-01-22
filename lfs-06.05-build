@@ -1,0 +1,8 @@
+#! /tools/bin/bash
+set +h
+
+export LFS="/"
+
+cd /lfs
+pwd
+./build-all-jail -s 6.05 -e 6.30

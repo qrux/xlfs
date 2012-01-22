@@ -1,0 +1,14 @@
+mkdir -v ../binutils-build
+cd ../binutils-build
+
+../binutils-2.21.1/configure \
+    --target=$LFS_TGT --prefix=/tools \
+    --disable-nls --disable-werror
+
+make
+
+case $(uname -m) in
+  x86_64) mkdir -v /tools/lib && ln -sv lib /tools/lib64 ;;
+esac
+
+make install

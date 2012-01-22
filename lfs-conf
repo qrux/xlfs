@@ -1,0 +1,167 @@
+#! /bin/bash
+set -e
+set +h
+
+BUILD_CONF="machine.config"
+BUILD_INPUT="${BUILD_CONF}.in"
+BUILD_TMP=".${BUILD_CONF}"
+BUILD_TMP2="${BUILD_TMP}_"
+
+bump()
+{
+	if [ -f $BUILD_TMP2 ] ; then
+		cp $BUILD_TMP2 $BUILD_TMP
+		rm -f $BUILD_TMP2
+	fi
+}
+
+ask()
+{
+	_VARNAME=$1
+	_QUESTION=$2
+
+	if [ -z $_VARNAME ] ; then 
+		echo "ask() requires at least one arguments: <varname> [default-val]"
+		exit 1
+	fi
+
+	_VARNAME="XLAPP_${_VARNAME}"
+	_DEFAULT="$(eval echo \$$_VARNAME)"
+	_ANSWER=""
+
+	while [ "" == "$_ANSWER" ] ; do
+		echo
+		echo -n "$_QUESTION "
+		test "" != "$_DEFAULT" && echo -n "[$_DEFAULT] "
+		#if [ ! -z $_DEFAULT ] ; then echo -n "[$_DEFAULT] " ; fi
+
+		read _ANSWER
+		if [ -z "$_ANSWER" ] ; then
+			if [ -z "$_DEFAULT" ] ; then
+				echo "  [error] No answer given for $_VARNAME, and no default is allowed."
+				echo "  [error]   Please try again..."
+				continue
+			else
+				_ANSWER="$_DEFAULT"
+			fi
+		fi
+	done
+
+	echo "  [ $_VARNAME ] --> $_ANSWER"
+	cat $BUILD_TMP | \
+	  sed "s,^${_VARNAME}=.*,${_VARNAME}=\"$_ANSWER\"," > $BUILD_TMP2
+	bump
+}
+
+if [ -e $BUILD_CONF ] ; then
+	echo "Using config file [ $BUILD_CONF ] for X/LAPP build..."
+	echo
+	echo "  There is already a config file here."
+	echo -n "  Are you SURE you want to overwrite ('yes' to change)? [N/y] "
+	read _ANSWER
+	test -z $_ANSWER && _ANSWER="no"
+	_ANSWER=$(echo $_ANSWER | tr [:upper:] [:lower:])
+	if [ "yes" == $_ANSWER ] ; then
+		echo
+		echo "All right; overwriting old configuration..."
+	else
+		echo
+		echo "Preserving old configuration in [ $BUILD_CONF ]."
+		echo "  Exiting with NO changes."
+		exit 0
+	fi
+	. $BUILD_CONF
+else
+	echo "The config file for this X/LAPP build doesn't exist."
+	echo "  Running config program..."
+	. $BUILD_INPUT
+fi
+
+cp $BUILD_INPUT $BUILD_TMP
+
+echo
+echo -n "What is the LFS partition mount point (e.g., \$LFS)? "
+read ANSWER
+if [ -z $ANSWER ] ; then
+	echo "  [error] No LFS partition mount point given; aborting"
+	exit 2
+fi
+echo "  [ LFS ] --> $ANSWER"
+cat $BUILD_TMP | sed "s,^XLAPP_LFS=.*,XLAPP_LFS=$ANSWER," > $BUILD_TMP2
+bump
+
+#
+# New root password
+#
+rm -f passhash
+gcc passhash.c -lcrypt -o passhash
+_PASSWD="1"
+_PASSWD2="2"
+while [ "$_PASSWD" != "$_PASSWD2" ] ; do
+	_PASS_SALT=$(date '+%M%S' | md5sum | cut -d ' ' -f 1 | cut -c 1-16)
+	echo
+	echo -n "What would you like as the new root password for LFS? "
+	stty -echo && \
+  	read _PASSWD
+	stty echo && echo
+	if [ -z $_PASSWD ] ; then
+		echo "  [error] Empty password is not allowed for root; trying again."
+		continue
+	fi
+	_PASSWD=$(./passhash $_PASSWD $_PASS_SALT)
+
+	echo -n "  Please re-enter the new root password for LFS: "
+	stty -echo && \
+  	read _PASSWD2
+	stty echo && echo
+	if [ -z $_PASSWD2 ] ; then
+		echo "    [error] No new LFS root password confirmation given; try entering both again, please."
+		continue
+	fi
+	_PASSWD2=$(./passhash $_PASSWD2 $_PASS_SALT)
+
+	#
+	# Check that the passwords match...
+	#
+	if [ "$_PASSWD" != "$_PASSWD2" ] ; then
+		echo "    [error] New LFS root passwords don't match; aborting"
+	else
+		echo "    [ ROOT_PASSWD_HASH ] --> $_PASSWD"
+		cat $BUILD_TMP | sed "s,^XLAPP_ROOT_PASSWD_HASH=.*,XLAPP_ROOT_PASSWD_HASH=\"$_PASSWD\"," > $BUILD_TMP2
+		bump
+	fi
+done
+unset _PASSWD _PASSWD2
+
+ask BOOT_PART "What is the LFS partition (e.g., sda5 for /dev/sda5)?"
+
+ask SSH_PUBKEY "What is the SSH public key to use for root's remote login on LFS box?"
+
+ask HOST_HOSTNAME "What is the desired hostname?"
+
+ask DNS_DOMAIN_NAME "What is the DNS domain name (e.g., if host is host1.my-domain.com, then my-domain.com)?"
+
+ask HOST_IP "What is the desired IP address?"
+
+ask HOST_PREFIX "What is the bitmask--bitcount only (e.g., 24 for Class C /24)?"
+
+ask HOST_BROADCAST "What is the broadcast address (dotted-decimal; e.g., 192.168.0.255)?"
+
+ask HOST_GW "What is the gateway (IP; e.g., 192.168.0.1)?"
+
+ask DNS_NS_1 "What is the primary nameserver (IP)?"
+
+ask DNS_NS_2 "What is the secondary nameserver (IP)?"
+
+ask TARGET_LANG "What is the target language (i.e., an entry from 'locale -a')?"
+
+ask TARGET_TZ "What is the target timezone (i.e., run tzselect if you don't know)?"
+
+cat $BUILD_TMP | sed 's/^XLAPP_/export XLAPP_/' > $BUILD_CONF
+grep "^XLAPP_" $BUILD_CONF
+
+echo
+echo "  Configuration complete; data written to [ $BUILD_CONF ]."
+echo
+echo "    (To change, just run this script again.)"
+echo

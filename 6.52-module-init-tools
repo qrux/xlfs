@@ -1,0 +1,17 @@
+#! /bin/bash
+
+patch -Np1 -i ../module-init-tools-3.16-man_pages-1.patch
+
+DOCBOOKTOMAN=/bin/true ./configure
+make check
+sed -i -e 's@../../configure@DOCBOOKTOMAN=/bin/true &@' tests/runtests
+./tests/runtests
+make clean
+
+DOCBOOKTOMAN=/bin/true ./configure --prefix=/ \
+    --enable-zlib-dynamic --mandir=/usr/share/man
+
+make
+
+make INSTALL=install install
+

@@ -1,0 +1,8 @@
+#! /bin/bash
+set +h
+
+export LFS="/"
+
+cd /lfs
+pwd
+./build-all -s b0.00 -e b0.03

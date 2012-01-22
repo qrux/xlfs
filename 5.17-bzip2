@@ -1,0 +1,4 @@
+make
+
+make PREFIX=/tools install
+
