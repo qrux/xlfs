@@ -150,7 +150,7 @@ cat certs/*.pem >  ${BUNDLE}
 rm -r "${TEMPDIR}"
 EOF
 
-sudo cp _bin_make-ca.sh /bin/make-ca.sh
+sudo mv _bin_make-ca.sh /bin/make-ca.sh
 sudo chown root:root /bin/make-ca.sh
 sudo chmod +x /bin/make-ca.sh
 
@@ -179,7 +179,7 @@ for cert in $certs; do
 done
 EOF
 
-sudo cp _bin_remove-expired-certs.sh /bin/remove-expired-certs.sh
+sudo mv _bin_remove-expired-certs.sh /bin/remove-expired-certs.sh
 sudo chown root:root /bin/remove-expired-certs.sh
 sudo chmod +x /bin/remove-expired-certs.sh
 

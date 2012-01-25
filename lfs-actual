@@ -37,7 +37,7 @@ sed "s,#! /bin/bash,#! /tools/bin/bash," build > build-jail
 sed "s,#! /bin/bash,#! /tools/bin/bash," run > run-jail
 chmod 0755 *-jail
 
-/bin/cp -v xlapp-linux-3.1-kernel.config src
+/bin/cp -v xlapp-linux-3.1-kernel*.config src
 
 chroot "$LFS" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \

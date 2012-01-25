@@ -1,0 +1,10 @@
+#! /bin/bash
+
+sed -i "s/ndbm_libs = \[\]/ndbm_libs = ['gdbm', 'gdbm_compat']/" setup.py
+
+./configure --prefix=/usr --enable-shared
+
+make
+
+sudo make install
+sudo chmod -v 755 /usr/lib/libpython2.7.so.1.0

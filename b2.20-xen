@@ -1,0 +1,36 @@
+#! /bin/bash
+
+patch -Np1 -i ../xen-4.1.2-no_firmware-1.patch
+
+pushd tools/check
+	mkdir NOUSE
+	mv check_x11_devel NOUSE
+popd
+
+export MAKEFLAGS="-j 1"
+make xen
+make tools
+
+sudo make install-xen
+sudo make install-tools
+
+#
+# Uncomment these lines if intending to use xm.
+#
+#   TODO - 2012-0125 - Add XL-based start & stop scripts
+#
+#pushd /etc/rc.d
+	#for START_LEVEL in 3 5 ; do
+		#pushd rc${START_LEVEL}.d
+			#sudo ln -sf ../init.d/xencommons S80xencommons
+			#sudo ln -sf ../init.d/xend S81xend
+		#popd
+	#done
+
+	#for STOP_LEVEL in 0 1 6 ; do
+		#pushd rc${STOP_LEVEL}.d
+			#sudo ln -sf ../init.d/xend K10xend
+			#sudo ln -sf ../init.d/xencommons K11xencommons
+		#popd
+	#done
+#popd

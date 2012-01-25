@@ -1,0 +1,75 @@
+#! /bin/bash
+
+autoconf
+
+./configure --prefix=/usr --sbindir=/sbin
+
+make
+
+sudo make install
+
+cat > _lib_services_bridge << 'EOF'
+#!/bin/sh
+########################################################################
+# Begin /lib/services/bridge
+#
+# Description : Bridge Boot Script
+#
+# Authors     : Nathan Coulson - nathan at linuxfromscratch.org
+# Updates     : Qrux           - qrux dot qed at gmail.com
+#
+# Version     : 00.02
+#
+########################################################################
+
+. /lib/lsb/init-functions
+. ${IFCONFIG}
+
+
+if [ -n "${INTERFACE}" ]; then
+        log_failure_msg "INTERFACES variable missing from ${ifconfig},", ${FAILURE}
+        echo_failure
+        exit 1
+fi
+
+case "${2}" in
+        up)
+                log_info_msg "Creating the ${1} interface..."
+                brctl addbr ${1}
+                evaluate_retval
+                for X in ${INTERFACES}; do
+                        log_info_msg "Adding ${X} to ${1}..."
+                        ip addr add 0.0.0.0 dev ${X} &&
+                        ip link set ${X} up &&
+                        brctl addif ${1} ${X}
+                        evaluate_retval
+                done
+		log_info_msg "Adding IPv4 address ${IP} to the ${1} interface..."
+		ip addr add ${IP}/${PREFIX} dev ${1} &&
+		ip link set ${1} up
+		route add default gw ${GATEWAY}
+        ;;
+
+        down)
+                for X in ${INTERFACES}; do
+                        log_info_msg "Removing ${X} from ${1}..."
+                        ip link set ${X} down &&
+                        brctl delif ${1} ${X}
+                        evaluate_retval
+                done
+                log_info_msg "Bringing down the ${1} interface..."
+                ip link set ${1} down
+                brctl delbr ${1}
+                evaluate_retval
+        ;;
+
+        *)
+                log_warning_msg "Usage: ${0} [interface] {up|down}"
+                exit 1
+        ;;
+esac
+
+# End /lib/services/bridge
+EOF
+
+sudo mv -fv _lib_services_bridge /lib/services/bridge

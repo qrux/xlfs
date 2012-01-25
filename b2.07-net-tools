@@ -1,0 +1,19 @@
+#! /bin/bash
+
+patch -Np1 -i ../net-tools-1.60-gcc34-3.patch
+patch -Np1 -i ../net-tools-1.60-kernel_headers-2.patch
+patch -Np1 -i ../net-tools-1.60-mii_ioctl-1.patch
+
+export MAKEFLAGS="-j 1"
+
+yes "" | make config
+
+sed -i -e 's|HAVE_IP_TOOLS 0|HAVE_IP_TOOLS 1|g' \
+       -e 's|HAVE_MII 0|HAVE_MII 1|g' config.h
+
+sed -i -e 's|# HAVE_IP_TOOLS=0|HAVE_IP_TOOLS=1|g' \
+       -e 's|# HAVE_MII=0|HAVE_MII=1|g' config.make
+
+make
+
+sudo make update

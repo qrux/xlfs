@@ -1,0 +1,16 @@
+#! /bin/bash
+
+sed -i '/if_packet/i#define __aligned_u64 __u64 __attribute__((aligned(8)))' \
+   extensions/libxt_pkttype.c
+
+./configure --prefix=/usr     \
+            --bindir=/sbin    \
+            --sbindir=/sbin   \
+            --libdir=/lib     \
+            --libexecdir=/lib \
+            --with-pkgconfigdir=/usr/lib/pkgconfig
+
+make
+
+#sudo make install
+#sudo ln -sfv xtables-multi /sbin/iptables-xml

@@ -1,0 +1,31 @@
+#! /bin/bash
+
+patch -Np1 -i ../dev86-0.16.17-noelks-1.patch
+patch -Np1 -i ../dev86-0.16.17-x86_64-1.patch
+patch -Np1 -i ../dev86-0.16.18-make3.82-1.patch
+
+export MAKEFLAGS="-j 1"
+make clean
+mkdir -p bin
+pushd ar
+	make
+	cp ar86 ../bin
+popd
+pushd unproto
+	make
+	cp unproto ../bin
+popd
+pushd copt
+	make
+	cp copt ../bin
+popd
+make bcc86
+make ld86
+make as86
+#make lib-386
+
+#sudo make install
+#cd bin
+#sudo install -v * /usr/bin
+#sudo rm -vf /usr/bin/bcc
+#sudo ln -vs /usr/bin/ncc /usr/bin/bcc

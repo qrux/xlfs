@@ -1,0 +1,35 @@
+#! /bin/bash
+
+id rsyncd
+if [ $? -ne 0 ] ; then
+	sudo /usr/sbin/groupadd -g 48 rsyncd
+	sudo /usr/sbin/useradd -c "rsyncd Daemon" -d /home/rsync -g rsyncd \
+		-s /bin/false -u 48 rsyncd
+fi
+
+./configure --prefix=/usr
+
+make
+
+make check
+
+sudo make install
+
+cat > _etc_rsyncd.conf << "EOF"
+# This is a basic rsync configuration file
+# It exports a single module without user authentication.
+
+motd file = /home/rsync/welcome.msg
+use chroot = yes
+
+[localhost]
+    path = /home/rsync
+    comment = Default rsync module
+    read only = yes
+    list = yes
+    uid = rsyncd
+    gid = rsyncd
+
+EOF
+sudo mv _etc_rsyncd.conf /etc/rsyncd.conf
+

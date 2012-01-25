@@ -1,0 +1,24 @@
+#! /bin/bash
+
+./configure --prefix=/usr     \
+            --bindir=/bin     \
+            --libexecdir=/tmp \
+            --enable-mt       \
+            --with-rmt=/usr/sbin/rmt
+
+make
+
+makeinfo --html            -o doc/html      doc/cpio.texi
+makeinfo --html --no-split -o doc/cpio.html doc/cpio.texi
+makeinfo --plaintext       -o doc/cpio.txt  doc/cpio.texi
+
+make check
+
+sudo make install
+sudo install -v -m755 -d /usr/share/doc/cpio-2.11/html
+sudo install -v -m644    doc/html/* \
+                    /usr/share/doc/cpio-2.11/html
+sudo install -v -m644    doc/cpio.{html,txt} \
+                    /usr/share/doc/cpio-2.11
+
+
