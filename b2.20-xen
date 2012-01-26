@@ -15,22 +15,19 @@ sudo make install-xen
 sudo make install-tools
 
 #
-# Uncomment these lines if intending to use xm.
+# Using xl-style start scripts (not the xm/python junk)
 #
-#   TODO - 2012-0125 - Add XL-based start & stop scripts
-#
-#pushd /etc/rc.d
-	#for START_LEVEL in 3 5 ; do
-		#pushd rc${START_LEVEL}.d
-			#sudo ln -sf ../init.d/xencommons S80xencommons
-			#sudo ln -sf ../init.d/xend S81xend
-		#popd
-	#done
+pushd /etc/rc.d
+	for START_LEVEL in 3 5 ; do
+		pushd rc${START_LEVEL}.d
+			sudo ln -sf ../init.d/xlapp-domains S80xlapp-domains
+		popd
+	done
 
-	#for STOP_LEVEL in 0 1 6 ; do
-		#pushd rc${STOP_LEVEL}.d
-			#sudo ln -sf ../init.d/xend K10xend
-			#sudo ln -sf ../init.d/xencommons K11xencommons
-		#popd
-	#done
-#popd
+	for STOP_LEVEL in 0 1 2 6 ; do
+		pushd rc${STOP_LEVEL}.d
+			sudo ln -sf ../init.d/xlapp-domains K20xlapp-domains
+		popd
+	done
+popd
+
