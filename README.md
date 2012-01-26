@@ -252,6 +252,6 @@ When it's done, you'll see a message like this:
 
 Now you have to "adjust the host system to boot the LFS build."
 
-4. Adjusting the LFS-host to Boot the LFS Build
------------------------------------------------
+Part 4. Adjusting the LFS-host to Boot the LFS Build
+----------------------------------------------------
 [todo]
