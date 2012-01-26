@@ -199,13 +199,13 @@ Part 3: Preparing your LFS install
 
 So, you've got your openSUSE system installed and booted.  Now, login as root.
 
-	Double-check that the LFS target partition is indeed /dev/sda5, and that
-you've mounted it at /mnt/lfs.  Seriously.  Double-check this.  Or, triple-check
-this.  This is important.
+	Double-check that the LFS target partition is indeed /dev/sda5, and that you've mounted it at /mnt/lfs.
 
-Grab a copy of this project and put it in /home/software/lfs.
+Seriously.  Double-check this.  Or, triple-check this.  This is important.
 
-	Grab the tarball from GitHub (using your laptop?) and then scp it over to your
+	Grab a copy of this project and put it in /home/software/lfs.
+
+Grab the tarball from GitHub (using your laptop?) and then scp it over to your
 LFS-host.  Unpack it in /home/software.  Rename that silly directory
 (qrux-xlapp-9837487whateverblahblahblah) to 'lfs'.  No, I don't care that you
 don't call it 'xlapp'.  I know 'lfs' is shorter and easier to type.  That's what I did.
@@ -233,23 +233,22 @@ is...impatient.  As soon as you've finished answering the quick questionnaire, t
 build system will start to build LFS for you.  At this point, you best find something else
 to do.  On a quad-core Intel i5-760, the build takes about 3 hours.
 
-	I'm running your build with MAKEFLAGS="-j 4" when it's safe to do so; when
-it's not safe to do it, I set MAKEFLAGS="-j 1" and force a serial make.
+	I'm running your build with MAKEFLAGS="-j 4" when it's safe to do so.
+
+When it's not safe to do it, I set MAKEFLAGS="-j 1" and force a serial make.
 
 When it's done, you'll see a message like this:
 
-<code>
-################################################################
-################################################################
-#
-# [ /boot/vmlinuz-3.1-lfs-7.0-20120125_165649 ] installed to /boot
-#   /boot/vmlinuz-3.1-lfs-7.0 - Updated.
-#
-#   LFS - BUILD FINISHED.  Adjust host system to boot LFS build.
-#
-################################################################
-################################################################
-</code>
+	################################################################
+	################################################################
+	#
+	# [ /boot/vmlinuz-3.1-lfs-7.0-20120125_165649 ] installed to /boot
+	#   /boot/vmlinuz-3.1-lfs-7.0 - Updated.
+	#
+	#   LFS - BUILD FINISHED.  Adjust host system to boot LFS build.
+	#
+	################################################################
+	################################################################
 
 Now you have to "adjust the host system to boot the LFS build."
 
