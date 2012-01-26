@@ -155,4 +155,104 @@ chroot-jail properly.  Other times because...I was afraid something wasn't
 right, and I prefer to be paranoid rather than spend needless hours on a
 wild goose chase.
 
+Also, I don't use swap.  My test machine has 16 GB of ram, which is more than
+I need to build LFS.  Adjust as necessary for your situation.  I would advise
+using up to 3 primary partitions, and then saving the fourth for the one big
+extended partition.  You could use /dev/sda1 for /boot, /dev/sda2 for swap,
+/dev/sda3 for who-knows-what, then /dev/sda4 for the remainder (extended
+partition), and then still use /dev/sda5 for the LFS target partition.
 
+	I'm going to assume that you used /dev/sda5 for your LFS target.  If not,
+you keep that in mind, and adjust the directions accordingly.  Either way,
+specify the mount point for /dev/sda5 as [ /mnt/lfs ].
+
+Moving on...Get to where you choose your software packages.  Select "Other"
+(as opposed to KDE or GNOME or all that other crap), and then choose Minimal
+Text.  Once there, use the "Pattern" filter, and choose the following meta-packages:
+
+	* Kernel Dev
+	* C/C++ Dev
+	* Xen
+
+Then, change to "Search" mode (i.e. no longer "Pattern"), and search for these
+packages to make your life possible/easier.  Replace 'vim' with whatever editor
+you're comfortable with.  But, I install 'vim' again for X/LAPP.  If you'd
+rather have something else, do your own investigations.
+
+	* vim
+	* expect
+	* man
+	* man-pages
+	* man-pages-posix
+	* sysstat
+
+Now, enable SSH, and turn off the firewall.  Why SSH?  Because I connected to this
+machine from my laptop to write/run the scripts.  if you want to work at the console,
+that's up to you.
+
+Finish your install, and customize your networking however you need to allow
+yourself to work at a more comfortable computer (say, one that has access to a
+browser).  If you're doing this at the console...How the hell are you reading this?
+
+Part 3: Preparing your LFS install
+----------------------------------
+
+So, you've got your openSUSE system installed and booted.  Now, login as root.
+
+	Double-check that the LFS target partition is indeed /dev/sda5, and that
+you've mounted it at /mnt/lfs.  Seriously.  Double-check this.  Or, triple-check
+this.  This is important.
+
+Grab a copy of this project and put it in /home/software/lfs.
+
+	Grab the tarball from GitHub (using your laptop?) and then scp it over to your
+LFS-host.  Unpack it in /home/software.  Rename that silly directory
+(qrux-xlapp-9837487whateverblahblahblah) to 'lfs'.  No, I don't care that you
+don't call it 'xlapp'.  I know 'lfs' is shorter and easier to type.  That's what I did.
+
+Inside, you should see a crapload of files, almost all bash-like scripts, and some of
+them are even executable.  Yes, you're root.  Feel free to look through everything.
+There are no executables.  Just source.  I ask for a root password for your new LFS
+system one time, so I can put it into /etc/shadow.  Feel free to look at the the shadow
+script, and examine passhash.c.  There should be no shenanigans there.  Or anywhere.
+
+Now, we get to the "meat" of the LFS install.  Here, you need to do the heartwrenching
+task of choosing IP addresses and--ZOMG--a hostname for your new machine.  You can call
+it whatever you want.  Including the name it currently has.  Remember, the newly-built
+LFS system will *REPLACE* the LFS-host (openSUSE); they are meant to never both be
+booted at the same time.  Don't worry about a collision.
+
+Once you've mentally settled on what these values are, take a quick peek at machine.config.in.
+There, you'll you see the parameters laid out.  But, don't start editing this file.
+Run the script.  It's nice, and it will write the values in.  Trust me--you don't want to
+try to calculate the SHA-512 hash of your password by hand.  You can't, anyway, unless you
+modify passhash.c to do some really crazy shiz.  That's why I call crypt().
+
+You're ready to configure your LFS system.  And, keep in mind that the X/LAPP build system
+is...impatient.  As soon as you've finished answering the quick questionnaire, the X/LAPP
+build system will start to build LFS for you.  At this point, you best find something else
+to do.  On a quad-core Intel i5-760, the build takes about 3 hours.
+
+	I'm running your build with MAKEFLAGS="-j 4" when it's safe to do so; when
+it's not safe to do it, I set MAKEFLAGS="-j 1" and force a serial make.
+
+When it's done, you'll see a message like this:
+
+<code>
+################################################################
+################################################################
+#
+# [ /boot/vmlinuz-3.1-lfs-7.0-20120125_165649 ] installed to /boot
+#   /boot/vmlinuz-3.1-lfs-7.0 - Updated.
+#
+#   LFS - BUILD FINISHED.  Adjust host system to boot LFS build.
+#
+################################################################
+################################################################
+</code>
+
+Now you have to "adjust the host system to boot the LFS build."
+
+4. Adjusting the LFS-host to Boot the LFS Build
+-----------------------------------------------
+[todo]
