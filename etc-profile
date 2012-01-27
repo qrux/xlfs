@@ -33,7 +33,6 @@ else
 	PS1="\h [\w] $ "
 	PS1="\[$_bgrn\]$PS1\[$_sgr0\]"
 fi
-PS1="X/L $PS1"
 export PS1
 
 unset _bred _bgrn _sgr0
