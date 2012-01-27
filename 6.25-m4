@@ -4,26 +4,6 @@
 
 make
 
-set +e
 make check
-
-#
-# This is a glibc/kernel problem (see: http://osdir.com/ml/bug-m4-gnu/2011-07/msg00002.html)
-# but it doesn't look like a serious issue (unless it's failing, and the OS is reporing a
-# bad result that we happen to ignore).
-#
-# This issue was not present in openSUSE-11.4, but is now present (ugh) in openSUSE-12.1.
-#
-if [ $? -ne 0 ] ; then
-	BAD_COUNT=$(grep FAIL: tests/test-suite.log | wc -l)
-	OK_COUNT=$(grep FAIL: tests/test-suite.log | grep -v "test-readlink.*exit.*134" | wc -l)
-	if [ 0 -eq $OK_COUNT ] ; then
-		echo "X/LAPP - Passed (with $((BAD_COUNT)) expected failures)."
-	else
-		grep FAIL: tests/test-suite.log
-		exit
-	fi
-fi
-set -e
 
 make install
