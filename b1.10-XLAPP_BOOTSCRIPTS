@@ -1,0 +1,6 @@
+#! /bin/bash
+
+cp -vf xlapp-bootscripts/bridge /lib/services/bridge
+cp -vf xlapp-bootscripts/{ifup,ifdown} /sbin/
+cp -vf xlapp-bootscripts/xlapp-domains /etc/init.d/
+
