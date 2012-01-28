@@ -79,6 +79,7 @@ http://www.linuxfromscratch.org/patches/downloads/perl/perl-5.14.2-security_fix-
 http://www.linuxfromscratch.org/patches/lfs/7.0/procps-3.2.8-fix_HZ_errors-1.patch
 http://www.linuxfromscratch.org/patches/lfs/7.0/procps-3.2.8-watch_unicode-1.patch
 http://www.linuxfromscratch.org/patches/lfs/7.0/readline-6.2-fixes-1.patch
+http://www.linuxfromscratch.org/blfs/downloads/svn/blfs-bootscripts-20111226.tar.bz2
 http://www.sudo.ws/sudo/dist/sudo-1.8.2.tar.gz
 http://alpha.gnu.org/gnu/bc/bc-1.06.95.tar.bz2
 http://www.openssl.org/source/openssl-1.0.0e.tar.gz

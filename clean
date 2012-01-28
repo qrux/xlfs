@@ -1,6 +1,5 @@
 #! /bin/bash
 
-rm -fv machine.config
 rm -fv dot.bashrc-lfs
 rm -fv lfs-05-build-as-lfs
 find src -mindepth 1 -maxdepth 1 -type d -exec rm -rfv {} \;
@@ -11,3 +10,4 @@ rm -fv certdata.txt
 rm -fv lfs.out
 rm -fv src/wl
 rm -fv tmpl
+rm -rfv blfs-bootscripts-*
