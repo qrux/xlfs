@@ -1,8 +1,9 @@
 #! /bin/bash
 
+find src -mindepth 1 -maxdepth 1 -type d -exec rm -rfv {} \;
+
 rm -fv dot.bashrc-lfs
 rm -fv lfs-05-build-as-lfs
-find src -mindepth 1 -maxdepth 1 -type d -exec rm -rfv {} \;
 
 rm -fv BLFS-ca-bundle*.crt
 rm -fv *-jail
@@ -11,3 +12,4 @@ rm -fv lfs.out
 rm -fv src/wl
 rm -fv tmpl
 rm -rfv blfs-bootscripts-*
+rm -fv passhash

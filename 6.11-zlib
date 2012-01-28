@@ -4,7 +4,7 @@ CFLAGS='-mstackrealign -fPIC -O3' ./configure --prefix=/usr
 
 make
 
-make check
+#test make check
 
 make install
 

@@ -86,15 +86,20 @@ if [ -L /tools ] ; then
 fi
 ln -sv $LFS/tools /
 
+set +e
 id lfs
 if [ 0 -eq $? ] ; then
 	echo "LFS user already existed; removing..."
 	userdel lfs
 	groupdel lfs
 fi
+set -e
 
+/bin/mv -f /etc/skel /etc/skel-ORIG
+/bin/mkdir -p /etc/skel
+/bin/chmod 0755 /etc/skel
 groupadd lfs
-useradd -s /bin/bash -g lfs -m -k /dev/null lfs
+useradd -s /bin/bash -g lfs -m lfs
 /bin/cp -fv dot.bashrc-lfs /home/lfs/.bashrc
 /bin/cp -fv dot.bash_profile-lfs /home/lfs/.bash_profile
 /bin/cp -fv lfs-05-build-as-lfs /home/lfs
@@ -124,6 +129,7 @@ echo
 #
 rm -f $__SOURCE_DIR/lfs.out
 find src -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
+ln -sf $__SOURCE_DIR/lfs.out ./lfs.out
 
 cd $__SOURCE_DIR
 time ./lfs-actual > $__SOURCE_DIR/lfs.out 2>&1
