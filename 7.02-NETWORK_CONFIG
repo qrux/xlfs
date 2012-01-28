@@ -1,11 +1,10 @@
 #! /bin/bash
 
 cd /etc/sysconfig/
-cat > ifconfig.br0 <<EOF
+cat > ifconfig.eth0 <<EOF
 ONBOOT=yes
 IFACE=eth0
-SERVICE="bridge ipv4-static"
-INTERFACES="eth0"
+SERVICE="ipv4-static"
 IP=${XLAPP_HOST_IP}
 GATEWAY=${XLAPP_HOST_GW}
 PREFIX=${XLAPP_HOST_PREFIX}

@@ -24,7 +24,7 @@ timeout 2
 # X/LAPP (Xen/LFS Apache Postgres PHP) - Not Xen
 title X/LAPP -- LFS-7.0 - 3.1 (X/LAPP - Not Xen)
 	root(hd0,0)
-	kernel /boot/vmlinuz-3.1-lfs-7.0 root=/dev/sda5 dom0_mem=1024M loglvl=all guest_loglvl=all sync_console console_to_ring
+	kernel /boot/vmlinuz-3.1-lfs-7.0 root=/dev/sda5
 
 # X/LAPP (Xen/LFS Apache Postgres PHP) - Xen Dom0
 title X/LAPP -- Xen-4.1.2 LFS-7.0 - 3.1 (X/LAPP Dom0 Kernel)

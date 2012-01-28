@@ -22,6 +22,6 @@ grpconv
 
 sed -i 's/yes/no/' /etc/default/useradd
 
-if [ -! -z $XLAPP_ROOT_PASSWD_HASH ] ; then
-	sed -i "s/^root::\(.*\)/root:$XLAPP_ROOT_PASSWD_HASH:\1/" /etc/shadow
+if [ ! -z $XLAPP_ROOT_PASSWD_HASH ] ; then
+	sed -i "s%^root:.*:\(.*\)%root:$XLAPP_ROOT_PASSWD_HASH:\1%" /etc/shadow
 fi
