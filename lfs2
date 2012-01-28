@@ -1,0 +1,4 @@
+#! /bin/bash
+
+env -i PATH=/bin:/usr/bin:/sbin:/usr/sbin ./lfs-b2-post-boot
+

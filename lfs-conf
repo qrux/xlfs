@@ -135,6 +135,18 @@ unset _PASSWD _PASSWD2
 
 ask BOOT_PART "What is the LFS partition (e.g., sda5 for /dev/sda5)?"
 
+echo
+echo -n "What is the LFS partition (e.g., sda5 for /dev/sda5)?"
+read ANSWER
+if [ -z $ANSWER ] ; then
+        echo "  [error] No LFS partition given; aborting"
+        exit 2
+fi
+ANSWER=$(basename $(echo $ANSWER))
+echo "  [ BOOT_PART ] --> $ANSWER"
+cat $BUILD_TMP | sed "s,^XLAPP_BOOT_PART=.*,XLAPP_BOOT_PART=$ANSWER," > $BUILD_TMP2
+bump
+
 ask SSH_PUBKEY "What is the SSH public key to use for root's remote login on LFS box?"
 
 ask HOST_HOSTNAME "What is the desired hostname?"
