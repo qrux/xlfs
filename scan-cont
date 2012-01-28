@@ -5,7 +5,7 @@ SLEEP=$1
 FILE=$2
 
 if [ -z $FILE ] ; then
-	FILE="/mnt/lfs/lfs/lfs.out"
+	FILE="./lfs.out"
 fi
 
 test ! -z $SLEEP || SLEEP=5
