@@ -186,14 +186,14 @@ totime()
 }
 
 echo "    Installing new lfs-7.0-linux-3.1 kernel..."
-CURRENT_TS=$(totime)
+TOTIME=$(totime)
 for file in $(echo $LFS/boot/*) ; do
 	filebase=$(basename $file)
-	cp $file /boot/$filebase-$CURRENT_TS
-	cp $file /boot
+	/bin/cp -vf $file /boot/$filebase-$TOTIME
+	/bin/cp -vf $file /boot
 done
 
-LFS_KERNEL=$(ls /boot/vmlinuz*-$CURRENT_TS)
+LFS_KERNEL=$(ls /boot/vmlinuz*-$TOTIME)
 
 echo "########################################################################"
 echo "#"

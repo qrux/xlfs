@@ -7,19 +7,18 @@ echo "Creating root's link to lfs..."
 ln -vsf /lfs /root/lfs
 
 echo "Creating push-link to lfs..."
+mkdir -pv /home/software
 ln -vsf /lfs /home/software/lfs
 
 echo "Creating HOST mount point..."
 mkdir -pv /mnt/host
 
-SNAPSHOTS_DIR=/lfs-snapshots
+SNAPSHOTS_DIR=/lfs/snapshots
 TOTIME=$(date '+%Y%m%d_%H%M%S')
 SNAPSHOT="${SNAPSHOTS_DIR}/snap-p1-${TOTIME}"
 
 mkdir -pv $SNAPSHOT
 
-echo
 echo "  Creating snapshot [ $SNAPSHOT ]..."
 time cp -ax /{bin,etc,lib,lib64,root,sbin,usr,var} $SNAPSHOT
-echo
 

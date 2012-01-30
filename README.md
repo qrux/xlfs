@@ -3,6 +3,10 @@ What is X/LAPP?
 
 X/LAPP is a take on "LAPP".  It stands for "Xen/LFS Apache Postgres PHP".
 
+It's a project that originally set out to create a LAPP stack on top of
+a Xen cluster that could be completely built from source.  It seems clear that
+it could be adapted for different types of cluster/VM deployments, and it
+seems particularly conducive to development work.
 
 I thought the 'L' in "LAPP" stood for Linux.  What's this 'LFS'?
 ----------------------------------------------------------------
@@ -50,18 +54,28 @@ as a value-add for BLFS to get you started.
 Goals
 -----
 
-I want to run a Xen cluster using an LFS-based Dom0 and LFS-based paravirtualized
-DomU's.  In fact, I plan to just clone the Dom0 system and use file-based
-disk images for Dom0.  I want to have a pure 64-bit system (i.e., no
-multilib gcc/glibc, no 32-bit toolchains, no 32-bit libs in /lib vs
-64-bit libs in /lib64).  I want to install as little as possible in Dom0
-and each of the DomU's.  That's roughly the same goal, since the DomU's
+I want to run a Xen cluster using an LFS-based Dom0 and LFS-based
+paravirtualized DomU's.  In fact, I plan to just clone the Dom0 system
+and use file-based disk images for Dom0.  I want to have a pure 64-bit
+system (i.e., no multilib gcc/glibc, no 32-bit toolchains, no 32-bit libs
+in /lib vs 64-bit libs in /lib64).  I want to install as little as possible
+in Dom0 and each of the DomU's.  That's roughly the same goal, since the DomU's
 will just be clones of Dom0.
 
-Then, in the DomU's, I want to be able to install my web-stack for my
-production applications.  I also want various DomU's available to act as
-private DNS servers or SMTP/IMAP servers.
+Originally, I narrowed my focus to just being able to install the web-stack
+on the DomU's.  It turns out, a variety of things could be done with the DomU
+stack, including serving as a testbed for new LFS builds.  A significant
+amount of effort was expended trying to keep the hardware abstracted away from
+the build scripts.  This was done by having a configuration script at the
+beginning which prompted for good values.  It turns out that with a bit more
+scripting, the entire X/LAPP build could be bootstrapped this way, and set
+to be easily deployable against a DomU once the Dom0 is built.  This would go
+a long way toward verification-testing of the DomU--especially running
+test-heavy packages like BerkeleyDB (not to mention the web-stack itself).
 
+In addition, I want to be able to deploy stripped-down DomU's that only run
+a DNS server or SMTP/IMAP server; this makes new domains easy to deploy in
+a colo server.
 
 On with it!  (Or, "Installation")
 =================================
@@ -117,7 +131,7 @@ So, start by getting the openSUSE ISO:
 	[ I'm not sure where to get 11.4 now that 12.1 is released... ]
 
 Then, run the memory test.  Yes, I'm not kidding.  If you haven't run the
-memory test, you're opening yourself up to a sh*tstorm of weird errors.  Do it.
+memory test, you're opening yourself up to a sh-tstorm of weird errors.  Do it.
 Don't complain.  If you did this when you built/received your system, then
 give yourself a pat on the back, and move on to the next step.
 
@@ -164,27 +178,26 @@ partition), and then still use /dev/sda5 for the LFS target partition.
 
 	I'm going to assume that you used /dev/sda5 for your LFS target.  If not,
 you keep that in mind, and adjust the directions accordingly.  Either way,
-specify the mount point for /dev/sda5 as [ /mnt/lfs ].
+specify the mount point for /dev/sda5 as ( /mnt/lfs ).
 
 Moving on...Get to where you choose your software packages.  Select "Other"
 (as opposed to KDE or GNOME or all that other crap), and then choose Minimal
 Text.  Once there, use the "Pattern" filter, and choose the following meta-packages:
 
-	* Kernel Dev
-	* C/C++ Dev
-	* Xen
+* Kernel Dev
+* C/C++ Dev
+* Xen
 
 Then, change to "Search" mode (i.e. no longer "Pattern"), and search for these
 packages to make your life possible/easier.  Replace 'vim' with whatever editor
 you're comfortable with.  But, I install 'vim' again for X/LAPP.  If you'd
 rather have something else, do your own investigations.
 
-	* vim
-	* expect
-	* man
-	* man-pages
-	* man-pages-posix
-	* sysstat
+* vim
+* expect
+* man
+* man-pages
+* man-pages-posix
 
 Now, enable SSH, and turn off the firewall.  Why SSH?  Because I connected to this
 machine from my laptop to write/run the scripts.  if you want to work at the console,
