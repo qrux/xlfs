@@ -1,0 +1,47 @@
+#! /bin/bash
+
+cd /etc/sysconfig
+
+for INTERFACE_FILE in $(echo ifconfig.eth*) ; do
+	INTERFACE=$(basename ${INTERFACE_FILE} | cut -d \. -f 2)
+	IFNUM=$(echo $INTERFACE | sed 's/^eth//')
+	BRIDGE_IF="br${IFNUM}"
+	BRIDGE_FILE="ifconfig.${BRIDGE_IF}"
+
+	if [ -f $BRIDGE_FILE ] ; do
+		echo "  The bridge config [ $BRIDGE_FILE ] appears to exist; skipping."
+		continue;
+	fi
+
+	# Take down old interface
+	echo "Taking down old interface [ $INTERFACE ]..."
+	/sbin/ifdown $INTERFACE
+
+	# Load settings
+	echo "Loading old interface config..."
+	. $INTERFACE_FILE
+
+	# Create new bridge config file
+	echo "Creating new bridge config file [ $BRIDGE_FILE ]..."
+	cp $INTERFACE_FILE $BRIDGE_FILE
+
+	# Move old interface config out of the way
+	echo "Moving old interface out of the way [ -> NOSTART_${INTERFACE} ]..."
+	mv $INTERFACE_FILE NOSTART-${INTERFACE}
+
+	# Changing name from eth<N> to br<N>
+	echo "Changing name in bridge interface from [ $INTERFACE ] to [ $BRIDGE_IF ]..."
+	sed -i "s/IFACE=.*/IFACE=\"${BRIDGE_IF}\"/" $BRIDGE_FILE
+
+	# Add "bridge" to services (e.g., SERVICE="bridge ipv4-static")
+	echo "Adding 'bridge' to services..."
+	sed -i "s/SERVICE=.*/SERVICE=\"bridge ${SERVICE}\"/" $BRIDGE_FILE
+
+	# Enslaving old interface
+	echo "Enslaving physical port [ $INTERFACE ] to bridge [ $BRIDGE_IF ]..."
+	echo "INTERFACES=${INTERFACE}" >> $BRIDGE_FILE
+
+	# Bring up new interface
+	echo "Bringing up new interface [ $BRIDGE_IF ]..."
+	/sbin/ifup $BRIDGE_IF
+done

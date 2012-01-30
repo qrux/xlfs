@@ -1,4 +1,35 @@
 #! /bin/bash
 
-env -i PATH=/bin:/usr/bin:/sbin:/usr/sbin ./lfs-b2-post-boot
+echo "########################################################################"
+echo "#"
+echo "#      -----=====> Starting X/LAPP (Phase 2) build... <=====-----"
+echo "#"
+echo "########################################################################"
+
+if [ ! -e /etc/lfs-release ] ; then
+	echo "  This does not look like the X/LAPP install."
+	echo "    (No /etc/lfs-release) found; aborting"
+	exit 1
+fi
+
+echo "  Setting permissions..."
+sudo chown -R blfs:blfs /lfs
+
+echo "  Starting build..."
+time env -i PATH=/bin:/usr/bin:/sbin:/usr/sbin ./lfs-b2-post-boot
+
+if [ 0 -ne $? ] ; then
+echo "########################################################################"
+echo "#"
+echo "#       -----=====> X/LAPP (Phase 2) build FAILED <=====-----"
+echo "#"
+echo "########################################################################"
+exit 1
+else
+echo "########################################################################"
+echo "#"
+echo "#      -----=====> X/LAPP (Phase 2) build successful <=====-----"
+echo "#"
+echo "########################################################################"
+fi
 
