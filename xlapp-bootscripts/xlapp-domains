@@ -35,8 +35,8 @@ XLAPP_INTERVAL_BETWEEN_DOTS=1
 CMD="${1}"
 
 if [ ! -x ${XLAPP_COMMAND} ] ; then
-	log_failure_msg "Xen domain-management command [ ${XLAPP_COMMAND} ] missing; aborting"
-	exit 1
+	log_warning_msg "Xen domain-management command [ ${XLAPP_COMMAND} ] missing; aborting"
+	exit
 fi
 
 case "${CMD}" in

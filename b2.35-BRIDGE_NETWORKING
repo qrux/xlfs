@@ -8,7 +8,7 @@ for INTERFACE_FILE in $(echo ifconfig.eth*) ; do
 	BRIDGE_IF="br${IFNUM}"
 	BRIDGE_FILE="ifconfig.${BRIDGE_IF}"
 
-	if [ -f $BRIDGE_FILE ] ; do
+	if [ -f $BRIDGE_FILE ] ; then
 		echo "  The bridge config [ $BRIDGE_FILE ] appears to exist; skipping."
 		continue;
 	fi

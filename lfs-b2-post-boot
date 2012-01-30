@@ -11,5 +11,7 @@ cd /lfs
 find src -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
 chmod a+rw src
 pwd
-./build-all -s b2.01 -e b2.30
+su -c "./build-all -s b2.01 -e b2.20" blfs
+
+./build-all -s b2.30 -e b2.35
 

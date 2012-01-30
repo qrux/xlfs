@@ -13,7 +13,7 @@ if [ ! -e /etc/lfs-release ] ; then
 fi
 
 echo "  Setting permissions..."
-sudo chown -R blfs:blfs /lfs
+chown -R blfs:blfs /lfs
 
 echo "  Starting build..."
 time env -i PATH=/bin:/usr/bin:/sbin:/usr/sbin ./lfs-b2-post-boot
@@ -28,7 +28,13 @@ exit 1
 else
 echo "########################################################################"
 echo "#"
-echo "#      -----=====> X/LAPP (Phase 2) build successful <=====-----"
+echo "#      -----=====> X/LAPP (Phase 2) build successful! <=====-----"
+echo "#"
+echo "#  * Adjust X/LAPP system to boot Xen Hypervisor/Dom0 kernel."
+echo "#"
+echo "#  * Xen Hypervisor [ xen-4.1.2.gz ] installed to /boot."
+echo "#"
+echo "#  * Reboot system after boot-adjustment to run Dom0!"
 echo "#"
 echo "########################################################################"
 fi
