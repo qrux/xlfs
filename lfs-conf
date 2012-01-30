@@ -54,31 +54,32 @@ ask()
 }
 
 if [ -e $BUILD_CONF ] ; then
-	echo "Using config file [ $BUILD_CONF ] for X/LAPP build..."
-	echo
-	echo "  There is already a config file here."
-	echo -n "  Are you SURE you want to overwrite ('yes' to change)? [N/y] "
+	#echo "  Using config file [ $BUILD_CONF ] for X/LAPP build..."
+	#echo
+	echo "    There is already a config file here."
+	echo -n "      Keep?  <Enter> to 'keep', or 'new' to overwrite --> "
 	read _ANSWER
-	test -z $_ANSWER && _ANSWER="no"
+	test -z $_ANSWER && _ANSWER="keep"
 	_ANSWER=$(echo $_ANSWER | tr [:upper:] [:lower:])
-	if [ "yes" == $_ANSWER ] ; then
+	if [ "new" == $_ANSWER ] ; then
 		echo
-		echo "All right; overwriting old configuration..."
+		echo "    Creating new configuration..."
 	else
 		echo
-		echo "Preserving old configuration in [ $BUILD_CONF ]."
-		echo "  Exiting with NO changes."
-		exit 0
+		echo "    Preserving existing configuration in [ $BUILD_CONF ]."
+		exit
 	fi
 	. $BUILD_CONF
 else
-	echo "The config file for this X/LAPP build doesn't exist."
-	echo "  Running config program..."
+	echo "    The config file for this X/LAPP build doesn't exist; creating one."
 	. $BUILD_INPUT
 fi
 
 cp $BUILD_INPUT $BUILD_TMP
 
+#
+# LFS partition mount-point
+#
 echo
 echo -n "What is the LFS partition mount point (e.g., \$LFS)? "
 read ANSWER
@@ -89,6 +90,26 @@ fi
 echo "  [ LFS ] --> $ANSWER"
 cat $BUILD_TMP | sed "s,^XLAPP_LFS=.*,XLAPP_LFS=$ANSWER," > $BUILD_TMP2
 bump
+
+#
+# LFS partition (disk device)
+#
+echo
+echo -n "What is the LFS partition (e.g., sda5 for /dev/sda5)? "
+read ANSWER
+if [ -z $ANSWER ] ; then
+        echo "  [error] No LFS partition given; aborting"
+        exit 2
+fi
+ANSWER=$(basename $(echo $ANSWER))
+echo "  [ BOOT_PART ] --> $ANSWER"
+cat $BUILD_TMP | sed "s,^XLAPP_BOOT_PART=.*,XLAPP_BOOT_PART=$ANSWER," > $BUILD_TMP2
+bump
+
+#
+# LFS partition type
+#
+ask BOOT_FSTYPE "What is the LFS partition type (ext2|ext3|ext4)?"
 
 #
 # New root password
@@ -133,20 +154,6 @@ while [ "$_PASSWD" != "$_PASSWD2" ] ; do
 done
 unset _PASSWD _PASSWD2
 
-ask BOOT_PART "What is the LFS partition (e.g., sda5 for /dev/sda5)?"
-
-echo
-echo -n "What is the LFS partition (e.g., sda5 for /dev/sda5)?"
-read ANSWER
-if [ -z $ANSWER ] ; then
-        echo "  [error] No LFS partition given; aborting"
-        exit 2
-fi
-ANSWER=$(basename $(echo $ANSWER))
-echo "  [ BOOT_PART ] --> $ANSWER"
-cat $BUILD_TMP | sed "s,^XLAPP_BOOT_PART=.*,XLAPP_BOOT_PART=$ANSWER," > $BUILD_TMP2
-bump
-
 ask SSH_PUBKEY "What is the SSH public key to use for root's remote login on LFS box?"
 
 ask HOST_HOSTNAME "What is the desired hostname?"
@@ -179,9 +186,9 @@ echo
 echo "################################################################"
 grep "^export\s*XLAPP_" $BUILD_CONF | sed 's/^export\s*//'
 echo "################################################################"
-
-echo
-echo "  Configuration complete; data written to [ $BUILD_CONF ]."
-echo
-echo "    (To change, just run this script again, and answer 'yes')"
-echo
+echo "#"
+echo "# Configuration complete; data written to [ $BUILD_CONF ]."
+echo "#"
+echo "#   * To change, just run this script again, and answer 'new'."
+echo "#"
+echo "################################################################"

@@ -2,6 +2,14 @@
 set -e
 set +h
 
+echo "########################################################################"
+echo "#"
+echo "#         -----=====> Starting X/LAPP build... <=====-----"
+echo "#"
+echo "########################################################################"
+echo
+echo "  Looking for config file..."
+
 XLAPP_CONFIG_FILE=machine.config
 
 ./lfs-conf
@@ -11,21 +19,29 @@ if [ ! -e $XLAPP_CONFIG_FILE ] ; then
 	false
 fi
 
+#
+# Source the newly-created config file.
+#
 . $XLAPP_CONFIG_FILE
+
 if [ -z $XLAPP_LFS ] ; then
 	echo "  Problem with X/LAPP config file (XLAPP_LFS is not set); aborting"
 	false
 fi
 
+echo "  Setting \$LFS to [ ${XLAPP_LFS} ]..."
 export LFS=$XLAPP_LFS
 export __SOURCE_DIR="${LFS}/lfs"
 
+echo "  Creating .bashrc for LFS-user, and lfs-05-buid-as-lfs..."
 LFS_DOT_BASHRC=dot.bashrc-lfs
-#cat ${LFS_DOT_BASHRC}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS,"
 cat ${LFS_DOT_BASHRC}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $LFS_DOT_BASHRC
 LFS_05_BUILD=lfs-05-build-as-lfs
 cat ${LFS_05_BUILD}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $LFS_05_BUILD
+unset LFS_DOT_BASHRC
+unset LFS_05_BUILD
 
+echo -n "  Skipping tests? "
 unset SKIP_TESTS
 while getopts "n" OPT ; do
 	case "$OPT" in
@@ -33,37 +49,46 @@ while getopts "n" OPT ; do
 		?) echo "Unknown option $OPT; continuing...";;
 	esac
 done
+if [ ! -z $SKIP_TESTS ] ; then echo "Yes." ; else echo "No." ; fi
 
+echo "  Checking \$LFS var..."
 # We need to test if $LFS is /; if so, abort.  Otherwise, this will be devastating.
 if [ -z $LFS ] ; then echo "LFS is unset, which is improper; aborting!!" ; exit ; fi
 if [ "$LFS" == "" ] ; then echo "LFS is set to an empty string, an invalid value; aborting!!" ; exit ; fi
 if [ "$LFS" == "/" ] ; then echo "LFS is set to the root directory, an invalid value; aborting!!" ; exit ; fi
-pushd $LFS
-if [ $(pwd) == "/" ] ; then echo "LFS is equivalent to the root directory, which is improper; aborting!!" ; exit ; fi
-popd
 
-set +e
-umount $LFS/sys
-umount $LFS/proc
-umount $LFS/dev/pts
-umount $LFS/dev/shm
-umount $LFS/dev
-set -e
-
-mkdir -pv $LFS
-
-mount | grep "$LFS"
-if [ 0 == $? ] ; then
-	echo "LFS partition already mounted; unmounting"
-	umount $LFS
+if [ -d $LFS ] ; then
+	pushd $LFS > /dev/null
+	if [ $(pwd) == "/" ] ; then echo "LFS is equivalent to the root directory, which is improper; aborting!!" ; exit ; fi
+	popd > /dev/null
 fi
 
-mount -v $LFS
+echo "  Unmounting LFS partitions..."
+set +e
+umount $LFS/sys 2> /dev/null
+umount $LFS/proc 2> /dev/null
+umount $LFS/dev/pts 2> /dev/null
+umount $LFS/dev/shm 2> /dev/null
+umount $LFS/dev 2> /dev/null
+umount $LFS 2> /dev/null
+umount /dev/${XLAPP_BOOT_PART} 2> /dev/null
+set -e
+
+echo "  Make sure LFS mount point [ $LFS ] exists..."
+mkdir -pv $LFS
+
+echo "  Create LFS partition filesystem..."
+mkfs -t ${XLAPP_BOOT_FSTYPE} /dev/${XLAPP_BOOT_PART}
+
+echo "  Mounting LFS partition [ ${XLAPP_BOOT_PART} ] at [ ${LFS} ]..."
+mount /dev/${XLAPP_BOOT_PART} $LFS
 rm -rf $LFS/*
 
+echo "  Creating LFS work directory [ ${__SOURCE_DIR} ]..."
 mkdir -pv $__SOURCE_DIR
 chmod -v a+wt $__SOURCE_DIR
 
+echo "  Copying X/LAPP scripts..."
 cp -a * $__SOURCE_DIR
 if [ -z $SKIP_TESTS ] ; then
 	for CHAP_SIX_PKG in $(grep -l "^#test " 6*) ; do
@@ -72,6 +97,7 @@ if [ -z $SKIP_TESTS ] ; then
 	done
 fi
 
+echo "  Checking MD5 sums on packages..."
 pushd $__SOURCE_DIR/src
 md5sum -c md5sums
 if [ 0 -ne $? ] ; then echo "MD5 sums failed to match; aborting hard." ; exit 1 ; fi
@@ -80,12 +106,14 @@ popd
 #
 # Starting book
 #
+echo "  Starting LFS build..."
 mkdir -pv $LFS/tools
 if [ -L /tools ] ; then
 	rm -f /tools
 fi
 ln -sv $LFS/tools /
 
+echo "    Adding LFS user (lfs) to LFS-host system..."
 set +e
 id lfs
 if [ 0 -eq $? ] ; then
@@ -111,18 +139,20 @@ chown -v lfs:lfs $__SOURCE_DIR
 chown -Rv lfs:lfs $__SOURCE_DIR/src
 
 if [ ! -z $SKIP_TESTS ] ; then
-	_EXTRA_BUILD_MESSAGE="system (WITHOUT tests)"
+	_EXTRA_BUILD_MESG=" Quick Build (no test)"
 else
-	_EXTRA_BUILD_MESSAGE="FULLY-TESTED system"
+	_EXTRA_BUILD_MESG=" Verified Build (with ALL tests)"
 fi
 
-echo
-echo
-echo "  LFS-preparation is ready; building X/LAPP ${_EXTRA_BUILD_MESSAGE}..."
-echo
-echo "    (Use tail -f $__SOURCE_DIR/lfs.out to see build output.)"
-echo
-echo
+echo "########################################################################"
+echo "#"
+echo "# Building X/LAPP (Phase 1) - ${_EXTRA_BUILD_MESG}..."
+echo "#"
+echo "#   * Use tail -f lfs.out to see build outout."
+echo "#"
+echo "#   * This process will not produce more output until completion."
+echo "#"
+echo "########################################################################"
 
 #
 # Start compiling stuff!
@@ -132,7 +162,19 @@ find src -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
 ln -sf $__SOURCE_DIR/lfs.out ./lfs.out
 
 cd $__SOURCE_DIR
+set +e
 time ./lfs-actual > $__SOURCE_DIR/lfs.out 2>&1
+
+if [ 0 -ne $? ] ; then
+	echo "########################################################################"
+	echo "#"
+	echo "# -----=====> X/LAPP (Phase 1) build FAILED. <=====-----"
+	echo "#"
+	echo "#   See lfs.out for more information."
+	echo "#"
+	echo "########################################################################"
+fi
+set -e
 
 #
 # Copy the kernel to the existing /boot...
@@ -142,6 +184,7 @@ totime()
 	date '+%Y%m%d_%H%M%S'
 }
 
+echo "    Installing new lfs-7.0-linux-3.1 kernel..."
 CURRENT_TS=$(totime)
 for file in $(echo $LFS/boot/*) ; do
 	filebase=$(basename $file)
@@ -151,15 +194,15 @@ done
 
 LFS_KERNEL=$(ls /boot/vmlinuz*-$CURRENT_TS)
 
-echo "################################################################"
-echo "################################################################"
+echo "########################################################################"
 echo "#"
-echo "# [ $LFS_KERNEL ] installed to /boot"
-echo "#   /boot/vmlinuz-3.1-lfs-7.0 - Updated."
+echo "#     -----=====> X/LAPP (Phase 1) build successful. <=====-----"
 echo "#"
-echo "#   LFS - BUILD FINISHED.  Adjust host system to boot LFS build."
+echo "# * Adjust host system to boot LFS build."
 echo "#"
-echo "################################################################"
-echo "################################################################"
-
+echo "# * Dom0-capable kernel [ $LFS_KERNEL ] installed to /boot."
+echo "#"
+echo "# * Reboot system after boot-adjustment to begin X/LAPP (Phase 2)."
+echo "#"
+echo "########################################################################"
 
