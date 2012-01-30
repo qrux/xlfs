@@ -173,6 +173,7 @@ if [ 0 -ne $? ] ; then
 	echo "#   See lfs.out for more information."
 	echo "#"
 	echo "########################################################################"
+	exit 1
 fi
 set -e
 

@@ -1,0 +1,9 @@
+#! /bin/bash
+
+FILE=$1
+
+if [ -z $FILE ] ; then
+	FILE="./lfs.out"
+fi
+
+cat $FILE | egrep "BUILDING - |RUNNING - |successfully;|^real.*[0-9]+"

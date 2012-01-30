@@ -4,6 +4,7 @@
 
 make
 
+#test export MAKEFLAGS="-j 1"
 #test make check
 
 make install

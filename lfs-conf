@@ -75,6 +75,8 @@ else
 	. $BUILD_INPUT
 fi
 
+_REDO=1
+while [ ! -z ${_REDO} ] ; do # MAIN LOOP
 cp $BUILD_INPUT $BUILD_TMP
 
 #
@@ -95,7 +97,7 @@ bump
 # LFS partition (disk device)
 #
 echo
-echo -n "What is the LFS partition (e.g., sda5 for /dev/sda5)? "
+echo -n "What is the LFS partition (e.g., /dev/sda5)? "
 read ANSWER
 if [ -z $ANSWER ] ; then
         echo "  [error] No LFS partition given; aborting"
@@ -110,6 +112,26 @@ bump
 # LFS partition type
 #
 ask BOOT_FSTYPE "What is the LFS partition type (ext2|ext3|ext4)?"
+
+#
+# Host partition (disk device)
+#
+echo
+echo -n "What is the HOST (current boot) partition (e.g., /dev/sda1)? "
+read ANSWER
+if [ -z $ANSWER ] ; then
+        echo "  [error] No LFS partition given; aborting"
+        exit 2
+fi
+ANSWER=$(basename $(echo $ANSWER))
+echo "  [ HOST_PART ] --> $ANSWER"
+cat $BUILD_TMP | sed "s,^XLAPP_HOST_PART=.*,XLAPP_HOST_PART=$ANSWER," > $BUILD_TMP2
+bump
+
+#
+# HOST partition type
+#
+ask HOST_FSTYPE "What is the HOST partition type (ext2|ext3|ext4)?"
 
 #
 # New root password
@@ -131,7 +153,7 @@ while [ "$_PASSWD" != "$_PASSWD2" ] ; do
 	fi
 	_PASSWD=$(./passhash $_PASSWD $_PASS_SALT)
 
-	echo -n "  Please re-enter the new root password for LFS: "
+	echo -n "       Please re-enter the new root password for LFS: "
 	stty -echo && \
   	read _PASSWD2
 	stty echo && echo
@@ -181,10 +203,20 @@ echo "  Creating machine.config from answers..."
 echo
 cat $BUILD_TMP | sed 's/^XLAPP_/export XLAPP_/' > $BUILD_CONF
 
+echo "################################################################"
+echo
 echo "These are the settings..."
 echo
-echo "################################################################"
-grep "^export\s*XLAPP_" $BUILD_CONF | sed 's/^export\s*//'
+grep "^export\s*XLAPP_" $BUILD_CONF | sed 's/^export\s*/\ \ /' | sed G
+echo -n "Are these settings good (<enter> for 'yes', otherwise, 'no')? "
+read ANSWER
+if [ "no" == "$ANSWER" ] ; then 
+	. $BUILD_CONF
+	echo "Redoing questions..."
+else
+	unset _REDO
+fi
+done # MAIN LOOP
 echo "################################################################"
 echo "#"
 echo "# Configuration complete; data written to [ $BUILD_CONF ]."

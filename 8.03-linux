@@ -2,8 +2,7 @@
 
 make mrproper
 
-#cp ../xlapp-linux-3.1-kernel.config .config
-cp ../xlapp-linux-3.1-kernel-blkback.config .config
+cp ../../xlapp-linux-3.1-dom0.config .config
 make oldconfig
 
 make
