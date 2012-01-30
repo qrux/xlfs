@@ -1,9 +1,24 @@
 #! /bin/bash
 
-FILE=$1
+LFS_TIME="-1"
+SLEEP=$1
+FILE=$2
 
 if [ -z $FILE ] ; then
 	FILE="./lfs.out"
 fi
 
-cat $FILE | egrep "BUILDING - |RUNNING - |successfully;|^real.*[0-9]+"
+test ! -z $SLEEP || SLEEP=5
+
+while true ; do
+	_LFS_TIME=$(./scan-time $FILE)
+	if [ $LFS_TIME != $_LFS_TIME ] ; then
+		clear
+		cat $FILE | grep "successfully;" | cut -d ";" -f 1 | sed 's/\(.*\)/    \1/'
+		LFS_TIME=$_LFS_TIME
+		SHORT_TIME=$(echo $LFS_TIME | sed 's/\([0-9]*\)\.\([0-9]\)[0-9]*/\1\.\2/')
+		echo "Total time spent building LFS: ${SHORT_TIME}m"
+	fi
+
+	sleep $SLEEP
+done
