@@ -28,3 +28,8 @@ su:S016:once:/sbin/sulogin
 
 # End /etc/inittab
 EOF
+
+echo "Moving /usr/bin/head to /bin/head, and making symlink in /usr/bin..."
+/bin/mv -vf /usr/bin/head /bin/head
+/bin/ln -vsf /bin/head /usr/bin/head
+

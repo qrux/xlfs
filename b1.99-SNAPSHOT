@@ -10,8 +10,9 @@ echo "Creating push-link to lfs..."
 mkdir -pv /home/software
 ln -vsf /lfs /home/software/lfs
 
-echo "Creating HOST mount point..."
+echo "Creating HOST and HOST/HOME mount point..."
 mkdir -pv /mnt/host
+mkdir -pv /mnt/home
 
 SNAPSHOTS_DIR=/lfs/snapshots
 TOTIME=$(date '+%Y%m%d_%H%M%S')

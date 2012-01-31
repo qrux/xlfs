@@ -25,7 +25,7 @@
 
 . /lib/lsb/init-functions
 
-XLAPP_COMMAND=/usr/bin/xl
+XLAPP_COMMAND=/usr/sbin/xl
 XLAPP_AUTO_DOMAIN_DIR=/etc/xen/auto
 XLAPP_RUN_DIR=/var/run/xlapp
 XLAPP_SHUTDOWN_TIMEOUT=60
@@ -41,6 +41,7 @@ fi
 
 case "${CMD}" in
 start)
+	test 0 -eq $(ls -1 ${XLAPP_AUTO_DOMAIN_DIR}/* 2> /dev/null | wc -l) && (log_info_msg "No auto-domain definitions found; exiting." ; exit)
 	log_info_msg "Starting Xen Domains...\n"
 	for _XD in $(echo ${XLAPP_AUTO_DOMAIN_DIR}/*) ; do
 		_XDNAME=$(basename ${_XD} | cut -d '.' -f 1)
@@ -52,9 +53,10 @@ start)
 	;;
 
 stop)
+	test 0 -eq $(ls -1 ${XLAPP_RUN_DIR}/start-* 2> /dev/null | wc -l) && (log_info_msg "No domains started; exiting." ; exit)
 	log_info_msg "Stopping Xen Domains...\n"
 	_XDLIST="echo $(xl list | egrep -v "^Name[[:space:]]|^Domain-0[[:space:]]" | awk '{print $1}')"
-	for _XD in $(${_XDLIST}) ; do
+	for _XD in "$(${_XDLIST})" ; do
 		log_info_msg "  Shutting-down [ ${_XD} ] DomU..."
 		${XLAPP_COMMAND} shutdown ${_XD} > ${XLAPP_RUN_DIR}/stop-${_XD} 2>&1
 		# Wait 10 seconds, and see if the VM actually stopped...
