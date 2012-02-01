@@ -185,15 +185,12 @@ totime()
 	date '+%Y%m%d_%H%M%S'
 }
 
-echo "    Installing new lfs-7.0-linux-3.1 kernel..."
-TOTIME=$(totime)
+echo "    Installing new Dom0-capaable kernel: lfs-7.0-linux-3.1..."
 for file in $(echo $LFS/boot/*) ; do
-	filebase=$(basename $file)
-	/bin/cp -vf $file /boot/$filebase-$TOTIME
 	/bin/cp -vf $file /boot
 done
 
-LFS_KERNEL=$(ls /boot/vmlinuz*-$TOTIME)
+LFS_KERNEL=$(ls /boot/vmlinuz*-Dom0)
 
 echo "########################################################################"
 echo "#"

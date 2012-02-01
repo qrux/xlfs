@@ -1,0 +1,52 @@
+# vim: set syn=sh : set filetype=sh
+##############################################################################
+#
+# Function to get answers for X/LAPP
+#
+##############################################################################
+
+bump()
+{
+        if [ -f $BUILD_TMP2 ] ; then
+                cp $BUILD_TMP2 $BUILD_TMP
+                rm -f $BUILD_TMP2
+        fi
+}
+
+ask()
+{
+	_VARNAME=$1
+	_QUESTION=$2
+
+	if [ -z $_VARNAME ] ; then 
+		echo "ask() requires at least one arguments: <varname> [default-val]"
+		exit 1
+	fi
+
+	_VARNAME="XLAPP_${_VARNAME}"
+	_DEFAULT="$(eval echo \$$_VARNAME)"
+	_ANSWER=""
+
+	while [ "" == "$_ANSWER" ] ; do
+		echo
+		echo -n "$_QUESTION "
+		test "" != "$_DEFAULT" && echo -n "[$_DEFAULT] "
+		#if [ ! -z $_DEFAULT ] ; then echo -n "[$_DEFAULT] " ; fi
+
+		read _ANSWER
+		if [ -z "$_ANSWER" ] ; then
+			if [ -z "$_DEFAULT" ] ; then
+				echo "  [error] No answer given for $_VARNAME, and no default is allowed."
+				echo "  [error]   Please try again..."
+				continue
+			else
+				_ANSWER="$_DEFAULT"
+			fi
+		fi
+	done
+
+	echo "  [ $_VARNAME ] --> $_ANSWER"
+	cat $BUILD_TMP | \
+	  sed "s,^${_VARNAME}=.*,${_VARNAME}=\"$_ANSWER\"," > $BUILD_TMP2
+	bump
+}

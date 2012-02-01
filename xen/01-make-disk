@@ -1,0 +1,27 @@
+#! /bin/bash
+
+IMAGE=$1
+SIZE=$2
+FSTYPE=ext3
+
+if [ -z $IMAGE ] ; then
+	echo
+	echo "  Usage: $0 <xen-image-file> [image-size-in-megabytes]"
+	echo
+	exit 1
+fi
+
+if [ -e $IMAGE ] ; then
+	echo
+	echo "  Image-file [ $IMAGE ] already exists; fix & rerun; exiting."
+	echo
+	exit
+fi
+
+test -z $SIZE && SIZE=4096
+
+echo "Making $SIZE MB $FSTYPE image [ $IMAGE ]..."
+
+dd if=/dev/zero of=$IMAGE bs=1024k seek=$SIZE count=0
+
+mkfs -F -t $FSTYPE $IMAGE

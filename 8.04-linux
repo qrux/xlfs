@@ -1,0 +1,22 @@
+#! /bin/bash
+
+make mrproper
+
+cp ../../xlapp-linux-3.1-domU.config .config
+make oldconfig
+
+make
+
+make modules_install
+
+TOTIME=$(totime)
+
+cp -v arch/x86/boot/bzImage /boot/vmlinuz-3.1-lfs-7.0-DomU-$TOTIME
+cp -v arch/x86/boot/bzImage /boot/vmlinuz-3.1-lfs-7.0-DomU
+
+cp -v System.map /boot/System.map-3.1-DomU-$TOTIME
+cp -v System.map /boot/System.map-3.1-DomU
+
+cp -v .config /boot/config-3.1-DomU-$TOTIME
+cp -v .config /boot/config-3.1-DomU
+

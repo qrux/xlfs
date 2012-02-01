@@ -1,7 +1,5 @@
 #! /bin/bash
 
-CURRENT_TS=$(date '+%Y%m%d_%H%M%S')
-
 set +e
 mount | grep /mnt/host
 if [ 0 -ne $? ] ; then
@@ -12,15 +10,9 @@ set -e
 
 echo "* Installing new kernel and hypervisor..."
 cd /boot
-for file in \
-  config-3.1 \
-  System.map-3.1 \
-  vmlinuz-3.1-lfs-7.0 \
-  xen-4.1.2.gz \
-  xen-syms-4.1.2
+for file in *
 do
 	if [ -f $file ] ; then
-		/bin/cp -vf $file /mnt/host/boot/$file-$CURRENT_TS
 		/bin/cp -vf $file /mnt/host/boot
 	fi
 done

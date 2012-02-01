@@ -1,0 +1,170 @@
+#! /bin/bash
+
+export XLAPP_DOMU_HOSTNAME=$1
+export XLAPP_DOMU_DNS_DOMAIN_NAME=$2
+
+if [ -z $XLAPP_DOMU_DNS_DOMAIN_NAME ] ; then
+	echo
+	echo "  Usage: $0 <DomU-hostname> <DomU_DNS_domain_name>"
+	echo
+	exit
+fi
+
+DOMU_CONF_DIR="${XLAPP_DOMU_HOSTNAME}"
+
+. ask
+
+BUILD_CONF="${XLAPP_DOMU_HOSTNAME}.config"
+BUILD_INPUT="${BUILD_CONF}.in"
+BUILD_TMP=".${BUILD_CONF}"
+BUILD_TMP2="${BUILD_TMP}_"
+
+/bin/cp -f domu.config.in $BUILD_INPUT
+sed -i "s/XLAPP_DOMU_HOSTNAME=.*/XLAPP_DOMU_HOSTNAME=$XLAPP_DOMU_HOSTNAME/" $BUILD_INPUT
+sed -i "s/XLAPP_DOMU_DNS_DOMAIN_NAME=.*/XLAPP_DOMU_DNS_DOMAIN_NAME=$XLAPP_DOMU_DNS_DOMAIN_NAME/" $BUILD_INPUT
+
+echo "input file: $BUILD_INPUT"
+
+unset KEEP_CONFIG
+if [ -e $BUILD_CONF ] ; then
+        echo "    There is already a DomU config file named ${BUILD_CONF}."
+        echo -n "      Keep?  <Enter> to 'keep', or 'new' to overwrite --> "
+        read _ANSWER
+        test -z $_ANSWER && _ANSWER="keep"
+	_ANSWER=$(echo $_ANSWER | tr [:upper:] [:lower:])
+        if [ "new" == $_ANSWER ] ; then
+                echo
+                echo "    Creating new configuration and removing conf dir ${DOMU_CONF_DIR}..."
+		if [ -d ${DOMU_CONF_DIR} ] ; then
+			rm -rf ${DOMU_CONF_DIR}
+		fi
+        else
+                echo
+                echo "    Preserving existing configuration in [ $BUILD_CONF ]."
+		echo "    Preserving configuration files in [ $DOMU_CONF_DIR ]."
+		exit
+        fi
+        . $BUILD_CONF
+else
+        echo "    The config file for this DomU doesn't exist; creating one."
+        . $BUILD_INPUT
+fi
+
+/bin/cp -f $BUILD_INPUT $BUILD_TMP
+
+ask DOMU_SWAP "DomU - Use swap?"
+ask DOMU_HOST_IP "DomU - IP?"
+ask DOMU_HOST_GW "DomU - Gateway IP?"
+ask DOMU_HOST_PREFIX "DomU - Network Prefix (e.g., 24 for a class-C)?"
+ask DOMU_HOST_BCAST "DomU - Network Broadcast (e.g., 192.168.0.255)?"
+
+echo "  Writing config to $BUILD_CONF..."
+/bin/mv -vf $BUILD_TMP $BUILD_CONF
+/bin/rm -vf $BUILD_TMP2 $BUILD_INPUT
+
+. $BUILD_CONF
+
+echo "    DomU -    Hostname? $XLAPP_DOMU_HOSTNAME"
+echo "    DomU -  DNS Domain? $XLAPP_DOMU_DNS_DOMAIN_NAME"
+echo "    DomU -    Use swap? $XLAPP_DOMU_SWAP"
+echo "    DomU -          IP? $XLAPP_DOMU_HOST_IP"
+echo "    DomU -          GW? $XLAPP_DOMU_HOST_GW"
+echo "    DomU -      Prefix? $XLAPP_DOMU_HOST_PREFIX"
+echo "    DomU -   Broadcast? $XLAPP_DOMU_HOST_BCAST"
+
+/bin/mkdir -pv ${DOMU_CONF_DIR}/etc/sysconfig
+
+if [ ! -d ${DOMU_CONF_DIR} ] ; then
+	echo "Cannot create directory structure for DomU configuration files; exiting."
+	exit
+fi
+
+echo "  Creating /etc/fstab..."
+cat > ${DOMU_CONF_DIR}/etc/fstab <<EOF
+# Begin /etc/fstab
+
+# file system  mount-point  type   options         dump  fsck
+#                                                        order
+/dev/xvda1     /            ext3   defaults        1     1
+EOF
+
+if [ "yes" == $XLAPP_DOMU_SWAP ] ; then
+	echo "    Adding swap in /etc/fstab..."
+	cat >> ${DOMU_CONF_DIR}/etc/fstab <<EOF
+/dev/xvda2     none         swap   sw              0     0
+EOF
+fi
+
+echo "    Finishing /etc/fstab..."
+cat >> ${DOMU_CONF_DIR}/etc/fstab <<EOF
+none           /proc        proc   defaults        0     0
+none           /sys         sysfs  defaults        0     0
+none           /dev/pts     devpts gid=4,mode=620  0     0
+none           /run         tmpfs  defaults        0     0
+# End /etc/fstab
+EOF
+
+echo "  Creating /etc/hosts..."
+cat > ${DOMU_CONF_DIR}/etc/hosts <<EOF
+# Begin /etc/hosts (network card version)
+
+127.0.0.1 localhost
+
+# IP			HOSTNAME		[alias1, alias 2, ...]
+${XLAPP_DOMU_HOST_IP}	${XLAPP_DOMU_HOSTNAME}.${XLAPP_DOMU_DNS_DOMAIN_NAME}	${XLAPP_DOMU_HOSTNAME}
+
+# End /etc/hosts (network card version)
+EOF
+
+echo "  Creating /etc/passwd..."
+cat > ${DOMU_CONF_DIR}/etc/passwd <<EOF
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/dev/null:/bin/false
+nobody:x:99:99:Unprivileged User:/dev/null:/bin/false
+lfs:x:101:101:LFS User:/home/lfs:/bin/bash
+blfs:x:202:202:BLFS User:/home/blfs:/bin/bash
+sshd:x:50:50:sshd PrivSep:/var/lib/sshd:/bin/false
+EOF
+
+echo "  Creating /etc/shadow..."
+cat > ${DOMU_CONF_DIR}/etc/shadow <<EOF
+root:x:15370:0:99999:7:::
+bin:x:15370:0:99999:7:::
+nobody:x:15370:0:99999:7:::
+lfs:x:15370:0:99999:7:::
+blfs:x:15370:0:99999:7:::
+sshd:!:15370:0:99999:7:::
+EOF
+
+echo "  Creating /etc/sysconfig/ifconfig.eth0..."
+cat > ${DOMU_CONF_DIR}/etc/sysconfig/ifconfig.eth0 <<EOF
+ONBOOT=yes
+IFACE=eth0
+SERVICE="ipv4-static"
+IP=$XLAPP_DOMU_HOST_IP
+GATEWAY=$XLAPP_DOMU_HOST_GW
+PREFIX=$XLAPP_DOMU_HOST_PREFIX
+BROADCAST=$XLAPP_DOMU_HOST_BCAST
+EOF
+
+echo "  Creating /etc/sysconfig/network..."
+cat > ${DOMU_CONF_DIR}/etc/sysconfig/network <<EOF
+HOSTNAME=$XLAPP_DOMU_HOSTNAME
+EOF
+
+echo "  Creating /etc/resolv.conf..."
+cat > ${DOMU_CONF_DIR}/etc/resolv.conf <<EOF
+# Begin /etc/resolv.conf
+
+domain $XLAPP_DOMU_DNS_DOMAIN_NAME
+nameserver 208.67.222.222
+nameserver 208.67.220.220
+
+# End /etc/resolv.conf
+EOF
+
+echo "########################################################################"
+echo "#"
+echo "#         DomU [ $XLAPP_DOMU_HOSTNAME ] configuration complete."
+echo "#"
+echo "########################################################################"

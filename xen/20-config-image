@@ -1,0 +1,41 @@
+#! /bin/bash
+set -e
+
+IMAGE=$1
+HOST=$2
+
+if [ -z $HOST ] ; then
+	echo
+	echo "  Usage: $0 <xen-image-file> <host>"
+	echo
+	exit
+fi
+if [ ! -f $IMAGE ] ; then
+	echo "Unmounted Xen-image-file [ $IMAGE ] doesn't exist; exiting."
+	exit
+fi
+if [ ! -d $HOST ] ; then
+	echo "Configuration for DomU [ $HOST ] could not be found; exiting."
+	exit
+fi
+
+IMAGE_NAME=$(basename $IMAGE)
+MOUNT="mount-$IMAGE_NAME"
+
+echo "About to mount $IMAGE..."
+mkdir -vp ./$MOUNT
+mount -o loop $IMAGE ./$MOUNT
+
+echo "Copying files from [ $HOST ] to [ $MOUNT ]..."
+pushd $HOST
+find . -depth -print | cpio -pdmv ../$MOUNT
+popd
+
+echo "Unmounting $IMAGE and removed mount point..."
+umount ./$MOUNT
+rmdir ./$MOUNT
+
+echo
+echo "DomU configuration complete; DomU is ready for Xen boot."
+echo
+

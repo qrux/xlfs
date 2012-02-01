@@ -1,0 +1,51 @@
+#! /bin/bash
+
+# Usage: $0 <xen-image-file> <TAR-with-root>
+
+IMAGE=$1
+TARBALL=$2
+
+if [ -z $TARBALL ] ; then
+	echo
+	echo "  Usage: $0 <unmounted-xen-image-file> <tarball-with-root-dir>"
+	echo
+	exit
+fi
+if [ ! -f $IMAGE ] ; then
+	echo "Unmounted Xen-image-file [ $IMAGE ] doesn't exist; exiting."
+	exit
+fi
+if [ ! -f $TARBALL ] ; then
+	echo "Tarball (contents + top-level root dir) doesn't exist; exiting."
+	exit
+fi
+
+IMAGE_NAME=$(basename $IMAGE)
+MOUNT="mount-$IMAGE_NAME"
+
+echo "About to mount $IMAGE..."
+mkdir -vp ./$MOUNT
+mount -o loop $IMAGE ./$MOUNT
+
+TARBALL_PATH=$(readlink -f $TARBALL)
+pushd ./$MOUNT
+	echo "  About to untar $TARBALL_PATH..."
+	time tar --strip-components 1 -xf $TARBALL_PATH
+
+	echo "  Adding other directories..."
+	mkdir {dev,home,proc,opt,sys,tmp}
+
+	echo "  Changing perms on /tmp..."
+	chmod 0777 tmp
+
+	echo "  Adding devices..."
+	cp -ax /dev/{console,null,random,urandom} dev
+popd
+
+echo "Unmounting $IMAGE and deleting mount point..."
+umount $MOUNT
+rmdir $MOUNT
+
+echo
+echo "Finished populating $IMAGE."
+echo
