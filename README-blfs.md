@@ -31,7 +31,7 @@ Additional Bootscripts: [https://github.com/qrux/xlapp/blob/master/xlapp-bootscr
 
 Xen Dependencies
 ----------------
-*Required* - linux-3.1, bridge-utils-1.5
+*Required* - linux-3.1, openssl-1.0.0e, bridge-utils-1.5, Python2, zlib
 
 *Optional* - X Window System, Dev86, 32-bit glib.  Note that this optional dependencies list is not comprehensive.  See http://xen.org/ for a more complete list.
 
@@ -82,11 +82,6 @@ For tmem support:
 	CONFIG_FRONTSWAP=y
 	CONFIG_XEN_SELFBALLOONING=y
 
-Networking configuration support:
-
-	CONFIG_BRIDGE=y
-	CONFIG_STP=y
-
 See an example domU configuration at: [https://github.com/qrux/xlapp/blob/master/xlapp-linux-3.1-domU.config]
 
 Configure kernel for dom0 (host operating system)
@@ -113,6 +108,11 @@ In addition to the config options above, you also need to enable:
 	CONFIG_XEN_SCRUB_PAGES=y
 	CONFIG_XEN_DEV_EVTCHN=y
 	CONFIG_XEN_GNTDEV=y
+
+And, for networking configuration support:
+
+	CONFIG_BRIDGE=y
+	CONFIG_STP=y
 
 See an example dom0 configuration at: [https://github.com/qrux/xlapp/blob/master/xlapp-linux-3.1-dom0.config]
 
