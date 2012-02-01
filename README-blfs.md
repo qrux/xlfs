@@ -31,11 +31,9 @@ Additional Bootscripts: [https://github.com/qrux/xlapp/blob/master/xlapp-bootscr
 
 Xen Dependencies
 ----------------
-*Required*
-linux-3.1, bridge-utils-1.5
+*Required* - linux-3.1, bridge-utils-1.5
 
-*Optional*
-X Window System, Dev86, 32-bit glib.  Note that this optional dependencies list is not comprehensive.  See http://xen.org/ for a more complete list.
+*Optional* - X Window System, Dev86, 32-bit glib.  Note that this optional dependencies list is not comprehensive.  See http://xen.org/ for a more complete list.
 
 
 Xen prerequisites
@@ -50,28 +48,24 @@ Kernel Configuration
 Configure kernel for domU (guest operating system)
 --------------------------------------------------
 
-If building 32 bit kernel make sure you have CONFIG_X86_PAE enabled (which is set by selecting CONFIG_HIGHMEM64G)
-
-	non-PAE mode doesn't work in 2.6.25, and has been dropped altogether from 2.6.26 and newer kernel versions.
-
-Enable these core options (Processor type and features| Paravirtualized guest support]
+Enable these core options (Processor type and features -> Paravirtualized guest support]
 
 	CONFIG_PARAVIRT=y
 	CONFIG_XEN=y
 	CONFIG_PARAVIRT_GUEST=y
 	CONFIG_PARAVIRT_SPINLOCKS=y
 
-Xen pv console device support (Device Drivers|Character devices)
+Xen pv console device support (Device Drivers -> Character devices)
  	CONFIG_HVC_DRIVER=y
 	CONFIG_HVC_XEN=y
 
-Xen disk and network support (Device Drivers|Block devices and Device Drivers|Network device support)
+Xen disk and network support (Device Drivers -> Block devices and Device Drivers -> Network device support)
 
 	CONFIG_XEN_FBDEV_FRONTEND=y
 	CONFIG_XEN_BLKDEV_FRONTEND=y
 	CONFIG_XEN_NETDEV_FRONTEND=y
 
-Device Drivers & Xen driver support
+System drivers (Device Drivers -> Xen driver support)
 
 	CONFIG_XEN_PCIDEV_FRONTEND=y
 	CONFIG_INPUT_XEN_KBDDEV_FRONTEND=y
@@ -80,7 +74,7 @@ Device Drivers & Xen driver support
 	CONFIG_XEN_SAVE_RESTORE=y
 	CONFIG_XEN_GRANT_DEV_ALLOC=y
 
-tmem support:
+For tmem support:
 
 	CONFIG_XEN_TMEM=y
 	CONFIG_CLEANCACHE=y
