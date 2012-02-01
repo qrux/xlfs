@@ -126,7 +126,9 @@ Then, disable the checks for X11:
 	mv check_x11_devel NOUSE
 	popd
 
-Then, make sure that the linker cache is up-to-date (otherwise, some libs, notably OpenSSL's libcrypto, won't be found).  Now, as the *root* user:
+Then, make sure that the linker cache is up-to-date (otherwise, some libs, notably OpenSSL's libcrypto, won't be found).
+
+Now, as the *root* user:
 
 	ldconfig -v
 
