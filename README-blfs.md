@@ -56,7 +56,8 @@ Enable these core options (Processor type and features -> Paravirtualized guest 
 	CONFIG_PARAVIRT_SPINLOCKS=y
 
 Xen pv console device support (Device Drivers -> Character devices)
- 	CONFIG_HVC_DRIVER=y
+
+	CONFIG_HVC_DRIVER=y
 	CONFIG_HVC_XEN=y
 
 Xen disk and network support (Device Drivers -> Block devices and Device Drivers -> Network device support)
