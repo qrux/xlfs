@@ -1,22 +1,33 @@
 Xen-4.1.2
+=========
 
 Introduction to Xen
 ===================
 
 Xen is a virtualization platform, and offers a powerful, efficient, and secure feature set for virtualization of x86, x86_64, IA64, ARM, and other CPU architectures. It supports a wide range of guest operating systems including Windows®, Linux®, Solaris®, and various versions of the BSD operating systems.  The Xen hypervisor is a Type-1 hypervisor that can support Linux as a host operating system.
 
+
 Package Information
 -------------------
-Download (HTTP): http://bits.xensource.com/oss-xen/release/4.1.2/xen-4.1.2.tar.gz
-Download (Format?) Signature: http://bits.xensource.com/oss-xen/release/4.1.2/xen-4.1.2.tar.gz.sig
+
+Download (HTTP): [http://bits.xensource.com/oss-xen/release/4.1.2/xen-4.1.2.tar.gz]
+
+Download (Format?) Signature: [http://bits.xensource.com/oss-xen/release/4.1.2/xen-4.1.2.tar.gz.sig]
+
 Download size: 9.9 MB
+
 Estimated disk space required: ?
+
 Estimated build time: 3 SBU
+
 
 Additional Downloads
 --------------------
-Required patches: https://github.com/qrux/xlapp/blob/master/src/xen-4.1.2-no_firmware-1.patch
-Additional Bootscripts: https://github.com/qrux/xlapp/blob/master/xlapp-bootscripts/xlapp-domains
+
+Required patches: [https://github.com/qrux/xlapp/blob/master/src/xen-4.1.2-no_firmware-1.patch]
+
+Additional Bootscripts: [https://github.com/qrux/xlapp/blob/master/xlapp-bootscripts/xlapp-domains]
+
 
 Xen Dependencies
 ----------------
@@ -39,27 +50,28 @@ Kernel Configuration
 Configure kernel for domU (guest operating system)
 --------------------------------------------------
 
-1.  If building 32 bit kernel make sure you have CONFIG_X86_PAE enabled (which is set by selecting CONFIG_HIGHMEM64G)
+If building 32 bit kernel make sure you have CONFIG_X86_PAE enabled (which is set by selecting CONFIG_HIGHMEM64G)
 
 	non-PAE mode doesn't work in 2.6.25, and has been dropped altogether from 2.6.26 and newer kernel versions.
 
-2. Enable these core options (Processor type and features| Paravirtualized guest support]
+Enable these core options (Processor type and features| Paravirtualized guest support]
+
 	CONFIG_PARAVIRT=y
 	CONFIG_XEN=y
 	CONFIG_PARAVIRT_GUEST=y
 	CONFIG_PARAVIRT_SPINLOCKS=y
 
-3. And Xen pv console device support (Device Drivers|Character devices)
+Xen pv console device support (Device Drivers|Character devices)
  	CONFIG_HVC_DRIVER=y
 	CONFIG_HVC_XEN=y
 
-4. And Xen disk and network support (Device Drivers|Block devices and Device Drivers|Network device support)
+Xen disk and network support (Device Drivers|Block devices and Device Drivers|Network device support)
 
 	CONFIG_XEN_FBDEV_FRONTEND=y
 	CONFIG_XEN_BLKDEV_FRONTEND=y
 	CONFIG_XEN_NETDEV_FRONTEND=y
 
-5. And the rest (Device Drivers|Xen driver support)
+Device Drivers & Xen driver support
 
 	CONFIG_XEN_PCIDEV_FRONTEND=y
 	CONFIG_INPUT_XEN_KBDDEV_FRONTEND=y
@@ -68,13 +80,15 @@ Configure kernel for domU (guest operating system)
 	CONFIG_XEN_SAVE_RESTORE=y
 	CONFIG_XEN_GRANT_DEV_ALLOC=y
 
-6. And for tmem support:
+tmem support:
+
 	CONFIG_XEN_TMEM=y
 	CONFIG_CLEANCACHE=y
 	CONFIG_FRONTSWAP=y
 	CONFIG_XEN_SELFBALLOONING=y
 
-7. For networking support:
+Networking configuration support:
+
 	CONFIG_BRIDGE=y
 	CONFIG_STP=y
 
