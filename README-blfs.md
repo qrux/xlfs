@@ -10,28 +10,23 @@ Xen is a virtualization platform, and offers a powerful, efficient, and secure f
 Package Information
 -------------------
 
-Download (HTTP): [http://bits.xensource.com/oss-xen/release/4.1.2/xen-4.1.2.tar.gz]
-
-Download (Format?) Signature: [http://bits.xensource.com/oss-xen/release/4.1.2/xen-4.1.2.tar.gz.sig]
-
-Download size: 9.9 MB
-
-Estimated disk space required: ?
-
-Estimated build time: 3 SBU
+Download (HTTP): http://bits.xensource.com/oss-xen/release/4.1.2/xen-4.1.2.tar.gz<br />
+Download (Format?) Signature: http://bits.xensource.com/oss-xen/release/4.1.2/xen-4.1.2.tar.gz.sig<br />
+Download size: 9.9 MB<br />
+Estimated disk space required: ?<br />
+Estimated build time: 3 SBU<br />
 
 
 Additional Downloads
 --------------------
 
-Required patches: [https://github.com/qrux/xlapp/blob/master/src/xen-4.1.2-no_firmware-1.patch]
-
-Additional Bootscripts: [https://github.com/qrux/xlapp/blob/master/xlapp-bootscripts/xlapp-domains]
+Required patches: https://github.com/qrux/xlapp/blob/master/src/xen-4.1.2-no_firmware-1.patch<br />
+Additional Bootscripts: https://github.com/qrux/xlapp/blob/master/xlapp-bootscripts/xlapp-domains
 
 
 Xen Dependencies
 ----------------
-*Required* - linux-3.1, openssl-1.0.0e, bridge-utils-1.5, Python2, zlib
+*Required* - openssl-1.0.0e, bridge-utils-1.5, Python2
 
 *Optional* - X Window System, Dev86, 32-bit glib.  Note that this optional dependencies list is not comprehensive.  See http://xen.org/ for a more complete list.
 
