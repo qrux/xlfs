@@ -48,7 +48,7 @@ Kernel Configuration
 Configure kernel for domU (guest operating system)
 --------------------------------------------------
 
-Enable these core options (Processor type and features -> Paravirtualized guest support]
+Enable these core options (Processor type and features -> Paravirtualized guest support)
 
 	CONFIG_PARAVIRT=y
 	CONFIG_XEN=y
