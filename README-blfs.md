@@ -28,11 +28,13 @@ Xen Dependencies
 ----------------
 *Required* - openssl-1.0.0e, bridge-utils-1.5, Python2
 
-*Optional* - X Window System, Dev86, 32-bit glib.  Note that this optional dependencies list is not comprehensive.  See http://xen.org/ for a more complete list.
+*Optional* - X Window System, Dev86, 32-bit glibc, acpica.  Note that this optional dependencies list is not comprehensive.  See http://xen.org/ for a more complete list.
 
 
 Xen prerequisites
 =================
+
+These directions build a "pure 64-bit" version of Xen.  That means, only 64-bit host operating system are supported, and 64-bit guest operating systems are supported.  These instructions are intended to help you build an LFS/BLFS system which acts as a Xen host, that will run LFS/BLFS systems as Xen guests.  If you have more complex needs (i.e., you want to run Windows(™) or other unmodified guest operating systems), you'll need to look into the optional dependencies to build a Xen toolchain that will support 32-bit guests or unmodified guests.
 
 Xen 4 requires at least a Linux 3.0 kernel.  In addition, to build the Xen host OS for Linux, ACPI support needs to be enabled.  Make sure you enable ACPI support or you won't be able to compile a Linux host.
 
@@ -119,7 +121,7 @@ Install Xen by running the following commands:
 
 	patch -Np1 -i ../xen-4.1.2-no_firmware-1.patch
 
-Then, disable the checks for X11:
+Then, disable the checks for X11.  In tools/check, the scripts look for files named check_* and run them to detect features on the build system.  We're just going to make a subdirectory called "NOUSE", and move the script to detect X11 into that directory so it's not run.
 
 	pushd tools/check
 	mkdir NOUSE
