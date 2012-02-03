@@ -4,60 +4,63 @@
 #
 # Description : Bridge Boot Script
 #
-# Authors     : Nathan Coulson - nathan at linuxfromscratch.org
-# Updates     : Qrux           - qrux dot qed at gmail.com
+# Authors     : Nathan Coulson - nathan@linuxfromscratch.org
+#               Bruce Dubbs - bdubbs@linuxfromscratch.org
 #
 # Version     : LFS-7.0
-#
-# Notes       : Since multiple services can be defined for each
-#               interface, this script DOES NOT take care of adding IP
-#               addresses for the interface.  We rely on the config
-#               file specifying an IP-supplying service after bridge
-#               (e.g., SERVICE="bridge ipv4-static" in ifconfig.br0).
 #
 ########################################################################
 
 . /lib/lsb/init-functions
 . ${IFCONFIG}
 
-
 if [ -n "${INTERFACE}" ]; then
-        log_failure_msg "INTERFACES variable missing from ${ifconfig},", ${FAILURE}
-        echo_failure
-        exit 1
+  log_failure_msg "INTERFACES variable missing from ${IFCONFIG}"
+  exit 1
 fi
 
 case "${2}" in
-        up)
-                log_info_msg "Creating the ${1} interface..."
-                brctl addbr ${1}
-                evaluate_retval
-                for X in ${INTERFACES}; do
-                        log_info_msg "Adding ${X} to ${1}..."
-                        ip addr add 0.0.0.0 dev ${X} &&
-                        ip link set ${X} up &&
-                        brctl addif ${1} ${X}
-                        evaluate_retval
-                done
-        ;;
+  up)
+     log_info_msg2 "\n"
+     log_info_msg "Creating the ${1} interface..."
+     brctl addbr ${1}
+     ip link set ${1} up
+     evaluate_retval
+     for I in ${INTERFACES}; do
+        log_info_msg "Adding ${I} to ${1}..."
+        ip link set ${I} up &&
+        brctl addif ${1} ${I}
+        evaluate_retval
+     done
 
-        down)
-                for X in ${INTERFACES}; do
-                        log_info_msg "Removing ${X} from ${1}..."
-                        ip link set ${X} down &&
-                        brctl delif ${1} ${X}
-                        evaluate_retval
-                done
-                log_info_msg "Bringing down the ${1} interface..."
-		ip link set ${1} down
-                brctl delbr ${1}
-                evaluate_retval
-        ;;
+     if [ "${IP_FORWARD}" = "y"    -o \
+          "${IP_FORWARD}" = "yes"  -o \
+          "${IP_FORWARD}" = "t"    -o \
+          "${IP_FORWARD}" = "true" -o \
+          "${IP_FORWARD}" = "1" ]; then
+       sysctl -w net.ipv4.ip_forward=1 > /dev/null
+       log_success_msg "Setting net.ipv4.ip_forward = 1"
+     fi
+  ;;
 
-        *)
-                log_warning_msg "Usage: ${0} [interface] {up|down}"
-                exit 1
-        ;;
+  down)
+     for I in ${INTERFACES}; do
+        log_info_msg "Removing ${I} from ${1}..."
+        ip link set ${I} down &&
+        brctl delif ${1} ${I}
+        evaluate_retval
+     done
+
+     log_info_msg "Bringing down the ${1} interface..."
+     ip link set ${1} down
+     brctl delbr ${1}
+     evaluate_retval
+  ;;
+
+  *)
+     echo "Usage: ${0} [interface] {up|down}"
+     exit 1
+  ;;
 esac
 
 # End /lib/services/bridge
