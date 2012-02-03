@@ -1,9 +1,9 @@
 #! /bin/bash
 
-cp -vf xlapp-bootscripts/bridge /lib/services/bridge
+cp -vf xlapp-bootscripts/{bridge,ipv4-static} /lib/services/
 cp -vf xlapp-bootscripts/{ifup,ifdown} /sbin/
 cp -vf xlapp-bootscripts/xlapp-domains /etc/init.d/
 
-chmod 0754 /lib/services/bridge
+chmod 0754 /lib/services/{bridge,ipv4-static}
 chmod 0754 /sbin/{ifup,ifdown}
 chmod 0754 /etc/init.d/xlapp-domains

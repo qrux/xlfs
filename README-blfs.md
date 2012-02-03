@@ -153,3 +153,9 @@ Configuring Xen
 ===============
 
 (Not sure that this should be at this location in the book.  Maybe this should be another page, but also in the Virt section…)
+
+
+Known Issues
+============
+
+* http://wiki.xen.org/xenwiki/Xen4.0 - "Some Xen 4.0 users have had problems with interrupts getting frozen on Intel Xeon platforms, causing raid adapters to freeze and disk IO to stall. This is due to hpet broadcast (hpet timer migration) issues. The quick fix is to add "cpuidle=off" or "max_cstate=1" cmdline parameters for xen.gz in grub.conf. See these emails for more information: http://lists.xensource.com/archives/html/xen-devel/2010-09/msg00556.html and http://lists.xensource.com/archives/html/xen-devel/2010-09/msg01749.html."
