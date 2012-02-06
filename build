@@ -2,6 +2,14 @@
 set -e
 set +h
 
+unset SKIP_MACHINE_CONFIG
+while getopts "x" OPT ; do
+	case "$OPT" in
+		x) SKIP_MACHINE_CONFIG=1;;
+	esac
+done
+shift $(($OPTIND-1))
+
 export MAKEFLAGS="-j 4"
 if [ "blfs" == "$USER" ] ; then
 	echo "User [ $USER ] ; adjusting path."
@@ -18,8 +26,10 @@ PROG_DIR=$(dirname $PROG_PATH)
 PROG_NAME=$(basename $PROG_PATH)
 CONF_FILE="${PROG_DIR}/machine.config"
 
-echo "  Using machine template: $CONF_FILE..."
-. $CONF_FILE
+if [ -z $SKIP_MACHINE_CONFIG ] ; then
+	echo "  Using machine template: $CONF_FILE..."
+	. $CONF_FILE
+fi
 
 __PROG_NAME=$1
 if [ -z $__PROG_NAME ] ; then
@@ -49,6 +59,9 @@ cd ./src
 TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG.tar*")
 if [ -z $TARBALL ] ; then
 	TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG*.tar*")
+	if [ -z $TARBALL ] ; then
+		TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG*.tgz*")
+	fi
 fi
 
 echo "(Cleaning up files from previous builds...)"

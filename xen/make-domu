@@ -1,0 +1,289 @@
+#! /bin/bash
+
+unset PHYS_DEV
+FSTYPE=ext3
+FSSIZE=4096
+
+usage()
+{
+	echo
+        echo "  Usage: $0 [-p] [-t (ext2|ext3|ext4)] [-s fssize-in-MiBs] <domU-FQDN> <xen-device-or-file> <xen-image-tarball>"
+	echo
+	exit
+}
+
+while getopts "hpt:s:" OPT ; do
+	case "$OPT" in
+		p) PHYS_DEV=true;;
+		t) FSTYPE="$OPTARG";;
+		s) FSSIZE="$OPTARG";;
+                h) usage;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+DOMU_HOST=$1
+IMAGE=$2
+TARBALL=$3
+
+if [ -z $TARBALL ] ; then usage ; fi
+if [ ! -e $IMAGE ] ; then
+	echo "Unmounted Xen-image-file [ $IMAGE ] doesn't exist; exiting."
+	exit
+fi
+if [ ! -f $TARBALL ] ; then
+	echo "Tarball [ $TARBALL ] doesn't exist; exiting."
+	exit
+fi
+
+DOMU_HOSTNAME=$(echo $DOMU_HOST | cut -d \. -f 1)
+DOMAIN_NAME=$(echo $DOMU_HOST | cut -d \. -f 2-)
+
+echo "               New domU host: $DOMU_HOST"
+echo "           New domU hostname: $DOMU_HOSTNAME"
+echo "        New domU domain name: $DOMAIN_NAME"
+echo "        Device or File-Image: $IMAGE"
+echo "Master domU filesystem image: $TARBALL"
+echo "             Filesystem type: $FSTYPE"
+echo "                      [Size]: $FSSIZE"
+echo "       Using physical device? $PHYS_DEV"
+
+########################################################################
+#
+# Configuration
+#
+########################################################################
+DOMU_CONF_DIR="$DOMU_HOST"
+
+. ask
+
+BUILD_CONF="${DOMU_HOST}-config"
+BUILD_INPUT="${BUILD_CONF}.in"
+BUILD_TMP=".${BUILD_CONF}"
+BUILD_TMP2="${BUILD_TMP}_"
+
+/bin/cp -f domu.config.in $BUILD_INPUT
+sed -i "s/XLAPP_DOMU_HOSTNAME=.*/XLAPP_DOMU_HOSTNAME=$DOMU_HOST/" $BUILD_INPUT
+sed -i "s/XLAPP_DOMU_DNS_DOMAIN_NAME=.*/XLAPP_DOMU_DNS_DOMAIN_NAME=$DOMAIN_NAME/" $BUILD_INPUT
+
+echo "input file: $BUILD_INPUT"
+
+unset KEEP_CONFIG
+if [ -e $BUILD_CONF ] ; then
+        echo "    There is already a DomU config file named ${BUILD_CONF}."
+        echo -n "      Keep?  <Enter> to 'keep', or 'new' to overwrite --> "
+        read _ANSWER
+        test -z $_ANSWER && _ANSWER="keep"
+	_ANSWER=$(echo $_ANSWER | tr [:upper:] [:lower:])
+        if [ "new" == $_ANSWER ] ; then
+                echo
+                echo "    Creating new configuration and removing conf dir ${DOMU_CONF_DIR}..."
+		if [ -d ${DOMU_CONF_DIR} ] ; then
+			rm -rf ${DOMU_CONF_DIR}
+		fi
+        else
+                echo
+                echo "    Preserving existing configuration in [ $BUILD_CONF ]."
+		echo "    Preserving configuration files in [ $DOMU_CONF_DIR ]."
+		exit
+        fi
+        . $BUILD_CONF
+else
+        echo "    The config file for this DomU doesn't exist; creating one."
+        . $BUILD_INPUT
+fi
+
+/bin/cp -f $BUILD_INPUT $BUILD_TMP
+
+ask DOMU_SWAP "DomU - Use swap?"
+ask DOMU_HOST_IP "DomU - IP?"
+ask DOMU_HOST_GW "DomU - Gateway IP?"
+ask DOMU_HOST_PREFIX "DomU - Network Prefix (e.g., 24 for a class-C)?"
+ask DOMU_HOST_BCAST "DomU - Network Broadcast (e.g., 192.168.0.255)?"
+
+echo "  Writing config to $BUILD_CONF..."
+/bin/mv -vf $BUILD_TMP $BUILD_CONF
+/bin/rm -vf $BUILD_TMP2 $BUILD_INPUT
+
+. $BUILD_CONF
+
+echo "    DomU -    Hostname? $DOMU_HOST"
+echo "    DomU -  DNS Domain? $DOMAIN_NAME"
+echo "    DomU -    Use swap? $XLAPP_DOMU_SWAP"
+echo "    DomU -          IP? $XLAPP_DOMU_HOST_IP"
+echo "    DomU -          GW? $XLAPP_DOMU_HOST_GW"
+echo "    DomU -      Prefix? $XLAPP_DOMU_HOST_PREFIX"
+echo "    DomU -   Broadcast? $XLAPP_DOMU_HOST_BCAST"
+
+/bin/mkdir -pv ${DOMU_CONF_DIR}/etc/sysconfig
+
+if [ ! -d ${DOMU_CONF_DIR} ] ; then
+	echo "Cannot create directory structure for DomU configuration files; exiting."
+	exit
+fi
+
+echo "  Creating /etc/fstab..."
+cat > ${DOMU_CONF_DIR}/etc/fstab <<EOF
+# Begin /etc/fstab
+
+# file system  mount-point  type   options           dump  fsck
+#                                                          order
+/dev/xvda1     /            ext3   defaults,noatime   1     1
+EOF
+
+if [ "yes" == $XLAPP_DOMU_SWAP ] ; then
+	echo "    Adding swap in /etc/fstab..."
+	cat >> ${DOMU_CONF_DIR}/etc/fstab <<EOF
+/dev/xvda2     none         swap   sw                 0     0
+EOF
+fi
+
+echo "    Finishing /etc/fstab..."
+cat >> ${DOMU_CONF_DIR}/etc/fstab <<EOF
+none           /proc        proc   defaults           0     0
+none           /sys         sysfs  defaults           0     0
+none           /dev/pts     devpts gid=4,mode=620     0     0
+none           /run         tmpfs  defaults           0     0
+# End /etc/fstab
+EOF
+
+echo "  Creating /etc/hosts..."
+cat > ${DOMU_CONF_DIR}/etc/hosts <<EOF
+# Begin /etc/hosts (network card version)
+
+127.0.0.1 localhost
+
+# IP			HOSTNAME		[alias1, alias 2, ...]
+${XLAPP_DOMU_HOST_IP}	${DOMU_HOST}	${DOMU_HOSTNAME}
+
+# End /etc/hosts (network card version)
+EOF
+
+echo "  Creating /etc/passwd..."
+cat > ${DOMU_CONF_DIR}/etc/passwd <<EOF
+root:x:0:0:root:/root:/bin/bash
+bin:x:1:1:bin:/dev/null:/bin/false
+nobody:x:99:99:Unprivileged User:/dev/null:/bin/false
+lfs:x:101:101:LFS User:/home/lfs:/bin/bash
+blfs:x:202:202:BLFS User:/home/blfs:/bin/bash
+sshd:x:50:50:sshd PrivSep:/var/lib/sshd:/bin/false
+EOF
+
+echo "  Creating /etc/shadow..."
+cat > ${DOMU_CONF_DIR}/etc/shadow <<EOF
+root:x:15370:0:99999:7:::
+bin:x:15370:0:99999:7:::
+nobody:x:15370:0:99999:7:::
+lfs:x:15370:0:99999:7:::
+blfs:x:15370:0:99999:7:::
+sshd:!:15370:0:99999:7:::
+EOF
+
+echo "  Creating /etc/sysconfig/ifconfig.eth0..."
+cat > ${DOMU_CONF_DIR}/etc/sysconfig/ifconfig.eth0 <<EOF
+ONBOOT=yes
+IFACE=eth0
+SERVICE="ipv4-static"
+IP=$XLAPP_DOMU_HOST_IP
+GATEWAY=$XLAPP_DOMU_HOST_GW
+PREFIX=$XLAPP_DOMU_HOST_PREFIX
+BROADCAST=$XLAPP_DOMU_HOST_BCAST
+EOF
+
+echo "  Creating /etc/sysconfig/network..."
+cat > ${DOMU_CONF_DIR}/etc/sysconfig/network <<EOF
+HOSTNAME=$DOMU_HOST
+EOF
+
+echo "  Creating /etc/resolv.conf..."
+cat > ${DOMU_CONF_DIR}/etc/resolv.conf <<EOF
+# Begin /etc/resolv.conf
+
+domain $XLAPP_DOMU_DNS_DOMAIN_NAME
+nameserver 208.67.222.222
+nameserver 208.67.220.220
+
+# End /etc/resolv.conf
+EOF
+
+echo "domU [ $DOMU_HOST ] configuration complete."
+
+########################################################################
+#
+# Creating image
+#
+########################################################################
+if [ -z $PHYS_DEV ] ; then
+	if [ -e $IMAGE ] ; then
+		echo
+		echo "  Image-file [ $IMAGE ] already exists; fix & rerun; exiting."
+		echo
+		exit
+	fi
+
+	echo "Making $SIZE MB $FSTYPE image [ $IMAGE ]..."
+
+	dd if=/dev/zero of=$IMAGE bs=1m seek=$FSSIZE count=0
+fi
+
+########################################################################
+#
+# Creating file-system
+#
+########################################################################
+mkfs -F -t $FSTYPE $IMAGE
+
+########################################################################
+#
+# Mount image
+#
+########################################################################
+IMAGE_NAME=$(basename $IMAGE)
+MOUNT="mount-$IMAGE_NAME"
+echo "About to mount $IMAGE..."
+mkdir -vp ./$MOUNT
+
+if [ -z $PHYS_DEV ] ; then
+	mount -o loop $IMAGE ./$MOUNT
+else
+	mount $IMAGE ./$MOUNT
+fi
+
+########################################################################
+#
+# Unpack TARBALL
+#
+########################################################################
+TARBALL_PATH=$(readlink -f $TARBALL)
+pushd ./$MOUNT
+	echo "  About to untar $TARBALL_PATH..."
+	time tar --strip-components 1 -xf $TARBALL_PATH
+
+	echo "  Adding other directories..."
+	mkdir {dev,home,proc,opt,sys,tmp}
+
+	echo "  Changing perms on /tmp..."
+	chmod 0777 tmp
+
+	echo "  Adding devices..."
+	cp -ax /dev/{console,null,random,urandom} dev
+popd
+
+########################################################################
+#
+# Installing domU-specific config files
+#
+########################################################################
+pushd $DOMU_CONF_DIR
+	find . -depth -print | cpio -pdmv ../$MOUNT
+popd
+
+echo "Unmounting $IMAGE and deleting mount point..."
+umount $MOUNT
+rmdir $MOUNT
+
+echo "########################################################################"
+echo "#"
+echo "#     DomU [ $DOMU_HOST ] tempting complete; ready for Xen boot."
+echo "#"
+echo "########################################################################"

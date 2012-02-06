@@ -2,12 +2,22 @@
 set -e
 set +h
 
+unset SKIP_MACHINE_CONFIG
+while getopts "x" OPT ; do
+	case "$OPT" in
+		x) SKIP_MACHINE_CONFIG=1;;
+	esac
+done
+shift $(($OPTIND - 1))
+
 PROG_PATH=$0
 PROG_DIR=$(dirname $PROG_PATH)
 PROG_NAME=$(basename $PROG_PATH)
-CONF_FILE="${PROG_DIR}/machine.config"
 
-. $CONF_FILE
+if [ -z $SKIP_MACHINE_CONFIG ] ; then
+	CONF_FILE="${PROG_DIR}/machine.config"
+	. $CONF_FILE
+fi
 
 __PROG_NAME=$1
 if [ -z $__PROG_NAME ] ; then
