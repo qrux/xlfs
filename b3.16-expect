@@ -1,0 +1,14 @@
+#! /bin/bash
+
+./configure --prefix=/usr \
+            --with-tcl=/usr/lib \
+            --with-tclinclude=/usr/include \
+            --enable-shared
+
+make
+
+make test
+
+sudo make install
+sudo ln -svf expect5.45/libexpect5.45.so /usr/lib
+

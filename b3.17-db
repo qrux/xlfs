@@ -1,0 +1,18 @@
+#! /bin/bash
+
+cd build_unix
+
+../dist/configure --prefix=/usr \
+                  --enable-compat185 \
+                  --enable-dbm  \
+                  --enable-cxx
+
+make
+
+sudo make docdir=/usr/share/doc/db-5.2.36 install
+sudo chown -v -R root:root \
+      /usr/bin/db_* \
+      /usr/include/db{,_185,_cxx}.h \
+      /usr/lib/libdb*.{so,a,la} \
+      /usr/share/doc/db-5.2.36
+

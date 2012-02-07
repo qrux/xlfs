@@ -92,3 +92,8 @@ d3f145c2c91daecbb4251bc79390b46c  iptables-1.4.12.tar.bz2
 75c87a80c6ddb0b785a57ea3583e04fa  Python-2.7.2.tar.xz
 888774accab40217dde927e21979c165  net-tools-1.60.tar.bz2
 56ca3f2c818d56dc6563fc36a8b6f1d5  LVM2.2.02.90.tgz
+88466dd6c13d5d8cddb406be8a1d4d92  db-5.2.36.tar.gz
+2eb0e48106f0e9cd8001e654f267ecbc  cyrus-sasl-2.1.23.tar.gz
+a9fdd0f204e7ca0b7d32fd0b9f8f8c72  postfix-2.8.4.tar.gz
+f14a9fef3c92f3fc6c5ac92d7a2c7eb3  pcre-8.12.tar.bz2
+39ca07b3d305b4cd0d6aaf4585123275  pine4.64.tar.bz2

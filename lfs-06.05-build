@@ -1,5 +1,6 @@
 #! /tools/bin/bash
 set +h
+set -e
 
 export LFS="/"
 

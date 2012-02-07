@@ -1,0 +1,22 @@
+#! /bin/bash
+
+cd unix
+
+./configure --prefix=/usr \
+            --enable-threads \
+            --mandir=/usr/share/man
+
+make
+
+sed -i \
+    -e "s@^\(TCL_SRC_DIR='\).*@\1/usr/include'@" \
+    -e "/TCL_B/s@='\(-L\)\?.*unix@='\1/usr/lib@" \
+    tclConfig.sh
+
+make test
+
+sudo make install
+sudo make install-private-headers
+sudo ln -v -sf tclsh8.5 /usr/bin/tclsh
+chmod -v 755 /usr/lib/libtcl8.5.so
+

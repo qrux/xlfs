@@ -104,23 +104,18 @@ if [ -z $ANSWER ] ; then
         exit 2
 fi
 ANSWER=$(basename $(echo $ANSWER))
-echo "  [ BOOT_PART ] --> $ANSWER"
-cat $BUILD_TMP | sed "s,^XLAPP_BOOT_PART=.*,XLAPP_BOOT_PART=$ANSWER," > $BUILD_TMP2
+echo "  [ LFS_PART ] --> $ANSWER"
+cat $BUILD_TMP | sed "s,^XLAPP_LFS_PART=.*,XLAPP_LFS_PART=$ANSWER," > $BUILD_TMP2
 bump
-
-#
-# LFS partition type
-#
-ask BOOT_FSTYPE "What is the LFS partition type (ext2|ext3|ext4)?"
 
 #
 # Host partition (disk device)
 #
 echo
-echo -n "What is the HOST (current boot) partition (e.g., /dev/sda1)? "
+echo -n "What is the HOST (current root) partition (e.g., /dev/sda2)? "
 read ANSWER
 if [ -z $ANSWER ] ; then
-        echo "  [error] No LFS partition given; aborting"
+        echo "  [error] No HOST partition given; aborting"
         exit 2
 fi
 ANSWER=$(basename $(echo $ANSWER))
@@ -129,9 +124,35 @@ cat $BUILD_TMP | sed "s,^XLAPP_HOST_PART=.*,XLAPP_HOST_PART=$ANSWER," > $BUILD_T
 bump
 
 #
+# Boot partition (disk device)
+#
+echo
+echo -n "Where is the boot-loader? (e.g., /dev/sda1; <enter> to use previous answer)? "
+PREV_ANSWER="${ANSWER}"
+read ANSWER
+if [ -z $ANSWER ] ; then
+	ANSWER="${PREV_ANSWER}"
+else
+	ANSWER=$(basename $(echo $ANSWER))
+fi
+echo "  [ BOOT_PART ] --> $ANSWER"
+cat $BUILD_TMP | sed "s,^XLAPP_BOOT_PART=.*,XLAPP_BOOT_PART=$ANSWER," > $BUILD_TMP2
+bump
+
+#
+# LFS partition type
+#
+ask LFS_FSTYPE "What is the LFS partition type (ext2|ext3|ext4)?"
+
+#
 # HOST partition type
 #
 ask HOST_FSTYPE "What is the HOST partition type (ext2|ext3|ext4)?"
+
+#
+# BOOT partition type
+#
+ask BOOT_FSTYPE "What is the BOOT partition type (ext2|ext3|ext4)?"
 
 #
 # New root password
@@ -193,6 +214,12 @@ ask HOST_GW "What is the gateway (IP; e.g., 192.168.0.1)?"
 ask DNS_NS_1 "What is the primary nameserver (IP)?"
 
 ask DNS_NS_2 "What is the secondary nameserver (IP)?"
+
+ask NTP_SERVER_1 "What is the primary NTP server (IP or FQDN)?"
+
+ask NTP_SERVER_2 "What is the secondary NTP server (IP or FQDN)?"
+
+ask NTP_SERVER_3 "What is the tertiary NTP server (IP or FQDN)?"
 
 ask TARGET_LANG "What is the target language (i.e., an entry from 'locale -a')?"
 

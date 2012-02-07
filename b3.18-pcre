@@ -1,0 +1,13 @@
+#! /bin/bash
+
+./configure --prefix=/usr \
+            --docdir=/usr/share/doc/pcre-8.12 \
+            --enable-utf8 \
+            --enable-unicode-properties \
+            --enable-pcregrep-libz \
+            --enable-pcregrep-libbz2
+
+make
+
+sudo make install
+

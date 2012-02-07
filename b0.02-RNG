@@ -1,5 +1,5 @@
 #! /bin/bash
 
-cd blfs-bootscripts-20111226
+cd blfs-bootscripts-*
 
 make install-random

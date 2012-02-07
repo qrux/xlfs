@@ -1,10 +1,8 @@
 #! /bin/bash
 
-if [ ! -d blfs-bootscripts-20111226 ] ; then
-	tar xf src/blfs-bootscripts-20111226.tar.bz2
-fi
+tar xf src/blfs-bootscripts-*.tar*
 
-cd blfs-bootscripts-20111226
+cd blfs-bootscripts-*
 
 sudo make install-bind
 

@@ -1,0 +1,22 @@
+#! /bin/bash
+
+sed -i.bak 's/#elif WITH_DES/#elif defined(WITH_DES)/' \
+    plugins/digestmd5.c
+
+sed -i 's#DB_VERSION_MAJOR == 4.*#(&) || DB_VERSION_MAJOR == 5#' \
+    {sasldb/db_berkeley.c,utils/dbconverter-2.c}
+
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --with-dbpath=/var/lib/sasl/sasldb2 \
+            --with-saslauthd=/var/run/saslauthd
+
+make
+
+sudo make install
+sudo install -v -m755 -d /usr/share/doc/cyrus-sasl-2.1.23
+sudo install -v -m644 doc/{*.{html,txt,fig},ONEWS,TODO} \
+    saslauthd/LDAP_SASLAUTHD /usr/share/doc/cyrus-sasl-2.1.23
+sudo install -v -m700 -d /var/lib/sasl
+sudo install -v -m711 -d /var/run/saslauthd
+

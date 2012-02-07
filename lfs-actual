@@ -38,7 +38,7 @@ sed "s,#! /bin/bash,#! /tools/bin/bash," run > run-jail
 chmod 0755 *-jail
 
 # Unpack the BLFS bootscripts for later
-tar xf src/blfs-bootscripts-20111226.tar.bz2
+tar xf src/blfs-bootscripts-*.tar.*
 
 /bin/cp -v xlapp-linux-3.1-kernel*.config src
 

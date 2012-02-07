@@ -6,9 +6,11 @@ cat > /etc/fstab <<EOF
 # file system  mount-point  type   options            dump  fsck
 #                                                           order
 #--------------------------------------------------------------#
-# /dev/sda5    /            ext3   defaults,noatime   1     1
+# /dev/sda5    /            ext4   defaults,noatime   1     1
 #--------------------------------------------------------------#
-/dev/${XLAPP_BOOT_PART}      /            ${XLAPP_BOOT_FSTYPE}   defaults,noatime   1     1
+/dev/${XLAPP_LFS_PART}      /            ${XLAPP_LFS_FSTYPE}   defaults,noatime   1     1
+/dev/${XLAPP_BOOT_PART}      /boot        ${XLAPP_BOOT_FSTYPE}   defaults,noatime   1     2
+
 /dev/${XLAPP_HOST_PART}      /mnt/host    ${XLAPP_HOST_FSTYPE}   defaults,noatime   1     2
 proc           /proc        proc   defaults           0     0
 sysfs          /sys         sysfs  defaults           0     0
