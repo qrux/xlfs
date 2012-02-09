@@ -76,7 +76,7 @@ if [ "${IN_BOOT}" = "1" -a "${ONBOOT}" != "yes" ]; then
   exit 0
 fi
 
-for S in ${SERVICES}; do
+for S in ${SERVICE}; do
  if [ ! -n "${S}" -o ! -x "/lib/services/${S}" ]; then
    MSG="\nUnable to process ${file}.  Either " 
    MSG="${MSG}the SERVICE variable was not set "
