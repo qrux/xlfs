@@ -1,5 +1,5 @@
---- lfs-bootscripts-20111017/lfs/lib/services/init-functions-ORIG	2012-02-07 14:22:47.698998895 -0800
-+++ lfs-bootscripts-20111017/lfs/lib/services/init-functions	2012-02-07 15:12:21.599000028 -0800
+--- lfs-bootscripts-20111017/lfs/lib/services/init-functions-ORIG	2012-02-08 22:35:18.183900357 -0800
++++ lfs-bootscripts-20111017/lfs/lib/services/init-functions	2012-02-08 22:35:45.231900730 -0800
 @@ -742,4 +742,26 @@
     return 0
  }
@@ -23,7 +23,7 @@
 +   local dir=$1
 +   if [ -z $dir ] ; then echo "$dir unspecified ; aborting" ; return 255 ; fi
 +   if [ ! -d $dir ] ; then echo "$dir is not a directory; aborting" ; return 254 ; fi
-+   if [ 0 -eq $(/bin/ls -1 $dir/* 2> /dev/null | wc -l) ] ; return 0 ; else return 1 ; fi
++   if [ 0 -eq $(/bin/ls -1 $dir/* 2> /dev/null | wc -l) ] ; then return 0 ; else return 1 ; fi
 +}
 +
  # End /lib/lsb/init-functions
