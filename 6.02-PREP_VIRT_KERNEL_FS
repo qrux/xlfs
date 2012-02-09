@@ -11,11 +11,15 @@ mknod -m 666 /dev/random c 1 8
 mknod -m 666 /dev/urandom c 1 9
 chown root:root /dev/random /dev/urandom
 
+# We expect these devices to be unmounted.  But, just in case
+# we were in the middle of a build, and came back to it...
+set +e
 umount $LFS/sys
 umount $LFS/proc
 umount $LFS/dev/pts
 umount $LFS/dev/shm
 umount $LFS/dev
+set -e
 
 mount -v --bind /dev $LFS/dev
 

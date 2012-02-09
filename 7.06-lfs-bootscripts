@@ -1,3 +1,5 @@
 #! /bin/bash
 
+patch -Np1 -i ../lfs-bootscripts-1.patch
+
 make install

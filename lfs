@@ -34,12 +34,14 @@ export LFS=$XLAPP_LFS
 export __SOURCE_DIR="${LFS}/lfs"
 
 echo "  Creating .bashrc for LFS-user, and lfs-05-buid-as-lfs..."
-LFS_DOT_BASHRC=dot.bashrc-lfs
+LFS_DOT_BASHRC="dot.bashrc-lfs"
 cat ${LFS_DOT_BASHRC}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $LFS_DOT_BASHRC
-LFS_05_BUILD=lfs-05-build-as-lfs
+LFS_05_BUILD="lfs-05-build-as-lfs"
 cat ${LFS_05_BUILD}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $LFS_05_BUILD
-unset LFS_DOT_BASHRC
-unset LFS_05_BUILD
+ROOT_DOT_ALIAS_ROOT="dot.alias-root"
+cat ${ROOT_DOT_ALIAS_ROOT}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $ROOT_DOT_ALIAS_ROOT
+
+/bin/cp -fv $ROOT_DOT_ALIAS_ROOT ~root/.alias-root
 
 echo -n "  Skipping tests? "
 unset SKIP_TESTS
@@ -71,17 +73,17 @@ umount $LFS/dev/pts 2> /dev/null
 umount $LFS/dev/shm 2> /dev/null
 umount $LFS/dev 2> /dev/null
 umount $LFS 2> /dev/null
-umount /dev/${XLAPP_LFS_PART} 2> /dev/null
+umount ${XLAPP_LFS_PART} 2> /dev/null
 set -e
 
 echo "  Make sure LFS mount point [ $LFS ] exists..."
 mkdir -pv $LFS
 
 echo "  Create LFS partition filesystem..."
-mkfs -t ${XLAPP_BOOT_FSTYPE} /dev/${XLAPP_LFS_PART}
+mkfs -t ${XLAPP_BOOT_FSTYPE} ${XLAPP_LFS_PART}
 
 echo "  Mounting LFS partition [ ${XLAPP_LFS_PART} ] at [ ${LFS} ]..."
-mount /dev/${XLAPP_LFS_PART} $LFS
+mount ${XLAPP_LFS_PART} $LFS
 rm -rf $LFS/*
 
 echo "  Creating LFS work directory [ ${__SOURCE_DIR} ]..."

@@ -1,0 +1,93 @@
+#! /bin/bash
+################################################################
+# Begin xlapp-boot-watchdog
+#
+# Description : After timeout, reset GRUB config & reboot
+#
+# Author      : Qrux - qrux dot qed @ gmail.com
+#
+# Version     : X/LAPP-0.01
+#
+################################################################
+
+### BEGIN INIT INFO
+# Provides:            xlapp-boot-watchdog
+# Required-Start:      network
+# Should-Start:        sshd
+# Required-Stop:       sendsignals
+# Should-Stop:
+# Default-Start:       3
+# Default-Stop:        0 1 2 6
+# Short-Description:   Reboots if not manually stopped.
+# Description:         Reboots if not manually stopped.
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+unset totime
+totime() { date '+%Y%m%d_%H%M%S'; }
+
+XLAPP_BOOTWATCH_TIMEOUT=180
+XLAPP_RUN_DIR=/var/run/xlapp
+XLAPP_BOOTWATCH_PIDFILE="${XLAPP_RUN_DIR}/boot-watchdog.pid"
+XLAPP_GRUB_CONFIG=/boot/grub/menu.lst
+XLAPP_SAFE_BOOT_CONFIG="${XLAPP_GRUB_CONFIG}-HOST"
+XLAPP_BROKEN_BOOT_CONFIG="${XLAPP_GRUB_CONFIG}-BROKEN-$(totime)"
+XLAPP_BOOTWATCH_START_LINK=/etc/rc.d/rc3.d/S*xlapp-boot-watchdog
+
+if [ ! -f $XLAPP_SAFE_BOOT_CONFIG ] ; then
+	log_warning_msg "No SAFE boot config found; exiting."
+	exit
+fi
+
+if [ ! -d $XLAPP_RUN_DIR ] ; then mkdir -pv $XLAPP_RUN_DIR ; fi
+
+CMD="${1}"
+
+case "${CMD}" in
+start)
+	if [ -f $XLAPP_BOOTWATCH_PIDFILE ] ; then log_warning_msg "Already a boot-watchdog running; aborting" ; exit ; fi
+	log_info_msg "Sleeping for $XLAPP_BOOTWATCH_TIMEOUT seconds (hoping for manual intervention)..."
+	# Reset GRUB config
+	( echo $$ > $XLAPP_BOOTWATCH_PIDFILE && \
+	    sleep $XLAPP_BOOTWATCH_TIMEOUT && \
+	    /bin/mv -vf $XLAPP_GRUB_CONFIG $XLAPP_BROKEN_BOOT_CONFIG && \
+	    /bin/cp -vf $XLAPP_SAFE_BOOT_CONFIG $XLAPP_GRUB_CONFIG ; \
+	    /sbin/reboot ) &
+	;;
+
+stop)
+	if [ -f $XLAPP_BOOTWATCH_PIDFILE ] ; then
+		PID=$(cat $XLAPP_BOOTWATCH_PIDFILE)
+		log_info_msg "Killing boot-watchdog with PID $PID"
+		kill -9 $(cat $XLAPP_BOOTWATCH_PIDFILE)
+		evaluate_retval
+		echo "If successful here, run '$0 uninstall' to remove boot-watchdog."
+	else
+		log_warning_msg "No boot-watchdog running.\n"
+	fi
+	;;
+
+uninstall)
+	log_info_msg "Removing boot-bootwatch script: $XLAPP_BOOTWATCH_START_LINK"
+	/bin/rm -f $XLAPP_BOOTWATCH_START_LINK
+	evaluate_retval
+	;;
+
+status)
+	if [ -f $XLAPP_BOOTWATCH_PIDFILE ] ; then
+		PID=$(cat $XLAPP_BOOTWATCH_PIDFILE)
+		echo "Boot-watchdog running with PID $PID"
+	else
+		echo "No boot-watchdog running."
+	fi
+	;;
+
+*)
+	echo "Usage: $0 {start|stop|status|uninstall}"
+	exit 1
+	;;
+esac
+
+# End xlapp-boot-watchdog bootscript
+

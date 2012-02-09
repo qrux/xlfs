@@ -4,6 +4,7 @@ find src -mindepth 1 -maxdepth 1 -type d -exec rm -rfv {} \;
 
 rm -fv dot.bashrc-lfs
 rm -fv lfs-05-build-as-lfs
+rm -fv dot.alias-root
 
 rm -fv BLFS-ca-bundle*.crt
 rm -fv *-jail
@@ -13,3 +14,5 @@ rm -fv src/wl
 rm -fv tmpl
 rm -rfv blfs-bootscripts-*
 rm -fv passhash
+
+rm -fv done.out

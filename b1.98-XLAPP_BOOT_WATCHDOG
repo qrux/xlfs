@@ -1,0 +1,9 @@
+#! /bin/bash
+
+cp -vf xlapp-bootscripts/xlapp-boot-watchdog /etc/init.d/
+
+chmod 0754 /etc/init.d/xlapp-boot-watchdog
+
+cd /etc/rc.d/rc3.d && \
+	ln -s ../init.d/xlapp-boot-watchdog S99xlapp-boot-watchdog
+

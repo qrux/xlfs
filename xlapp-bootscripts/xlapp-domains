@@ -40,9 +40,16 @@ if [ ! -x ${XLAPP_COMMAND} ] ; then
 fi
 
 case "${CMD}" in
+# Check definitions dir
+# Check for definitions
+# For each definition...
+#   xl create <domain>
 start)
-	test 0 -eq $(ls -1 ${XLAPP_AUTO_DOMAIN_DIR}/* 2> /dev/null | wc -l) && (log_info_msg "No auto-domain definitions found; exiting." ; exit)
-	log_info_msg "Starting Xen Domains...\n"
+	if [ ! -d $XLAPP_AUTO_DOMAIN_DIR ] ; then log_info_msg "Auto-start domain dir [ $XLAPP_AUTO_DOMAIN_DIR ] doesn't exist; exiting." ; exit ; fi
+	is_dir_empty $XLAPP_AUTO_DOMAIN_DIR
+	if [ 1 -ne $? ] ; then log_info_msg "No auto-start domain definitions found; exiting." ; exit ; fi
+
+	log_info_msg "Starting auto-start Xen Domains...\n"
 	for _XD in $(echo ${XLAPP_AUTO_DOMAIN_DIR}/*) ; do
 		_XDNAME=$(basename ${_XD} | cut -d '.' -f 1)
 		log_info_msg "  Starting [ ${_XDNAME} ] DomU ..."
@@ -52,26 +59,33 @@ start)
 	done
 	;;
 
+# Check auto-start run dir
+# Check for auto-started domains
+# For each auto-started domain
+#   xl create <domain>
 stop)
-	test 0 -eq $(ls -1 ${XLAPP_RUN_DIR}/start-* 2> /dev/null | wc -l) && (log_info_msg "No domains started; exiting." ; exit)
-	log_info_msg "Stopping Xen Domains...\n"
+	if [ ! -d $XLAPP_RUN_DIR ] ; then log_info_msg "Auto-start domain run dir [ $XLAPP_RUN_DIR ] doesn't exist; exiting." ; exit ; fi
+	is_dir_empty $XLAPP_RUN_DIR
+	if [ 1 -ne $? ] ; then log_info_msg "No auto-start domains started; exiting." ; exit ; fi
+
+	log_info_msg "Shutting down auto-started Xen Domains...\n"
 	_XDLIST="echo $(xl list | egrep -v "^Name[[:space:]]|^Domain-0[[:space:]]" | awk '{print $1}')"
 	for _XD in "$(${_XDLIST})" ; do
-		log_info_msg "  Shutting-down [ ${_XD} ] DomU..."
-		${XLAPP_COMMAND} shutdown ${_XD} > ${XLAPP_RUN_DIR}/stop-${_XD} 2>&1
+		log_info_msg "  Shutting down [ ${_XD} ] DomU..."
+		${XLAPP_COMMAND} shutdown -w ${_XD} > ${XLAPP_RUN_DIR}/stop-${_XD} 2>&1
 		# Wait 10 seconds, and see if the VM actually stopped...
-		_GOOD_SHUTDOWN=1
-		for _WAIT in $(seq 1 $((${XLAPP_SHUTDOWN_TIMEOUT} / ${XLAPP_INTERVAL_BETWEEN_DOTS}))) ; do
-			${XLAPP_COMMAND} list | awk '{print $1}' | grep -w "${_XD}" > /dev/null
-			if [ $? -ne 0 ] ; then
-				_GOOD_SHUTDOWN=0
-				break
-			else
-				echo -e -n "."
-				sleep ${XLAPP_INTERVAL_BETWEEN_DOTS}
-			fi
-		done
-		test 0 -eq ${_GOOD_SHUTDOWN}
+		#_GOOD_SHUTDOWN=1
+		#for _WAIT in $(seq 1 $((${XLAPP_SHUTDOWN_TIMEOUT} / ${XLAPP_INTERVAL_BETWEEN_DOTS}))) ; do
+			#${XLAPP_COMMAND} list | awk '{print $1}' | grep -w "${_XD}" > /dev/null
+			#if [ $? -ne 0 ] ; then
+				#_GOOD_SHUTDOWN=0
+				#break
+			#else
+				#echo -e -n "."
+				#sleep ${XLAPP_INTERVAL_BETWEEN_DOTS}
+			#fi
+		#done
+		#test 0 -eq ${_GOOD_SHUTDOWN}
 		evaluate_retval
 	done
 	;;

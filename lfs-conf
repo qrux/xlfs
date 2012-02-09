@@ -93,51 +93,63 @@ echo "  [ LFS ] --> $ANSWER"
 cat $BUILD_TMP | sed "s,^XLAPP_LFS=.*,XLAPP_LFS=$ANSWER," > $BUILD_TMP2
 bump
 
+cat <<EOF
+
+##########################################################################
+Use the short name (e.g., /dev/sdaN) instead of the long udev names; we
+don't create an initrd image, so udev isn't loaded; using those names just
+results in the partition not being found.
+##########################################################################
+EOF
+
 #
 # LFS partition (disk device)
 #
-echo
-echo -n "What is the LFS partition (e.g., /dev/sda5)? "
-read ANSWER
-if [ -z $ANSWER ] ; then
-        echo "  [error] No LFS partition given; aborting"
-        exit 2
-fi
-ANSWER=$(basename $(echo $ANSWER))
-echo "  [ LFS_PART ] --> $ANSWER"
-cat $BUILD_TMP | sed "s,^XLAPP_LFS_PART=.*,XLAPP_LFS_PART=$ANSWER," > $BUILD_TMP2
-bump
+ask LFS_PART "What is the LFS partition?"
+#echo
+#echo -n "What is the LFS partition (e.g., /dev/sda5)? "
+#read ANSWER
+#if [ -z $ANSWER ] ; then
+        #echo "  [error] No LFS partition given; aborting"
+        #exit 2
+#fi
+#ANSWER=$(basename $(echo $ANSWER))
+#echo "  [ LFS_PART ] --> $ANSWER"
+#cat $BUILD_TMP | sed "s,^XLAPP_LFS_PART=.*,XLAPP_LFS_PART=$ANSWER," > $BUILD_TMP2
+#bump
 
+ask HOST_PART "What is the HOST (i.e., current working) partition?"
 #
 # Host partition (disk device)
 #
-echo
-echo -n "What is the HOST (current root) partition (e.g., /dev/sda2)? "
-read ANSWER
-if [ -z $ANSWER ] ; then
-        echo "  [error] No HOST partition given; aborting"
-        exit 2
-fi
-ANSWER=$(basename $(echo $ANSWER))
-echo "  [ HOST_PART ] --> $ANSWER"
-cat $BUILD_TMP | sed "s,^XLAPP_HOST_PART=.*,XLAPP_HOST_PART=$ANSWER," > $BUILD_TMP2
-bump
+#echo
+#echo -n "What is the HOST (current root) partition (e.g., /dev/sda2)? "
+#read ANSWER
+#if [ -z $ANSWER ] ; then
+        #echo "  [error] No HOST partition given; aborting"
+        #exit 2
+#fi
+#ANSWER=$(basename $(echo $ANSWER))
+#echo "  [ HOST_PART ] --> $ANSWER"
+#cat $BUILD_TMP | sed "s,^XLAPP_HOST_PART=.*,XLAPP_HOST_PART=$ANSWER," > $BUILD_TMP2
+#bump
 
+ask BOOT_PART "What is the boot-loader partition?"
 #
 # Boot partition (disk device)
 #
-echo
-echo -n "Where is the boot-loader? (e.g., /dev/sda1; <enter> to use previous answer)? "
-PREV_ANSWER="${ANSWER}"
-read ANSWER
-if [ -z $ANSWER ] ; then
-	ANSWER="${PREV_ANSWER}"
-else
-	ANSWER=$(basename $(echo $ANSWER))
-fi
-echo "  [ BOOT_PART ] --> $ANSWER"
-cat $BUILD_TMP | sed "s,^XLAPP_BOOT_PART=.*,XLAPP_BOOT_PART=$ANSWER," > $BUILD_TMP2
-bump
+#echo
+#echo -n "Where is the boot-loader? (e.g., /dev/sda1; <enter> to use previous answer)? "
+#PREV_ANSWER="${ANSWER}"
+#read ANSWER
+#if [ -z $ANSWER ] ; then
+	#ANSWER="${PREV_ANSWER}"
+#else
+	#ANSWER=$(basename $(echo $ANSWER))
+#fi
+#echo "  [ BOOT_PART ] --> $ANSWER"
+#cat $BUILD_TMP | sed "s,^XLAPP_BOOT_PART=.*,XLAPP_BOOT_PART=$ANSWER," > $BUILD_TMP2
+#bump
 
 #
 # LFS partition type

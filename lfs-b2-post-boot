@@ -14,5 +14,5 @@ chmod a+rw src
 pwd
 su -c "./build-all -s b2.01 -e b2.20" blfs
 
-./build-all -s b2.30 -e b2.35
+./build-all -s b2.30 -e b2.80
 

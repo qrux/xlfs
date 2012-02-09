@@ -1,0 +1,14 @@
+#! /bin/bash
+
+file=$1
+
+if [ -z $file ] ; then
+	echo
+	echo "  Usage: $0 <$file>"
+	echo
+	exit
+fi
+
+cat $file | \
+	grep -E "scsi\s+([0-9]+):[0-9]+:[0-9]+:[0-9].*3ware" | \
+	sed -E 's/.*scsi\s+([0-9]+).*/\1/'

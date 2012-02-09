@@ -1,0 +1,17 @@
+#! /bin/bash
+
+./scan-once | grep -E "(run|built) successfully" | awk '{print $3}' > done.out
+
+unset IS_BROKEN
+
+for section in $(/bin/ls [0-9]* b1* -1 | cut -d \- -f 1) ; do
+	grep -q $section done.out
+	if [ 0 -ne $? ] ; then
+		echo "Section [ $section ] FAILED to build/run."
+		IS_BROKEN=true
+	fi
+done
+
+if [ -z $IS_BROKEN ] ; then
+	echo "All sections were built/run SUCCESSFULLY."
+fi

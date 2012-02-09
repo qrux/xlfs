@@ -8,10 +8,17 @@ cat > /etc/fstab <<EOF
 #--------------------------------------------------------------#
 # /dev/sda5    /            ext4   defaults,noatime   1     1
 #--------------------------------------------------------------#
-/dev/${XLAPP_LFS_PART}      /            ${XLAPP_LFS_FSTYPE}   defaults,noatime   1     1
-/dev/${XLAPP_BOOT_PART}      /boot        ${XLAPP_BOOT_FSTYPE}   defaults,noatime   1     2
+${XLAPP_LFS_PART}      /            ${XLAPP_LFS_FSTYPE}   defaults,noatime   1     1
+EOF
 
-/dev/${XLAPP_HOST_PART}      /mnt/host    ${XLAPP_HOST_FSTYPE}   defaults,noatime   1     2
+if [ "${XLAPP_LFS_PART}" != "${XLAPP_BOOT_PART}" ] ; then
+	cat >> /etc/fstab <<EOF
+${XLAPP_BOOT_PART}      /boot        ${XLAPP_BOOT_FSTYPE}   defaults,noatime   1     2
+EOF
+fi
+
+cat >> /etc/fstab <<EOF
+${XLAPP_HOST_PART}      /mnt/host    ${XLAPP_HOST_FSTYPE}   defaults,noatime   1     2
 proc           /proc        proc   defaults           0     0
 sysfs          /sys         sysfs  defaults           0     0
 devpts         /dev/pts     devpts gid=4,mode=620     0     0
