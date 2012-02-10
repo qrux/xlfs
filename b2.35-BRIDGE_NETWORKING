@@ -14,8 +14,8 @@ for INTERFACE_FILE in $(echo ifconfig.eth*) ; do
 	fi
 
 	# Take down old interface
-	echo "Taking down old interface [ $INTERFACE ]..."
-	/sbin/ifdown $INTERFACE
+	#echo "Taking down old interface [ $INTERFACE ]..."
+	#/sbin/ifdown $INTERFACE
 
 	# Load settings
 	echo "Loading old interface config..."
@@ -38,10 +38,16 @@ for INTERFACE_FILE in $(echo ifconfig.eth*) ; do
 	sed -i "s/SERVICE=.*/SERVICE=\"bridge ${SERVICE}\"/" $BRIDGE_FILE
 
 	# Enslaving old interface
-	echo "Enslaving physical port [ $INTERFACE ] to bridge [ $BRIDGE_IF ]..."
-	echo "INTERFACES=${INTERFACE}" >> $BRIDGE_FILE
+	echo "Enslaving phy port [ $INTERFACE ] to bridge [ $BRIDGE_IF ]..."
+
+	# Editing config file to add (CHECK_LINK, STP, INTERFACES)
+	cat >> $BRIDGE_FILE <<EOF
+CHECK_LINK=no      # Don't check before it's created
+STP=no             # Use Spanning Tree Protocol?
+INTERFACES=${INTERFACE}    # Enslaved ports
+EOF
 
 	# Bring up new interface
-	echo "Bringing up new interface [ $BRIDGE_IF ]..."
-	/sbin/ifup $BRIDGE_IF
+	#echo "Bringing up new interface [ $BRIDGE_IF ]..."
+	#/sbin/ifup $BRIDGE_IF
 done

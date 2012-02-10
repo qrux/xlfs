@@ -4,9 +4,9 @@
 
 make
 
-sudo make install
+make install
 
 LVM2_DOC_DIR=/usr/share/doc/lvm2-2.02.90
-sudo install -d ${LVM2_DOC_DIR}
-sudo cp -va doc/* ${LVM2_DOC_DIR}
-sudo rm -vf ${LVM2_DOC_DIR}/Makefile{,.in}
+install -d ${LVM2_DOC_DIR}
+cp -va doc/* ${LVM2_DOC_DIR}
+rm -vf ${LVM2_DOC_DIR}/Makefile{,.in}
