@@ -18,6 +18,9 @@ chown -R blfs:blfs /lfs
 echo "  Starting build..."
 time env -i PATH=/bin:/usr/bin:/sbin:/usr/sbin ./lfs-b2-post-boot
 
+echo "  Modifying GRUB boot..."
+./modify-grub-xlapp-p2 -y
+
 if [ 0 -ne $? ] ; then
 echo "########################################################################"
 echo "#"

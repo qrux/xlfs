@@ -1,0 +1,29 @@
+--- lfs-bootscripts-20111017/lfs/lib/services/init-functions-ORIG	2012-02-12 14:34:41.765341963 -0800
++++ lfs-bootscripts-20111017/lfs/lib/services/init-functions	2012-02-12 14:36:09.415690673 -0800
+@@ -742,4 +742,26 @@
+    return 0
+ }
+ 
++################################################################################
++# is_dir_empty()                                                               #
++#                                                                              #
++# Purpose: Checks if a directory has no entries (files, subdirs, etc)          #
++#                                                                              #
++# Inputs: Accepts a single string which represents a path                      #
++#                                                                              #
++# Return values:                                                               #
++#       0 - No entries                                                         #
++#       1 - Enries present                                                     #
++#     254 - Invalid directory path given                                       #
++#     255 - No argument given                                                  #
++#                                                                              #
++################################################################################
++is_dir_empty()
++{
++   local dir=$1
++   if [ -z $dir ] ; then echo "$dir unspecified ; aborting" ; return 255 ; fi
++   if [ ! -d $dir ] ; then echo "$dir is not a directory; aborting" ; return 254 ; fi
++   if [ 0 -eq $(/bin/ls -1 $dir/* 2> /dev/null | wc -l) ] ; then return 0 ; else return 1 ; fi
++}
++
+ # End /lib/lsb/init-functions

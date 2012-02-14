@@ -1,0 +1,11 @@
+#! /bin/bash
+
+cat > _usr_bin_which << "EOF"
+#!/bin/bash
+type -pa "$@" | head -n 1 ; exit ${PIPESTATUS[0]}
+EOF
+
+mv _usr_bin_which /usr/bin/which
+chmod -v 755 /usr/bin/which
+chown -v root:root /usr/bin/which
+

@@ -1,0 +1,97 @@
+#! /bin/bash
+set -e
+
+unset totime
+totime() { date '+%Y%m%d_%H%M%S'; }
+
+HOST_GRUB_FILE="/boot/grub/menu.lst"
+HOST_GRUB_BACKUP="${HOST_GRUB_FILE}-LFS"
+NEW_GRUB_FILE="${HOST_GRUB_FILE}-XLAPP"
+
+if [ ! -f machine.config ] ; then
+	echo "Expecting to find LFS config at machine.config, but it doesn't exist; exiting."
+	exit 1
+fi
+. machine.config
+
+echo "Expecting to find $HOST_GRUB_FILE..."
+
+# Do we recognize what's going on here?
+if [ ! -f $HOST_GRUB_FILE ] ; then
+	echo "Uh-oh.  No idea how to manage boot; can't find $HOST_GRUB_FILE; exiting."
+	exit 1
+fi
+
+unset SKIP_CONFIRM
+while getopts "y" OPT ; do
+	case "$OPT" in
+		y) SKIP_CONFIRM=true;;
+	esac
+done
+
+# Make timestamped backup
+/bin/cp -vf $HOST_GRUB_FILE ${HOST_GRUB_FILE}-$(totime)
+
+# Handle backup file
+echo "Looking for $HOST_GRUB_BACKUP..."
+if [ ! -f $HOST_GRUB_BACKUP ] ; then
+	# If it's not there...Make backup
+	/bin/cp -vf $HOST_GRUB_FILE $HOST_GRUB_BACKUP
+fi
+
+# Create new file (from host-backup as template)
+/bin/cp -vf $HOST_GRUB_BACKUP $NEW_GRUB_FILE
+
+#trim()
+#{
+	#echo $@ | sed -e 's/^\s*//' -e 's/\s*$//' -e 's/\s\s*/\ /g'
+#}
+
+BOOT_LINE_COUNT=$(cat $NEW_GRUB_FILE | grep "^[[:space:]]*title" | wc -l)
+CURRENT_BOOT=$(cat $NEW_GRUB_FILE | grep "^[[:space:]]*default" | awk '{print $2}')
+
+echo "There are $BOOT_LINE_COUNT boot entries."
+cat $NEW_GRUB_FILE | grep "^[[:space:]]*title"
+echo "The current boot index is $CURRENT_BOOT."
+
+cat >> $NEW_GRUB_FILE <<EOF
+
+# X/LAPP Xen
+title X/LAPP Xen                      (LFS-7.0, Linux-3.1, Xen-4.1.2)
+        root(hd0,0)
+        kernel /xen-4.1.2.gz dom0_mem=1024M
+        module /vmlinuz-3.1-lfs-7.0 root=${XLAPP_LFS_PART} raid=noautodetect console=tty0 earlyprintk=xen nomodeset
+
+# X/LAPP Xen (with DEBUG)
+title X/LAPP Xen (with DEBUG)         (LFS-7.0, Linux-3.1, Xen-4.1.2)
+        root(hd0,0)
+        kernel /xen-4.1.2.gz dom0_mem=1024M loglvl=all guest_loglvl=all console_to_ring sync_console
+        module /vmlinuz-3.1-lfs-7.0-dom0-DEBUG root=${XLAPP_LFS_PART} raid=noautodetect console=tty0 earlyprintk=xen nomodeset initcall_debug debug loglevel=10
+EOF
+
+BOOT_INDEX_NEW=$BOOT_LINE_COUNT
+
+sed -i "s/^[[:space:]]*default.*/default ${BOOT_INDEX_NEW}/" $NEW_GRUB_FILE
+
+set +e
+diff $HOST_GRUB_FILE $NEW_GRUB_FILE
+set -e
+
+if [ -z $SKIP_CONFIRM ] ; then
+	echo
+	echo -n "Use new GRUB config file? (yes/no) "
+	read ANSWER
+	echo
+
+	test -z $ANSWER && ANSWER=no
+	if [ "yes" != $ANSWER ] ; then
+		echo "Making no changes to actual boot config."
+		echo "  New GRUB file saved to $NEW_GRUB_FILE."
+		echo "  Exiting."
+		exit
+	fi
+fi
+
+/bin/cp -vf $NEW_GRUB_FILE $HOST_GRUB_FILE
+
+echo "New GRUB config installed to $HOST_GRUB_FILE ($NEW_GRUB_FILE); reboot."

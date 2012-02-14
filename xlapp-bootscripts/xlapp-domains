@@ -12,8 +12,8 @@
 
 ### BEGIN INIT INFO
 # Provides:            xlapp-domains
-# Required-Start:      network
-# Should-Start:
+# Required-Start:      xencommons
+# Should-Start:        network
 # Required-Stop:       sendsignals
 # Should-Stop:
 # Default-Start:       3 5
@@ -38,6 +38,11 @@ if [ ! -x ${XLAPP_COMMAND} ] ; then
 	log_warning_msg "Xen domain-management command [ ${XLAPP_COMMAND} ] missing; aborting"
 	exit
 fi
+if [ ! -d $XLAPP_RUN_DIR ] ; then
+	log_info_msg "Creating X/LAPP run dir [ $XLAPP_RUN_DIR ] to track started domains..."
+	mkdir -p ${XLAPP_RUN_DIR} > /dev/null 2>&1
+	evaluate_retval
+fi
 
 case "${CMD}" in
 # Check definitions dir
@@ -45,9 +50,9 @@ case "${CMD}" in
 # For each definition...
 #   xl create <domain>
 start)
-	if [ ! -d $XLAPP_AUTO_DOMAIN_DIR ] ; then log_info_msg "Auto-start domain dir [ $XLAPP_AUTO_DOMAIN_DIR ] doesn't exist; exiting." ; exit ; fi
+	if [ ! -d $XLAPP_AUTO_DOMAIN_DIR ] ; then log_info_msg "Auto-start domain dir [ $XLAPP_AUTO_DOMAIN_DIR ] doesn't exist; exiting.\n" ; exit ; fi
 	is_dir_empty $XLAPP_AUTO_DOMAIN_DIR
-	if [ 1 -ne $? ] ; then log_info_msg "No auto-start domain definitions found; exiting." ; exit ; fi
+	if [ 1 -ne $? ] ; then log_info_msg "No auto-start domain definitions found; exiting.\n" ; exit ; fi
 
 	log_info_msg "Starting auto-start Xen Domains...\n"
 	for _XD in $(echo ${XLAPP_AUTO_DOMAIN_DIR}/*) ; do
@@ -55,6 +60,12 @@ start)
 		log_info_msg "  Starting [ ${_XDNAME} ] DomU ..."
 		echo "Starting [ ${_XDNAME} ] DomU from config file [ ${_XD} ]..." > ${XLAPP_RUN_DIR}/start-${_XDNAME}
 		${XLAPP_COMMAND} create ${_XD} >> ${XLAPP_RUN_DIR}/start-${_XDNAME} 2>&1
+		if [ 0 -eq $? ] ; then
+			true
+		else
+			mv ${XLAPP_RUN_DIR}/start-${_XDNAME} ${XLAPP_RUN_DIR}/FAIL-${_XDNAME}
+			false
+		fi
 		evaluate_retval
 	done
 	;;
@@ -64,9 +75,9 @@ start)
 # For each auto-started domain
 #   xl create <domain>
 stop)
-	if [ ! -d $XLAPP_RUN_DIR ] ; then log_info_msg "Auto-start domain run dir [ $XLAPP_RUN_DIR ] doesn't exist; exiting." ; exit ; fi
+	if [ ! -d $XLAPP_RUN_DIR ] ; then log_info_msg "Auto-start domain run dir [ $XLAPP_RUN_DIR ] doesn't exist; exiting.\n" ; exit ; fi
 	is_dir_empty $XLAPP_RUN_DIR
-	if [ 1 -ne $? ] ; then log_info_msg "No auto-start domains started; exiting." ; exit ; fi
+	if [ 1 -ne $? ] ; then log_info_msg "No auto-start domains started; exiting.\n" ; exit ; fi
 
 	log_info_msg "Shutting down auto-started Xen Domains...\n"
 	_XDLIST="echo $(xl list | egrep -v "^Name[[:space:]]|^Domain-0[[:space:]]" | awk '{print $1}')"

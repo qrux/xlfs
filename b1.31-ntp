@@ -1,0 +1,26 @@
+#! /bin/bash
+
+./configure --prefix=/usr --sysconfdir=/etc \
+            --with-binsubdir=sbin
+
+make
+
+make check
+
+sudo make install
+sudo install -v -m755 -d /usr/share/doc/ntp-4.2.6p4
+sudo cp -v -R html/* /usr/share/doc/ntp-4.2.6p4/
+
+cat > _etc_ntp.conf <<EOF
+server ${XLAPP_NTP_SERVER_1}   iburst
+server ${XLAPP_NTP_SERVER_2}   iburst
+server ${XLAPP_NTP_SERVER_3}   iburst
+
+driftfile /var/cache/ntp.drift
+pidfile   /var/run/ntpd.pid
+EOF
+sudo mv _etc_ntp.conf /etc/ntp.conf
+
+sudo ln -v -sf ../init.d/setclock /etc/rc.d/rc0.d/K46setclock
+sudo ln -v -sf ../init.d/setclock /etc/rc.d/rc6.d/K46setclock
+

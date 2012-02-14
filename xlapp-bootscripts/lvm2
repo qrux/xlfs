@@ -1,0 +1,69 @@
+#! /bin/bash
+################################################################
+# Begin lvm2
+#
+# Description : Initiates LVM2 on reboot
+#
+# Author      : Qrux - qrux dot qed @ gmail.com
+#
+# Version     : X/LAPP-0.01
+#
+################################################################
+
+### BEGIN INIT INFO
+# Provides:            lvm2
+# Required-Start:
+# Should-Start:
+# Required-Stop:
+# Should-Stop:
+# Default-Start:       S
+# Default-Stop:
+# Short-Description:   Initiates LVM2.
+# Description:         Initiates LVM2 logical volumes.
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+unset totime
+totime() { date '+%Y%m%d_%H%M%S'; }
+
+#
+# This is an unfortunate state of affairs.  We really want LVM volumes
+# to be available on boot (not have to have the necessary executables in /usr.
+#
+LVM_VGSCAN=/usr/sbin/vgscan
+LVM_VGCHANGE=/usr/sbin/vgchange
+LVM_RUN_DIR=/var/run/lvm2
+
+if [ ! -x $LVM_VGSCAN ] ; then
+	log_info_msg "LVM2 command 'vgscan' not found; exiting.\n"
+	exit
+fi
+
+if [ ! -x $LVM_VGCHANGE ] ; then
+	log_info_msg "LVM2 command 'vgchange' not found; exiting.\n"
+	exit
+fi
+
+/bin/mkdir -p $LVM_RUN_DIR
+
+case "${1}" in
+    start)
+	# Make necessary paths in /dev, and
+	# set "available" status of detected Logical Volumes to "yes"
+	log_info_msg "Enabling LVM volumes..."
+	$LVM_VGSCAN --mknodes > ${LVM_RUN_DIR}/start-status 2>&1 && \
+	  $LVM_VGCHANGE -a y  >> ${LVM_RUN_DIR}/start-status 2>&1
+	evaluate_retval
+	;;
+
+    *)
+	echo "Usage: ${0} {start}"
+	exit 1
+	;;
+esac
+
+exit 0
+
+# End lvm2
+

@@ -2,5 +2,5 @@
 
 cd blfs-bootscripts-*
 
-sudo make install-sysstat
-sudo make install-sshd
+make install-sysstat
+make install-sshd

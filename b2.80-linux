@@ -3,7 +3,8 @@
 make mrproper
 
 #cp -vf ../../xlapp-linux-3.1-domU.config .config
-cp -vf ../../xlapp-linux-3.1-domU-min.config .config
+#cp -vf ../../xlapp-linux-3.1-domU-min.config .config
+cp -vf ../../xlapp-linux-3.1-domU-min-hid-kbdfront.config .config
 make oldconfig
 
 make

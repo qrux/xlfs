@@ -14,6 +14,11 @@ chmod a+rw src
 pwd
 ./build-all -s b1.00 -e b1.00
 
-su -c "./build-all -s b1.01 -e b1.08" blfs
+su -c "./build-all -s b1.01 -e b1.07" blfs
 
-./build-all -s b1.09 -e b1.99
+./build-all -s b1.08 -e b1.30
+
+su -c "./build-all -s b1.31 -e b1.45" blfs
+
+./build-all -s b1.70 -e b1.99
+

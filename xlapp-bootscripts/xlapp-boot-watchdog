@@ -27,7 +27,7 @@
 unset totime
 totime() { date '+%Y%m%d_%H%M%S'; }
 
-XLAPP_BOOTWATCH_TIMEOUT=180
+XLAPP_BOOTWATCH_TIMEOUT=30
 XLAPP_RUN_DIR=/var/run/xlapp
 XLAPP_BOOTWATCH_PIDFILE="${XLAPP_RUN_DIR}/boot-watchdog.pid"
 XLAPP_GRUB_CONFIG=/boot/grub/menu.lst
@@ -49,7 +49,7 @@ start)
 	if [ -f $XLAPP_BOOTWATCH_PIDFILE ] ; then log_warning_msg "Already a boot-watchdog running; aborting" ; exit ; fi
 	log_info_msg "Sleeping for $XLAPP_BOOTWATCH_TIMEOUT seconds (hoping for manual intervention)..."
 	# Reset GRUB config
-	( echo $$ > $XLAPP_BOOTWATCH_PIDFILE && \
+	( echo $BASHPID > $XLAPP_BOOTWATCH_PIDFILE && \
 	    sleep $XLAPP_BOOTWATCH_TIMEOUT && \
 	    /bin/mv -vf $XLAPP_GRUB_CONFIG $XLAPP_BROKEN_BOOT_CONFIG && \
 	    /bin/cp -vf $XLAPP_SAFE_BOOT_CONFIG $XLAPP_GRUB_CONFIG ; \

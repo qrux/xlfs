@@ -1,0 +1,6 @@
+#! /bin/bash
+
+cd blfs-bootscripts-*
+
+make install-ntpd
+

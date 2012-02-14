@@ -128,7 +128,7 @@ cat > ${DOMU_CONF_DIR}/etc/fstab <<EOF
 
 # file system  mount-point  type   options           dump  fsck
 #                                                          order
-/dev/xvda1     /            ext3   defaults,noatime   1     1
+/dev/xvda1     /            ${FSTYPE}   defaults,noatime   1     1
 EOF
 
 if [ "yes" == $XLAPP_DOMU_SWAP ] ; then
@@ -146,6 +146,11 @@ none           /dev/pts     devpts gid=4,mode=620     0     0
 none           /run         tmpfs  defaults           0     0
 # End /etc/fstab
 EOF
+
+echo "  Creating /etc/inittab..."
+cat /etc/inittab | \
+  sed 's/^[2-9].*respawn:.*getty.*/#\0/' > ${DOMU_CONF_DIR}/etc/inittab
+sed -i 's/tty1/hvc0/' ${DOMU_CONF_DIR}/etc/inittab
 
 echo "  Creating /etc/hosts..."
 cat > ${DOMU_CONF_DIR}/etc/hosts <<EOF

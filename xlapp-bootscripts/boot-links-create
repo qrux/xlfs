@@ -1,0 +1,70 @@
+#! /bin/bash
+
+usage()
+{
+	echo
+	echo "  Usage: $0 -s <start-order> -k <stop-order> <service>"
+	echo
+	exit
+}	
+
+while getopts "s:k:" OPT ; do
+	case "$OPT" in
+		s) START_ORDER=$OPTARG;;
+		k) STOP_ORDER=$OPTARG;;
+		?) echo "Unrecognized option." ; usage;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+SERVICE=$1
+test -z $SERVICE && usage
+
+if [ ! -d /etc/rc.d/init.d ] ; then
+	echo "This doesn't look like a sysvinit system; aborting."
+	exit
+fi
+
+SCRIPT_PATH="/etc/rc.d/init.d/${SERVICE}"
+
+if [ ! -f $SCRIPT_PATH ] ; then
+	echo "Cannot find service $SCRIPT_PATH; aborting."
+	exit
+fi
+
+STARTS=$(grep -iE "default-start" ${SCRIPT_PATH} | awk -F \: '{print $2}')
+STOPS=$( grep -iE "default-stop"  ${SCRIPT_PATH} | awk -F \: '{print $2}')
+
+cd /etc/rc.d
+
+if [ "" == "$STARTS" ] ; then
+	echo "No start-levels are specified for this service."
+else
+	for START in ${STARTS} ; do
+		cd rc${START}.d
+			EXIST_COUNT=$(/bin/ls -1 S${START_ORDER} 2> /dev/null | wc -l)
+			if [ 0 -eq $EXIST_COUNT ] ; then
+				ln -sfv ../init.d/$SERVICE S${START_ORDER}${SERVICE}
+			else
+				EXISTING_SCRIPTS=$(echo S${START_ORDER}*)
+				echo "Cannot use start-order $START_ORDER; already in use by $EXISTING_SCRIPTS."
+			fi
+		cd ..
+	done
+fi
+
+if [ "" == "$STOPS" ] ; then
+	echo "No stop-levels are specified for this service."
+else
+	for STOP in ${STOPS} ; do
+		cd rc${STOP}.d
+			EXIST_COUNT=$(/bin/ls -1 S${STOP_ORDER} 2> /dev/null | wc -l)
+			if [ 0 -eq $EXIST_COUNT ] ; then
+				ln -sfv ../init.d/$SERVICE K${STOP_ORDER}${SERVICE}
+			else
+				EXISTING_SCRIPTS=$(echo S${STOP_ORDER}*)
+				echo "Cannot use stop-order $STOP_ORDER; already in use by $EXISTING_SCRIPTS."
+			fi
+		cd ..
+	done
+fi

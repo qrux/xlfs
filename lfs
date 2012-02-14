@@ -79,12 +79,21 @@ set -e
 echo "  Make sure LFS mount point [ $LFS ] exists..."
 mkdir -pv $LFS
 
-echo "  Create LFS partition filesystem..."
-mkfs -t ${XLAPP_BOOT_FSTYPE} ${XLAPP_LFS_PART}
+########################################################################
+#
+# This used to make sense, but doesn't if want to try install-to-/boot
+#
+#echo "  Create LFS partition filesystem..."
+#mkfs -t ${XLAPP_BOOT_FSTYPE} ${XLAPP_LFS_PART}
 
-echo "  Mounting LFS partition [ ${XLAPP_LFS_PART} ] at [ ${LFS} ]..."
-mount ${XLAPP_LFS_PART} $LFS
-rm -rf $LFS/*
+#echo "  Mounting LFS partition [ ${XLAPP_LFS_PART} ] at [ ${LFS} ]..."
+#mount ${XLAPP_LFS_PART} $LFS
+########################################################################
+
+#
+# Assume that $LFS might be a boot partition.  So, don't remove /boot files.
+#
+find $LFS/ -mindepth 1 -maxdepth 1 -type d \( -not -name "grub*" -a -not -name "lost+found" \) -exec rm -rf {} \;
 
 echo "  Creating LFS work directory [ ${__SOURCE_DIR} ]..."
 mkdir -pv $__SOURCE_DIR
