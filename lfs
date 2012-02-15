@@ -72,12 +72,15 @@ umount $LFS/proc 2> /dev/null
 umount $LFS/dev/pts 2> /dev/null
 umount $LFS/dev/shm 2> /dev/null
 umount $LFS/dev 2> /dev/null
-umount $LFS 2> /dev/null
-umount ${XLAPP_LFS_PART} 2> /dev/null
-set -e
-
-echo "  Make sure LFS mount point [ $LFS ] exists..."
+# Again, unmounting used to make sense, but doesn't if we want to try
+# to install-to-/boot.  In fact, we want to make sure the mount-point
+# exists, and is mounted.
+#umount $LFS 2> /dev/null
+#umount ${XLAPP_LFS_PART} 2> /dev/null
+echo "  Make sure LFS mount point [ $LFS ] exists and is mounted..."
 mkdir -pv $LFS
+mount ${XLAPP_LFS_PART} $LFS
+set -e
 
 ########################################################################
 #
