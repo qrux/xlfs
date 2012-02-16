@@ -7,3 +7,6 @@ cp -vf xlapp-bootscripts/xlapp-domains /etc/init.d/
 chmod 0754 /lib/services/{bridge,ipv4-static}
 chmod 0754 /sbin/{ifup,ifdown}
 chmod 0754 /etc/init.d/xlapp-domains
+
+xlapp-bootscripts/boot-links-create -s 81 -k 20 xlapp-domains
+xlapp-bootscripts/boot-links-create -s 80 -k 21 xencommons

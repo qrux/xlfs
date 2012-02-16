@@ -272,6 +272,10 @@ pushd ./$MOUNT
 
 	echo "  Adding devices..."
 	cp -ax /dev/{console,null,random,urandom} dev
+
+	rm -vf etc/rc.d/rc{0,6}.d/K46setclock
+	rm -vf etc/rc.d/rc3.d/S99xlapp-boot-watchdog
+	cp -av /lib/modules/3.1.0-xlapp-domU* lib/modules
 popd
 
 ########################################################################

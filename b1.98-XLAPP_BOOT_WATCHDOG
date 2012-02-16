@@ -8,4 +8,4 @@ cd /etc/rc.d/rc3.d && \
 	ln -s ../init.d/xlapp-boot-watchdog S99xlapp-boot-watchdog
 
 cd /etc/rc.d/rcS.d && \
-	ln -s ../init.d/lvm2 S60lvm2
+	ln -s ../init.d/lvm2 S25lvm2
