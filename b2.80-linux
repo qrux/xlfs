@@ -2,9 +2,7 @@
 
 make mrproper
 
-#cp -vf ../../xlapp-linux-3.1-domU.config .config
-#cp -vf ../../xlapp-linux-3.1-domU-min.config .config
-cp -vf ../../xlapp-linux-3.1-domU-min-hid-kbdfront.config .config
+cp -vf ../../zkernel-3.1-domU.config .config
 make oldconfig
 
 make
@@ -13,12 +11,12 @@ make modules_install
 
 TOTIME=$(totime)
 
-cp -v arch/x86/boot/bzImage /boot/vmlinuz-3.1-lfs-7.0-DomU-$TOTIME
-cp -v arch/x86/boot/bzImage /boot/vmlinuz-3.1-lfs-7.0-DomU
+cp -v arch/x86/boot/bzImage /boot/vmlinuz-3.1-lfs-7.0-domU-$TOTIME
+cp -v arch/x86/boot/bzImage /boot/vmlinuz-3.1-lfs-7.0-domU
 
-cp -v System.map /boot/System.map-3.1-DomU-$TOTIME
-cp -v System.map /boot/System.map-3.1-DomU
+cp -v System.map /boot/System.map-3.1-domU-$TOTIME
+cp -v System.map /boot/System.map-3.1-domU
 
-cp -v .config /boot/config-3.1-DomU-$TOTIME
-cp -v .config /boot/config-3.1-DomU
+cp -v .config /boot/config-3.1-domU-$TOTIME
+cp -v .config /boot/config-3.1-domU
 

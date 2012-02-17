@@ -2,7 +2,7 @@
 
 make mrproper
 
-cp -vf ../../xlapp-linux-3.1-dom0-debug.config .config
+cp -vf ../../zkernel-3.1-dom0-debug.config .config
 make oldconfig
 
 make
@@ -11,14 +11,14 @@ make modules_install
 
 TOTIME=$(totime)
 
-cp -v arch/x86/boot/bzImage /boot/vmlinuz-3.1-lfs-7.0-Dom0-DEBUG-$TOTIME
-cp -v arch/x86/boot/bzImage /boot/vmlinuz-3.1-lfs-7.0-Dom0-DEBUG
+cp -v arch/x86/boot/bzImage /boot/vmlinuz-3.1-lfs-7.0-dom0-DEBUG-$TOTIME
+cp -v arch/x86/boot/bzImage /boot/vmlinuz-3.1-lfs-7.0-dom0-DEBUG
 
-cp -v System.map /boot/System.map-3.1-Dom0-DEBUG-$TOTIME
-cp -v System.map /boot/System.map-3.1-Dom0-DEBUG
+cp -v System.map /boot/System.map-3.1-dom0-DEBUG-$TOTIME
+cp -v System.map /boot/System.map-3.1-dom0-DEBUG
 
-cp -v .config /boot/config-3.1-Dom0-DEBUG-$TOTIME
-cp -v .config /boot/config-3.1-Dom0-DEBUG
+cp -v .config /boot/config-3.1-dom0-DEBUG-$TOTIME
+cp -v .config /boot/config-3.1-dom0-DEBUG
 
 if [ ! -d /usr/share/doc/linux-3.1 ] ; then
 	install -d /usr/share/doc/linux-3.1
