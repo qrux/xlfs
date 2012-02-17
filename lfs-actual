@@ -40,8 +40,6 @@ chmod 0755 *-jail
 # Unpack the BLFS bootscripts for later
 tar xf src/blfs-bootscripts-*.tar.*
 
-/bin/cp -v xlapp-linux-3.1-kernel*.config src
-
 chroot "$LFS" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \

@@ -152,6 +152,9 @@ chown -v lfs:lfs $LFS/tools
 chown -v lfs:lfs $__SOURCE_DIR
 chown -Rv lfs:lfs $__SOURCE_DIR/src
 
+# Add password for lfs in /etc/shadow
+sed -i "s%^lfs:[^:]*:\(.*\)%lfs:$XLAPP_ROOT_PASSWD_HASH:\1%" /etc/shadow
+
 if [ ! -z $SKIP_TESTS ] ; then
 	_EXTRA_BUILD_MESG=" Quick Build (no test)"
 else
