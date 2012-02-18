@@ -1,0 +1,388 @@
+INSTALL_ROOT :=				/usr/local
+PHP_ROOT :=				$(INSTALL_ROOT)/php
+APACHE_ROOT :=				$(INSTALL_ROOT)/a2
+PG_ROOT :=				$(INSTALL_ROOT)/pgsql
+
+PREFIX :=				--prefix=$(INSTALL_ROOT)
+PHP_PREFIX :=				--prefix=$(PHP_ROOT)
+APACHE_PREFIX :=			--prefix=$(APACHE_ROOT)
+PG_PREFIX :=				--prefix=$(PG_ROOT)
+
+PHP_INI_FILEPATH :=			$(PHP_ROOT)/lib/php.init
+HTDOCS_DIRPATH :=			$(APACHE_ROOT)/htdocs
+
+SUB :=					/usr/share/libtool/config/config.sub
+GUESS :=				/usr/share/libtool/config/config.guess
+PHP_BINARY :=				/usr/local/php/bin/php
+PHP_GUESS :=				/usr/local/php/bin/php.dSYM
+PECL_BINARY :=				/usr/local/php/bin/pecl
+PLATFORM :=				$(shell uname -s)
+
+DOWNLOAD_CMD :=				wget
+SUDO :=					$(shell which sudo)
+MAKE_INSTALL :=				$(SUDO) make install
+ 
+ifeq (Linux, $(PLATFORM))
+	LDCONFIG = $(SUDO)
+	LDCONFIG += /sbin/ldconfig
+	LDCONFIG += >/dev/null
+	LDCONFIG += 2>&1
+else
+	MAC_64 = $(shell /usr/sbin/sysctl -n hw.optional.x86_64)
+	LDCONFIG = /bin/true
+	APACHE_CONF_CFLAGS  = -isysroot
+	APACHE_CONF_CLFAGS += /Developer/SDKs/MacOSX10.6.sdk
+endif
+
+LDCONFIG += &&echo&&echo
+LDCONFIG += "  Target [ $@ ] is finished."
+LDCONFIG += &&echo
+
+ifndef MAC_64
+	ZLIB_OPTS = --64
+	OPENSSL_CONFIG = ./Configure
+	OPENSSL_OPTS = linux-x86_64
+	MEMCACHED_OPTS = --enable-64bit
+else ifeq (1, $(MAC_64))
+	ZLIB_OPTS = --64
+	OPENSSL_CONFIG = ./Configure
+	OPENSSL_OPTS = darwin64-x86_64-cc
+	MEMCACHED_OPTS = --enable-64bit
+else ifeq (0, $(MAC_64))
+	ZLIB_OPTS =
+	OPENSSL_CONFIG = ./config
+	MEMCACHED_OPTS =
+endif
+
+
+PGSQL_CONF_OPTS :=			$(PG_PREFIX) \
+	--enable-locale \
+	--enable-multibyte \
+	--with-openssl \
+	--enable-integer-datetimes
+
+APACHE_CONF_OPTS :=			$(APACHE_PREFIX) \
+	--enable-authn-dbm \
+	--enable-ssl \
+	--enable-dav \
+	--enable-info \
+	--enable-speling \
+	--enable-userdir \
+	--enable-rewrite \
+	--enable-so \
+	--enable-dav-fs \
+	--enable-deflate \
+	--enable-unique-id \
+	--enable-usertrack \
+	--enable-vhost-alias
+
+XCACHE_CONF_OPTS :=			$(PHP_PREFIX) \
+	--enable-xcache \
+	--enable-xcache-constant \
+	--disable-shared \
+	--with-pic \
+	--with-php-config=$(PHP_ROOT)/bin/php-config
+
+PHP_CONF_OPTS :=			$(PHP_PREFIX) \
+	--with-apxs2=/usr/local/a2/bin/apxs \
+	--with-pgsql=/usr/local/pgsql \
+	--with-curl=/usr/local/bin \
+	--with-curlwrappers \
+	--with-openssl-dir \
+	--with-gd \
+	--with-jpeg-dir=/usr/local \
+	--with-png-dir=/usr/local \
+	--with-freetype-dir=/usr/local \
+	--enable-mbstring \
+	--with-pdo-pgsql=/usr/local/pgsql \
+	--with-libxml-dir=/usr/local \
+	--with-xsl=/usr/local/bin \
+	--with-xmlrpc \
+	--with-iconv-dir=/usr \
+	--enable-exif \
+	--enable-calendar \
+	--enable-debug \
+	--enable-ftp \
+	--enable-zip \
+	--enable-soap \
+	--enable-inline-optimization \
+	--disable-debug
+
+################################################################
+#
+# LAPP/MAPP
+#
+################################################################
+
+.PHONY:					error
+error:
+	@echo
+	@echo "  Please choose either 'make xlapp', 'make linux', or 'make mac'; exiting."
+	@echo
+	@echo "            MAC_64 : $(MAC_64)"
+	@echo "    OPENSSL_CONFIG : $(OPENSSL_CONFIG)"
+	@echo "      OPENSSL_OPTS : $(OPENSSL_OPTS)"
+	@echo "              SUDO : $(SUDO)"
+	@echo "      MAKE_INSTALL : $(MAKE_INSTALL)"
+	@echo "          LDCONFIG : $(LDCONFIG)"
+	@echo
+	
+.PHONY:					linux
+linux:					postgres-xlapp apache-xlapp php-xlapp
+	@$(LDCONFIG)
+
+.PHONY:					mac
+mac:					zlib postgres apache php patches
+	@$(LDCONFIG)
+
+.PHONY:			xlapp
+xlapp:			.xcache-xl
+	@$(LDCONFIG)
+
+.xcache-xl:		xcache-src .php-xl
+	cd $< && $(PHP_ROOT)/bin/phpize --clean && $(PHP_ROOT)/bin/phpize && ./configure $(PHP_PREFIX) $(XCACHE_CONF_OPTS) && make && make -j1 test && $(MAKE_INSTALL) && $(SUDO) cp xcache*.ini $(PHP_ROOT)/lib
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			php-xl
+php-xl:			.php-xl
+.php-xl:		php-src .postgres-xl .apache-xl .gd-xl .libs-xl
+	cd $< && LIBS="-lresolv" ./configure $(PHP_CONF_OPTS) --with-pic && make && $(MAKE_INSTALL) && $(SUDO) cp php.ini-* $(PHP_ROOT)/lib
+	cd $(PHP_ROOT)/lib && $(SUDO) cp -f php.ini-production php.ini
+	@$(LDCONFIG)
+	if [ ! -f $(PHP_BINARY) ] ; then if [ -f $(PHP_GUESS) ] ; then $(SUDO) cp $(PHP_GUESS) $(PHP_BINARY) ; fi ; fi
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			postgres-xl
+postgres-xl:		.postgres-xl
+.postgres-xl:		postgres-src
+	cd $< && ./configure $(PGSQL_CONF_OPTS) && make && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			apache-xl
+apache-xl:		.apache-xl
+.apache-xl:		apache-src
+	cd $< && CFLAGS=$(APACHE_CONF_CFLAGS) ./configure $(APACHE_CONF_OPTS) && make && $(MAKE_INSTALL)
+	cd /usr/sbin && if [ -f apachectl ] ; then if [ ! -f .vanilla/apachectl ] ; then $(SUDO) mkdir -p .vanilla && $(SUDO) cp apachectl .vanilla ; fi ; fi
+	$(SUDO) cp -f /usr/local/a2/bin/apachectl /usr/sbin
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			gd-xl
+gd-xl:			.gd-xl
+.gd-xl:			gd-src .png-xl .jpeg-xl .tiff-xl .freetype-xl
+	cd $< && ./configure $(PREFIX) --with-pic --with-png=/usr/local --with-freetype=/usr/local --with-jpeg=/usr/local && make && make test && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.png-xl:		png-src
+	cd $< && ./configure $(PREFIX) --with-pic && make && make test && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.jpeg-xl:		jpeg-src
+	cd $< && ./configure $(PREFIX) --with-pic && make && $(MAKE_INSTALL)
+	$(SUDO) ranlib /usr/local/lib/libjpeg.a
+	@touch $@ && $(LDCONFIG)
+
+.tiff-xl:		tiff-src
+	cd $< && ./configure $(PREFIX) --with-pic --with-jpeg-lib-dir=/usr/local/lib && make && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.freetype-xl:		freetype-src
+	cd $< && ./configure $(PREFIX) --with-pic && make && $(MAKE_INSTALL)
+	$(SUDO) ln -sf /usr/X11R6/include/fontconfig /usr/local/include
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			libs-xl
+libs-xl:		.libs-xl
+.libs-xl:		.event-xl .curl-xl .xslt-xl .mem-xl
+	@touch $@ && $(LDCONFIG)
+
+.event-xl:		event-src
+	cd $< && ./configure $(PREFIX) --with-pic && make && make verify && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.curl-xl:		curl-src
+	cd $< && ./configure $(PREFIX) --with-pic && make && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.xml2-xl:		xml-src
+	cd $< && ./configure $(PREFIX) --with-pic && make && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.xslt-xl:		xslt-src .xml2-xl
+	cd $< && ./configure $(PREFIX) --with-pic --with-libxml-prefix=/usr/local && make && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.mem-xl:		memcached-src
+	cd $< && sed -i"" 's/\ -Werror//' configure && ./configure $(PREFIX) $(MEMCACHED_OPTS) && make && make test && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+################################################################
+#
+# -END- Main Build
+#
+################################################################
+
+.PHONY:					pear
+pear:					go-pear.php
+	patch go-pear.php < patch-pear
+	php -q go-pear.php
+
+go-pear.php:
+	curl http://pear.php.net/go-pear > go-pear.php
+
+################################################################
+#
+# MacOS X Patches
+#
+################################################################
+
+.PHONY:					patches
+patches:
+	cd /System/Library/LaunchDaemons ; if [ ! -f .vanilla/org.apache.httpd.plist ] ; then mkdir -p .vanilla && cp org.apache.httpd.plist .vanilla ; fi
+	@grep /usr/local/a2 /System/Library/LaunchDaemons/org.apache.httpd.plist > /dev/null 2>&1 ; if [ $${?} -ne 0 ] ; then patch /System/Library/LaunchDaemons/org.apache.httpd.plist < patch-MacOSX-LDoahp ; else echo "  org.apache.httpd.plist is already patched; skipping." ; fi
+	@grep "User[[:space:]]*www" /usr/local/a2/conf/httpd.conf > /dev/null 2>&1 ; if [ $${?} -ne 0 ] ; then patch /usr/local/a2/conf/httpd.conf < patch-a2-httpd.conf ; else echo "  httpd.conf is already patched; skipping." ; fi
+	@grep "UserDir[[:space:]]*Sites" /usr/local/a2/conf/extra/httpd-userdir.conf > /dev/null 2>&1 ; if [ $${?} -ne 0 ] ; then patch /usr/local/a2/conf/extra/httpd-userdir.conf < patch-a2-httpd-userdir.conf ; else echo "  httpd-userdir.conf is already patched; skipping." ; fi
+
+################################################################
+#
+# Downloads
+#
+################################################################
+
+.PHONY:					clean
+clean:
+	rm -f *.out
+	rm -f *.sha1*
+	rm -rf .[a-z]*
+	rm -rf *-src
+
+
+#
+# This ensures that the targets are deleted on error.
+#
+.DELETE_ON_ERROR:
+
+openssl-src:				openssl-1.0.0a.tar.gz
+	tar zxf $<
+	mv openssl-1.0.0a $@
+openssl-1.0.0a.tar.gz:
+	$(DOWNLOAD_CMD) http://www.openssl.org/source/$@
+	$(DOWNLOAD_CMD) http://www.openssl.org/source/$@.sha1
+	cat $@.sha1 | cut -f 1 -d ' ' > .sha1-orig
+	shasum -p $@ | cut -f 1 -d ' ' > .sha1 && diff -w .sha1-orig .sha1 > /dev/null 2>&1
+
+freetype-src:				freetype-2.4.4.tar.gz
+	tar zxf $<
+	mv freetype-2.4.4 $@
+freetype-2.4.4.tar.gz:
+	$(DOWNLOAD_CMD) http://download.savannah.gnu.org/releases/freetype/freetype-2.4.4.tar.gz
+
+png-src:				libpng-1.5.1.tar.gz
+	tar zxf $<
+	mv libpng-1.5.1 $@
+libpng-1.5.1.tar.gz:
+	$(DOWNLOAD_CMD) ftp://ftp.simplesystems.org/pub/libpng/png/src/libpng-1.5.1.tar.gz
+
+zlib-src:				zlib-1.2.5.tar.gz
+	tar zxf $<
+	mv zlib-1.2.5 $@
+zlib-1.2.5.tar.gz:
+	$(DOWNLOAD_CMD) http://www.zlib.net/zlib-1.2.5.tar.gz
+
+jpeg-src:				jpegsrc.v8c.tar.gz
+	tar zxf $<
+	mv jpeg-8c $@
+jpegsrc.v8c.tar.gz:
+	$(DOWNLOAD_CMD) http://www.ijg.org/files/jpegsrc.v8c.tar.gz
+
+tiff-src:				tiff-3.9.2.tar.gz
+	tar zxf $<
+	mv tiff-3.9.2 $@
+tiff-3.9.2.tar.gz:
+	$(DOWNLOAD_CMD) http://download.osgeo.org/libtiff/tiff-3.9.2.tar.gz
+
+gd-src:					gd-2.0.35.tar.gz
+	tar zxf $<
+	mv gd-2.0.35 $@
+gd-2.0.35.tar.gz:
+	$(DOWNLOAD_CMD) http://www.libgd.org/releases/gd-2.0.35.tar.gz
+
+postgres-src:				postgresql-8.3.14.tar.gz
+	tar zxf $<
+	mv postgresql-8.3.14 $@
+postgresql-8.3.14.tar.gz:
+	$(DOWNLOAD_CMD) http://wwwmaster.postgresql.org/redir/184/f/source/v8.3.14/postgresql-8.3.14.tar.gz
+
+readline-src:				readline-6.0.tar.gz
+	tar zxf $<
+	mv readline-6.0 $@
+readline-6.0.tar.gz:
+	$(DOWNLOAD_CMD) http://www.alliedquotes.com/mirrors/gnu/gnu/readline/readline-6.0.tar.gz
+
+php-src:				php-5.3.5.tar.bz2
+	tar jxf $<
+	mv php-5.3.5 $@
+php-5.3.5.tar.bz2:
+	$(DOWNLOAD_CMD) http://us2.php.net/get/php-5.3.5.tar.bz2/from/this/mirror
+
+apache-src:				httpd-2.2.17.tar.gz
+	tar zxf $<
+	mv httpd-2.2.17 $@
+httpd-2.2.17.tar.gz:
+	$(DOWNLOAD_CMD) http://mirror.candidhosting.com/pub/apache//httpd/httpd-2.2.17.tar.gz
+	$(DOWNLOAD_CMD) http://www.apache.org/dist/httpd/httpd-2.2.17.tar.gz.sha1
+	cat $@.sha1 | cut -f 1 -d ' ' > .sha1-orig
+	shasum -p $@ | cut -f 1 -d ' ' > .sha1 && diff -w .sha1-orig .sha1 > /dev/null 2>&1
+
+memcached-src:				memcached-1.4.5.tar.gz
+	tar zxf $<
+	mv memcached-1.4.5 $@
+memcached-1.4.5.tar.gz:
+	$(DOWNLOAD_CMD) http://memcached.googlecode.com/files/memcached-1.4.5.tar.gz
+
+xcache-src:				xcache-1.3.1.tar.gz
+	tar zxf $<
+	mv xcache-1.3.1 $@
+xcache-1.3.1.tar.gz:
+	$(DOWNLOAD_CMD) http://xcache.lighttpd.net/pub/Releases/1.3.1/xcache-1.3.1.tar.gz
+
+event-src:					libevent-1.4.13-stable.tar.gz
+	tar zxf $<
+	mv libevent-1.4.13-stable $@
+libevent-1.4.13-stable.tar.gz:
+	$(DOWNLOAD_CMD) http://www.monkey.org/~provos/libevent-1.4.13-stable.tar.gz
+
+xml-src:				libxml2-2.7.1.tar.gz
+	tar zxf $<
+	mv libxml2-2.7.1 $@
+libxml2-2.7.1.tar.gz:
+	$(DOWNLOAD_CMD) http://xmlsoft.org/sources/old/libxml2-2.7.1.tar.gz
+
+bzip-src:				bzip2-1.0.6.tar.gz
+	tar zxf $<
+	mv bzip2-1.0.6 $@
+bzip2-1.0.6.tar.gz:
+	$(DOWNLOAD_CMD) http://bzip.org/1.0.6/bzip2-1.0.6.tar.gz
+
+curl-src:				curl-7.21.4.tar.gz
+	tar zxf $<
+	mv curl-7.21.4 $@
+curl-7.21.4.tar.gz:
+	$(DOWNLOAD_CMD) http://curl.haxx.se/download/curl-7.21.4.tar.gz
+
+xslt-src:				libxslt-1.1.19.tar.gz
+	tar zxf $<
+	mv libxslt-1.1.19 $@
+libxslt-1.1.19.tar.gz:
+	$(DOWNLOAD_CMD) http://xmlsoft.org/sources/old/libxslt-1.1.19.tar.gz
+
+lcms-src:				lcms2-2.0a.tar.gz
+	tar zxf $<
+	mv lcms-2.0 $@
+lcms2-2.0a.tar.gz:
+	$(DOWNLOAD_CMD) http://downloads.sourceforge.net/project/lcms/lcms/2.0/lcms2-2.0a.tar.gz?use_mirror=softlayer
+
+im-src:					ImageMagick.tar.gz
+	tar zxf $<
+	mv ImageMagick-6.6.8-1 $@
+ImageMagick.tar.gz:
+	$(DOWNLOAD_CMD) ftp://ftp.imagemagick.org/pub/ImageMagick/ImageMagick.tar.gz

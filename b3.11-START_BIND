@@ -188,12 +188,15 @@ M.ROOT-SERVERS.NET.     6D  IN      A       202.12.27.33
 EOF
 sudo mv -vf root-hints $NAMED_JAIL/${NAMED_CONF}/root.hints
 
+sudo touch $NAMED_JAIL/${NAMED_CONF}/managed-keys.bind
+
 sudo tar xf src/blfs-bootscripts-*.tar*
 sudo chown -R blfs:blfs blfs-bootscripts-*
 
 cd blfs-bootscripts-*
 
 sudo make install-bind
+sudo ln -sfv /etc/rc.d/init.d/bind /etc/rc.d/init.d/named
 
 sudo sed -E -i -e s'/ievaluate_retval/evaluate_retval/g' /etc/rc.d/init.d/bind
 
