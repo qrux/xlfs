@@ -1,6 +1,43 @@
---- lfs-bootscripts-20111017/lfs/lib/services/init-functions-ORIG	2012-02-08 22:35:18.183900357 -0800
-+++ lfs-bootscripts-20111017/lfs/lib/services/init-functions	2012-02-08 22:35:45.231900730 -0800
-@@ -742,4 +742,26 @@
+--- lfs-bootscripts-20111017/lfs/lib/services/init-functions-ORIG	2011-10-21 20:30:16.000000000 -0700
++++ lfs-bootscripts-20111017/lfs/lib/services/init-functions	2012-02-18 13:46:12.093976105 -0800
+@@ -487,26 +487,31 @@
+     local pidlist
+ 
+     # Process arguments
+-    while true; do
++    local args
++    while [ $# -ne 0 ] ; do
+       case "${1}" in
+-
+           -p)
++              args="${args} ${1}"
+               pidfile="${2}"
+               shift 2
+               ;;
++           *)
++              args="${args} ${1}"
++              shift 1
++              ;;
+       esac
+    done
+ 
+    if [ -z "${pidfile}" ]; then
+-      pidlist=`pidofproc -p "${pidfile}" $@`
++      pidlist=`pidofproc $args`
+    else
+-      pidlist=`pidofproc $@`
++      pidlist=`pidofproc -p "${pidfile}" $@`
+    fi
+ 
+    # Trim trailing blanks
+    pidlist=`echo "${pidlist}" | sed -r 's/ +$//'`
+ 
+-   base="${1##*/}"
++   base="${args##*/}"
+ 
+    if [ -n "${pidlist}" ]; then
+       echo -e "${INFO}${base} is running with Process" \
+@@ -742,4 +747,26 @@
     return 0
  }
  
