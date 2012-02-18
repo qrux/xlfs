@@ -18,6 +18,9 @@ mv -v /usr/bin/passwd /bin
 
 pwconv
 
+# Make sure /etc/shadow has perms 0640
+chmod -v 0640 /etc/shadow
+
 grpconv
 
 sed -i 's/yes/no/' /etc/default/useradd

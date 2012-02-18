@@ -10,6 +10,11 @@ while getopts "x" OPT ; do
 done
 shift $(($OPTIND - 1))
 
+totime()
+{
+        date '+%Y%m%d_%H%M%S'
+}
+
 PROG_PATH=$0
 PROG_DIR=$(dirname $PROG_PATH)
 PROG_NAME=$(basename $PROG_PATH)

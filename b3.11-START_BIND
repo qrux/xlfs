@@ -1,10 +1,219 @@
 #! /bin/bash
 
-tar xf src/blfs-bootscripts-*.tar*
+#NAMED_JAIL=/
+NAMED_CONF=etc/namedb
+#
+# Uncomment 2 lines above for non-jail use.
+# Comment   2 lines below for non-jail use.
+#
+#NAMED_CONF=var/lib/named
+NAMED_JAIL=/srv/named
+
+sudo mkdir -p $NAMED_JAIL/var/run
+if [ "/" != ${NAMED_JAIL} ] ; then
+	sudo mkdir -p $NAMED_JAIL/{dev,etc}
+	set +e
+	sudo mknod $NAMED_JAIL/dev/null c 1 3
+	sudo mknod $NAMED_JAIL/dev/random c 1 8
+	set -e
+	sudo chmod 666 $NAMED_JAIL/dev/{null,random}
+	sudo cp -fv /etc/localtime $NAMED_JAIL/etc
+fi
+
+RNDC_SECRET=$(sudo /usr/sbin/rndc-confgen -r /dev/urandom -b 512 | grep -m 1 "secret" | cut -d '"' -f 2)
+
+cat > etc-named.conf <<EOF
+options {
+    directory "/${NAMED_CONF}";
+    pid-file "/var/run/named.pid";
+    statistics-file "/var/run/named.stats";
+};
+controls {
+    inet 127.0.0.1 allow { localhost; } keys { rndc_key; };
+};
+key "rndc_key" {
+    algorithm hmac-md5;
+    secret "${RNDC_SECRET}";
+};
+zone "." {
+    type hint;
+    file "root.hints";
+};
+zone "localhost" in {
+    type master;
+    file "localhost.zone";
+};
+zone "0.0.127.in-addr.arpa" {
+    type master;
+    file "127.0.0.zone";
+};
+
+include "/${NAMED_CONF}/named-local.conf";
+
+// Bind 9 now logs by default through syslog (except debug).
+// These are the default logging rules.
+
+logging {
+     category default { default_syslog; default_debug; };
+     category unmatched { null; };
+
+  channel default_syslog {
+      syslog daemon;                      // send to syslog's daemon
+                                          // facility
+      severity info;                      // only send priority info
+                                          // and higher
+  };
+
+  channel default_debug {
+      file "log/named.run";               // write to named.run in
+                                          // the working directory
+                                          // Note: stderr is used instead
+                                          // of "named.run"
+                                          // if the server is started
+                                          // with the '-f' option.
+      severity dynamic;                   // log at the server's
+                                          // current debug level
+  };
+
+  channel default_stderr {
+      stderr;                             // writes to stderr
+      severity info;                      // only send priority info
+                                          // and higher
+  };
+
+  channel null {
+     null;                                // toss anything sent to
+                                          // this channel
+  };
+};
+
+EOF
+TOTIME=$(totime)
+test -e $NAMED_JAIL/etc/named.conf && sudo mv -fv $NAMED_JAIL/etc/named.conf $NAMED_JAIL/etc/named.conf-${TOTIME}
+sudo mv -vf etc-named.conf $NAMED_JAIL/etc/named.conf
+sudo rm -vf /etc/named.conf
+sudo ln -vsf $NAMED_JAIL/etc/named.conf /etc/named.conf
+
+cat > etc-rndc.conf <<EOF
+key rndc_key {
+    algorithm "hmac-md5";
+    secret "${RNDC_SECRET}";
+};
+options {
+    default-server localhost;
+    default-key    rndc_key;
+};
+EOF
+test -e $NAMED_JAIL/etc/rndc.conf && sudo mv -fv $NAMED_JAIL/etc/rndc.conf $NAMED_JAIL/etc/rndc.conf-${TOTIME}
+sudo mv -vf etc-rndc.conf $NAMED_JAIL/etc/rndc.conf
+sudo rm -vf /etc/rndc.conf
+sudo ln -vfs $NAMED_JAIL/etc/rndc.conf /etc/rndc.conf
+
+cat > etc-named-local.conf <<EOF
+# Begin /${NAMED_CONF}/named-local.conf
+#
+# Add other named configurations here, especially locally-owned
+# master zone configurations
+#
+
+# End /${NAMED_CONF}/named-local.conf
+EOF
+#
+# Since we created /srv/named/etc/namedb earlier, we need to check to see
+# if it existed *before* we created it.  That boolean is held in
+# MOVE_NAMED_CONF; if it is set to a value (i.e., not-unset) then we need
+# to move it out of the way first.
+#
+test -e $NAMED_JAIL/${NAMED_CONF} && sudo mv -fv $NAMED_JAIL/${NAMED_CONF} $NAMED_JAIL/${NAMED_CONF}-${TOTIME}
+sudo mkdir -p $NAMED_JAIL/${NAMED_CONF}/slave
+sudo mv etc-named-local.conf $NAMED_JAIL/${NAMED_CONF}/named-local.conf
+test -L /${NAMED_CONF} && sudo rm -vf /${NAMED_CONF}
+sudo ln -vfs $NAMED_JAIL/${NAMED_CONF} /${NAMED_CONF}
+
+cat > 127.0.0.zone << "EOF"
+$TTL 3D
+@      IN      SOA     ns.local.domain. hostmaster.local.domain. (
+                        1       ; Serial
+                        8H      ; Refresh
+                        2H      ; Retry
+                        4W      ; Expire
+                        1D)     ; Minimum TTL
+                NS      ns.local.domain.
+1               PTR     localhost.
+EOF
+sudo mv -vf 127.0.0.zone $NAMED_JAIL/${NAMED_CONF}/127.0.0.zone
+
+cat > localhost.zone << "EOF"
+$TTL 1W
+@		IN SOA	@   root (
+				42		; serial (d. adams)
+				2D		; refresh
+				4H		; retry
+				6W		; expiry
+				1W )		; minimum
+
+		IN NS		@
+		IN A		127.0.0.1
+                IN AAAA         ::1
+EOF
+sudo mv -vf localhost.zone $NAMED_JAIL/${NAMED_CONF}/localhost.zone
+
+cat > root-hints << "EOF"
+.                       6D  IN      NS      A.ROOT-SERVERS.NET.
+.                       6D  IN      NS      B.ROOT-SERVERS.NET.
+.                       6D  IN      NS      C.ROOT-SERVERS.NET.
+.                       6D  IN      NS      D.ROOT-SERVERS.NET.
+.                       6D  IN      NS      E.ROOT-SERVERS.NET.
+.                       6D  IN      NS      F.ROOT-SERVERS.NET.
+.                       6D  IN      NS      G.ROOT-SERVERS.NET.
+.                       6D  IN      NS      H.ROOT-SERVERS.NET.
+.                       6D  IN      NS      I.ROOT-SERVERS.NET.
+.                       6D  IN      NS      J.ROOT-SERVERS.NET.
+.                       6D  IN      NS      K.ROOT-SERVERS.NET.
+.                       6D  IN      NS      L.ROOT-SERVERS.NET.
+.                       6D  IN      NS      M.ROOT-SERVERS.NET.
+A.ROOT-SERVERS.NET.     6D  IN      A       198.41.0.4
+B.ROOT-SERVERS.NET.     6D  IN      A       192.228.79.201
+C.ROOT-SERVERS.NET.     6D  IN      A       192.33.4.12
+D.ROOT-SERVERS.NET.     6D  IN      A       128.8.10.90
+E.ROOT-SERVERS.NET.     6D  IN      A       192.203.230.10
+F.ROOT-SERVERS.NET.     6D  IN      A       192.5.5.241
+G.ROOT-SERVERS.NET.     6D  IN      A       192.112.36.4
+H.ROOT-SERVERS.NET.     6D  IN      A       128.63.2.53
+I.ROOT-SERVERS.NET.     6D  IN      A       192.36.148.17
+J.ROOT-SERVERS.NET.     6D  IN      A       192.58.128.30
+K.ROOT-SERVERS.NET.     6D  IN      A       193.0.14.129
+L.ROOT-SERVERS.NET.     6D  IN      A       199.7.83.42
+M.ROOT-SERVERS.NET.     6D  IN      A       202.12.27.33
+EOF
+sudo mv -vf root-hints $NAMED_JAIL/${NAMED_CONF}/root.hints
+
+sudo tar xf src/blfs-bootscripts-*.tar*
+sudo chown -R blfs:blfs blfs-bootscripts-*
 
 cd blfs-bootscripts-*
 
 sudo make install-bind
 
-/etc/rc.d/init.d/bind start
+sudo sed -E -i -e s'/ievaluate_retval/evaluate_retval/g' /etc/rc.d/init.d/bind
+
+# Uncomment line below line for non-jail use.
+#sudo sed -E -i -e s',(\s*start_daemon\s*/usr/sbin/named).*,\1\ -u\ named -c\ /etc/named.conf,' /etc/rc.d/init.d/bind
+
+#ldd /usr/sbin/named | awk -F \> '{print $2}' | grep /lib | cut -d ' ' -f 2 | sudo cpio -pdmv --dereference /srv/named 2> /dev/null
+sudo mkdir -p /srv/named/usr/lib
+sudo /bin/cp -avf /usr/lib/engines /srv/named/usr/lib
+sudo mkdir -p /srv/named/var/log
+sudo ln -sfv /srv/named/var/log/named.run /var/log/named.run
+sudo chown -vR named.named /srv/named
+
+cd /srv/named
+sudo ln -sfv lib lib64
+cd /srv/named/usr
+sudo ln -sfv lib lib64
+
+cd /srv/named/etc/namedb
+sudo ln -sfv ../../var/log log
+
+#sudo /etc/rc.d/init.d/bind start
 

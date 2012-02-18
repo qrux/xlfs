@@ -5,26 +5,25 @@
             --localstatedir=/var \
             --mandir=/usr/share/man \
             --enable-threads \
-            --with-libtool \
-            --enable-ipv6=no
+            --with-libtool
 
 #sed -i 's/.*undef WANT_IPV6.*/#undef WANT_IPV6/' config.h
 
 make
 
-set +e
-sudo bin/tests/system/ifconfig.sh up
+#test set +e
+#test sudo bin/tests/system/ifconfig.sh up
 
-make check 2>&1 | tee check.log
-CHECK_STATUS=$?
+#test make check 2>&1 | tee check.log
+#test CHECK_STATUS=$?
 
-sudo cp -vf check.log /root/bind-9.8.1-P1-test-check-log-$(totime)
+#test sudo cp -vf check.log /root/bind-9.8.1-P1-test-check-log-$(totime)
 
-sudo bin/tests/system/ifconfig.sh down
-set -e
+#test sudo bin/tests/system/ifconfig.sh down
+#test set -e
 
-PASSED_COUNT=$(grep "R:PASS" check.log | wc -l)
-test $PASSED_COUNT -gt 148
+#test PASSED_COUNT=$(grep "R:PASS" check.log | wc -l)
+#test test $PASSED_COUNT -gt 148
 
 sudo make install
 sudo chmod 755 /usr/lib/lib{bind9,isc{,cc,cfg},lwres,dns}.so.*.?.?
@@ -41,149 +40,9 @@ sudo install -v -m644 \
     misc/{dnssec,ipv6,migrat*,options,rfc-compliance,roadmap,sdb} \
     /usr/share/doc/bind-9.8.1-P1/misc
 
+set +e
 sudo groupadd -g 20 named
 sudo useradd -c "BIND Owner" -g named -s /bin/false -u 20 named
 sudo install -d -m770 -o named -g named /srv/named
-
-#cd /srv/named
-#
-# sudo can't handle a 'cd'; we'll just use absolute paths here
-#
-NAMED_JAIL=/srv/named
-sudo mkdir -p $NAMED_JAIL/dev $NAMED_JAIL/etc/namedb/slave $NAMED_JAIL/var/run
-sudo mknod $NAMED_JAIL/dev/null c 1 3
-sudo mknod $NAMED_JAIL/dev/random c 1 8
-sudo chmod 666 $NAMED_JAIL/dev/{null,random}
-sudo mkdir $NAMED_JAIL/etc/namedb/pz
-sudo cp /etc/localtime $NAMED_JAIL/etc
-
-RNDC_SECRET=$(sudo rndc-confgen -r /dev/urandom -b 512 | grep -m 1 "secret" | cut -d '"' -f 2)
-
-cat > srv-named-etc-named.conf <<EOF
- options {
-     directory "/etc/namedb";
-    pid-file "/var/run/named.pid";
-    statistics-file "/var/run/named.stats";
-
- };
- controls {
-     inet 127.0.0.1 allow { localhost; } keys { rndc_key; };
- };
- key "rndc_key" {
-     algorithm hmac-md5;
-     secret "${RNDC_SECRET}";
- };
- zone "." {
-     type hint;
-     file "root.hints";
- };
- zone "0.0.127.in-addr.arpa" {
-     type master;
-     file "pz/127.0.0";
- };
-
-// Bind 9 now logs by default through syslog (except debug).
-// These are the default logging rules.
-
-logging {
-     category default { default_syslog; default_debug; };
-     category unmatched { null; };
-
-  channel default_syslog {
-      syslog daemon;                      // send to syslog's daemon
-                                          // facility
-      severity info;                      // only send priority info
-                                          // and higher
-  };
-
-  channel default_debug {
-      file "named.run";                   // write to named.run in
-                                          // the working directory
-                                          // Note: stderr is used instead
-                                          // of "named.run"
-                                          // if the server is started
-                                          // with the '-f' option.
-      severity dynamic;                   // log at the server's
-                                          // current debug level
-  };
-
-  channel default_stderr {
-      stderr;                             // writes to stderr
-      severity info;                      // only send priority info
-                                          // and higher
-  };
-
-  channel null {
-     null;                                // toss anything sent to
-                                          // this channel
-  };
-};
-
-EOF
-sudo mv -vf srv-named-etc-named.conf $NAMED_JAIL/etc/named.conf
-
-cat > etc-rndc.conf <<EOF
-key rndc_key {
-algorithm "hmac-md5";
-    secret
-    "${RNDC_SECRET}";
-    };
-options {
-    default-server localhost;
-    default-key    rndc_key;
-};
-EOF
-sudo mv -vf etc-rndc.conf /etc/rndc.conf
-
-cat > srv-named-etc-namedb-pz-127.0.0 << "EOF"
-$TTL 3D
-@      IN      SOA     ns.local.domain. hostmaster.local.domain. (
-                        1       ; Serial
-                        8H      ; Refresh
-                        2H      ; Retry
-                        4W      ; Expire
-                        1D)     ; Minimum TTL
-                NS      ns.local.domain.
-1               PTR     localhost.
-EOF
-sudo mv -vf srv-named-etc-namedb-pz-127.0.0 $NAMED_JAIL/etc/namedb/pz/127.0.0
-
-cat > srv-named-etc-namedb-root-hints << "EOF"
-.                       6D  IN      NS      A.ROOT-SERVERS.NET.
-.                       6D  IN      NS      B.ROOT-SERVERS.NET.
-.                       6D  IN      NS      C.ROOT-SERVERS.NET.
-.                       6D  IN      NS      D.ROOT-SERVERS.NET.
-.                       6D  IN      NS      E.ROOT-SERVERS.NET.
-.                       6D  IN      NS      F.ROOT-SERVERS.NET.
-.                       6D  IN      NS      G.ROOT-SERVERS.NET.
-.                       6D  IN      NS      H.ROOT-SERVERS.NET.
-.                       6D  IN      NS      I.ROOT-SERVERS.NET.
-.                       6D  IN      NS      J.ROOT-SERVERS.NET.
-.                       6D  IN      NS      K.ROOT-SERVERS.NET.
-.                       6D  IN      NS      L.ROOT-SERVERS.NET.
-.                       6D  IN      NS      M.ROOT-SERVERS.NET.
-A.ROOT-SERVERS.NET.     6D  IN      A       198.41.0.4
-B.ROOT-SERVERS.NET.     6D  IN      A       192.228.79.201
-C.ROOT-SERVERS.NET.     6D  IN      A       192.33.4.12
-D.ROOT-SERVERS.NET.     6D  IN      A       128.8.10.90
-E.ROOT-SERVERS.NET.     6D  IN      A       192.203.230.10
-F.ROOT-SERVERS.NET.     6D  IN      A       192.5.5.241
-G.ROOT-SERVERS.NET.     6D  IN      A       192.112.36.4
-H.ROOT-SERVERS.NET.     6D  IN      A       128.63.2.53
-I.ROOT-SERVERS.NET.     6D  IN      A       192.36.148.17
-J.ROOT-SERVERS.NET.     6D  IN      A       192.58.128.30
-K.ROOT-SERVERS.NET.     6D  IN      A       193.0.14.129
-L.ROOT-SERVERS.NET.     6D  IN      A       199.7.83.42
-M.ROOT-SERVERS.NET.     6D  IN      A       202.12.27.33
-EOF
-sudo mv -vf srv-named-etc-namedb-root-hints $NAMED_JAIL/etc/namedb/root.hints
-
-grep "^\s*domain" /etc/resolv.conf | head -1 | sed 's/domain/search/' > etc-resolv.conf
-cat >> etc-resolv.conf << "EOF"
-nameserver 127.0.0.1
-EOF
-sudo mv -vf /etc/resolv.conf /etc/resolv.conf-PRE_BIND
-sudo mv -vf etc-resolv.conf /etc/resolv.conf
-
-sudo chown -R named.named /srv/named
+set -e
 

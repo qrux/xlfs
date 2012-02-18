@@ -202,12 +202,12 @@ totime()
 	date '+%Y%m%d_%H%M%S'
 }
 
-echo "    Installing new Dom0-capaable kernel: lfs-7.0-linux-3.1..."
+echo "    Installing new dom0-capaable kernel: lfs-7.0-linux-3.1..."
 for file in $(echo $LFS/boot/*) ; do
 	/bin/cp -vf $file /boot
 done
 
-LFS_KERNEL=$(ls /boot/vmlinuz*-Dom0)
+LFS_KERNEL=$(ls /boot/vmlinuz*-dom0)
 
 echo "########################################################################"
 echo "#"
@@ -215,7 +215,7 @@ echo "#     -----=====> X/LAPP (Phase 1) build successful. <=====-----"
 echo "#"
 echo "#  * Adjust host system to boot LFS build."
 echo "#"
-echo "#  * Dom0-capable kernel [ $LFS_KERNEL ] installed to /boot."
+echo "#  * dom0-capable kernel [ $LFS_KERNEL ] installed to /boot."
 echo "#"
 echo "#  * Reboot system after boot-adjustment to build X/LAPP (Phase 2)..."
 echo "#"
