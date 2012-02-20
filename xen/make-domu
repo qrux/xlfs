@@ -1,39 +1,155 @@
 #! /bin/bash
+set -e
 
-unset PHYS_DEV
-FSTYPE=ext3
-FSSIZE=4096
+totime()
+{
+	date '+%Y%m%d_%H%M%S'
+}
+
+nib2hex()
+{
+	local nib=$1
+	if [ -z $nib ] ; then echo "No nibble given."; return 1 ; fi
+	if [ 15 -lt $nib ] ; then echo "Nibble is greater than 15." ; return 1 ; fi
+	case "$nib" in
+		10) echo a;;
+		11) echo b;;
+		12) echo c;;
+		13) echo d;;
+		14) echo e;;
+		15) echo f;;
+		*) echo $nib;;
+	esac
+}
+
+octet2hex()
+{
+	local octet=$1
+	if [ -z $octet ] ; then echo "No octet given."; return 1 ; fi
+	if [ 255 -lt $octet ] ; then echo "Octet is greater than 255." ; return 1 ; fi
+	hi=$(($octet >> 4))
+	low=$(($octet & 0x0f))
+	echo "$(nibtohex ${hi})$(nib2hex ${low})"
+}
 
 usage()
 {
-	echo
-        echo "  Usage: $0 [-p] [-t (ext2|ext3|ext4)] [-s fssize-in-MiBs] <domU-FQDN> <xen-device-or-file> <xen-image-tarball>"
-	echo
-	exit
+	cat <<EOF
+
+Usage: $0 [OPTION]... domU-FQDN xen-image-tarball
+
+Creates a Xen PV domU using phy-backed (or file-backed) filesystem--and also
+creates an xl-compatible configuration file in /etc/xen/vm.
+
+The domU template image is specified in xen-image-tarball, and must be a
+TAR-extractable file (gzip and bzip2 compression are supported, e.g.,
+"domU-template.tar.gz" or "domU-template.tar.bz2").
+
+This TAR archive must, when decompressed, have a top- level folder which is a
+proxy for / (the root directory); i.e., the TAR archive must be extractable
+using --strip-components=1.  Using an image which is not created as a snapshot
+at the end of the X/LAPP Phase 1 build can results in an unusable domU.
+
+  -v VOL_GROUP		Use the specified volume group (this VG must exist,
+			and this option is mutually exclusive from -f)
+  -l FILE_NAME		Use loopback disk image (mutually exclusive from -v)
+  -f			Force the creation of the LVM disk (or loopback image)
+  -t FSTYPE		[OPT] Create this type of filesystem (ext3 by default)
+  -s FSSIZE		Create a filesystem this large (in megabytes)
+  -m VM_MEM		Allocate this much memory for the VM (in megabytes)
+  -c VM_CPUS		[OPT] Allocate this many CPUs for the VM
+  -w SWAP_MUL		[OPT] Use this amount of swap (multiplier to VM_MEM)
+  -h                    Usage (this information)
+
+VOL_GROUP must point to an existing LVM2 Volume Group.  Other logical-volume
+management systems are not support at this time.  This is the preferred
+mechanism for creating a disk device for use by the VM.  Using a loopback
+disk-image for a PV domU is STRONGLY DISCOURAGED.
+
+FILE_NAME will be created if it does not exist; this is interpreted as a path,
+so relative filenames (e.g.: "../file-for-vm01.img" or "~/file-for-vm02.img")
+are valid.  Using a file-backed disk-image for a VM is STRONGLY DISCOURAGED.
+Consider using LVM2 (and thus -v) instead to create logical-volume-backed
+disks for a PV domU.
+
+FSTYPE must be one of ext2, ext3, ext4.  Others may work, but are used entirely
+at your caution.  FSTYPE must support creation via 'mkfs -t FSTYPE'.  FSSIZE is
+expressed an integer number of megabytes (1048576 bytes).
+
+VM_MEM is expressed as an integer number of megabytes (1048576 bytes).  VM_CPUS
+is expressed an integer number of VCPUS allocated for use by the VM.  Using a
+value greater than the number of cores detected by dom0 can result in undefined
+behavior.
+
+SWAP_MUL is expressed as an integer multiple of VM_MEM.  For example, if VM_MEM
+is set to 2048 (i.e., 2048 MB, or, 2 GB) and SWAP_MUL is set to 3, then a swap
+device will be created for use by the VM that is 3 * 2048 MB (6144 MB, or 6 GB).
+  
+When complete, the logical-volume will be created with a working domU filesystem
+written to it (or, in the case of a file-backed disk-image, the named file will
+be created with a working domU filesystem written to it--via a loopback mount).
+The xl-compatible configuration file will be written to /etc/xen/vm (this dir
+will be created if it doesn't already exist).  The file will be named by the
+domU-FQDN (first non-option argument).
+
+EOF
+	exit 1
 }
 
-while getopts "hpt:s:" OPT ; do
+VIRT_CPUS=$(cat /proc/cpuinfo | grep -cE "^processor\s+:")
+
+FSTYPE=ext3
+unset FILE_DEV FSSIZE
+unset SWAP_MUL VIRT_MEM VIRT_SWAP VOL_GROUP FORCE_INIT
+while getopts "v:l:ft:s:m:c:w:h" OPT ; do
 	case "$OPT" in
-		p) PHYS_DEV=true;;
+		v) VOL_GROUP="$OPTARG";;
+		l) FILE_DEV="$OPTARG";;
+		f) FORCE_INIT=1;;
 		t) FSTYPE="$OPTARG";;
 		s) FSSIZE="$OPTARG";;
+		m) VIRT_MEM="$OPTARG";;
+		c) VIRT_CPUS="$OPTARG";;
+		w) SWAP_MUL="$OPTARG";;
                 h) usage;;
 	esac
 done
 shift $(($OPTIND - 1))
 
 DOMU_HOST=$1
-IMAGE=$2
-TARBALL=$3
+TARBALL=$2
 
 if [ -z $TARBALL ] ; then usage ; fi
-if [ ! -e $IMAGE ] ; then
-	echo "Unmounted Xen-image-file [ $IMAGE ] doesn't exist; exiting."
-	exit
+
+if [ -z "$FILE_DEV" -a -z "$VOL_GROUP" ] ; then
+	echo "At least one of -v or -f must be used; exiting."
+	exit 1
+fi
+if [ -z $VIRT_MEM ] ; then
+	echo "VM_MEM must be specified for the PV domU; exiting."
+	exit 1
+fi
+if [ -z $FSSIZE ] ; then
+	echo "FSSIZE must be specified for the PV domU; exiting."
+	exit 1
 fi
 if [ ! -f $TARBALL ] ; then
 	echo "Tarball [ $TARBALL ] doesn't exist; exiting."
-	exit
+	exit 1
+fi
+
+# Set the amount of virtual memory for VM.
+if [ -n "$SWAP_MUL" ] ; then
+	VIRT_SWAP=$(($SWAP_MUL * $VIRT_MEM))
+else
+	unset VIRT_SWAP
+fi
+
+# Insane TSC issue with EXT4 (this needs to be looked into).
+if [ "ext4" = "${FSTYPE}" ] ; then
+	TSC_MODE=2
+else
+	TSC_MODE=1
 fi
 
 DOMU_HOSTNAME=$(echo $DOMU_HOST | cut -d \. -f 1)
@@ -42,11 +158,16 @@ DOMAIN_NAME=$(echo $DOMU_HOST | cut -d \. -f 2-)
 echo "               New domU host: $DOMU_HOST"
 echo "           New domU hostname: $DOMU_HOSTNAME"
 echo "        New domU domain name: $DOMAIN_NAME"
-echo "        Device or File-Image: $IMAGE"
 echo "Master domU filesystem image: $TARBALL"
+echo "  Using LVM2-backed phy disk? $VOL_GROUP"
 echo "             Filesystem type: $FSTYPE"
 echo "                      [Size]: $FSSIZE"
-echo "       Using physical device? $PHYS_DEV"
+echo "                    TSC mode: $TSC_MODE"
+echo "          VM memory (in MiB): $VIRT_MEM"
+echo "                VM CPU count: $VIRT_CPUS"
+echo "                Swap amount?: $VIRT_SWAP"
+echo "Using file-backed disk-image? $FILE_DEV"
+
 
 ########################################################################
 #
@@ -95,11 +216,13 @@ fi
 
 /bin/cp -f $BUILD_INPUT $BUILD_TMP
 
-ask DOMU_SWAP "DomU - Use swap?"
+#ask DOMU_SWAP "DomU - Use swap?"
 ask DOMU_HOST_IP "DomU - IP?"
 ask DOMU_HOST_GW "DomU - Gateway IP?"
 ask DOMU_HOST_PREFIX "DomU - Network Prefix (e.g., 24 for a class-C)?"
 ask DOMU_HOST_BCAST "DomU - Network Broadcast (e.g., 192.168.0.255)?"
+
+VIRT_MACADDR=$(echo $XLAPP_DOMU_HOST_IP | awk -F \. '{printf("00:16:3e:%02x:%02x:%02x", $2, $3, $4);}')
 
 echo "  Writing config to $BUILD_CONF..."
 /bin/mv -vf $BUILD_TMP $BUILD_CONF
@@ -114,6 +237,7 @@ echo "    DomU -          IP? $XLAPP_DOMU_HOST_IP"
 echo "    DomU -          GW? $XLAPP_DOMU_HOST_GW"
 echo "    DomU -      Prefix? $XLAPP_DOMU_HOST_PREFIX"
 echo "    DomU -   Broadcast? $XLAPP_DOMU_HOST_BCAST"
+echo "    DomU - MAC address? $VIRT_MACADDR"
 
 /bin/mkdir -pv ${DOMU_CONF_DIR}/etc/sysconfig
 
@@ -218,17 +342,31 @@ echo "domU [ $DOMU_HOST ] configuration complete."
 # Creating image
 #
 ########################################################################
-if [ -z $PHYS_DEV ] ; then
-	if [ -e $IMAGE ] ; then
-		echo
-		echo "  Image-file [ $IMAGE ] already exists; fix & rerun; exiting."
-		echo
-		exit
+if [ -n "$FILE_DEV" ] ; then
+	IMAGE="$FILE_DEV"
+	# Make file-backed disk-image
+	echo "Making loopback disk-image $IMAGE ($FSSIZE MB, $FSTYPE)..."
+	if [ -e $IMAGE -a -z "$FORCE_INIT" ] ; then
+		echo "Loopback disk-image [ $IMAGE ] already exists; aborting."
+		echo "Use -f to force overwrite."
+		exit 1
 	fi
-
-	echo "Making $SIZE MB $FSTYPE image [ $IMAGE ]..."
-
+	echo "Creating Loopback disk-image $IMAGE ($FSSIZE MB, $FSTYPE)..."
 	dd if=/dev/zero of=$IMAGE bs=1m seek=$FSSIZE count=0
+else
+	IMAGE=/dev/${VOL_GROUP}/$DOMU_HOST
+	IMAGE_EXISTS=$(lvdisplay | grep -cE "LV Name\s*${DOMU_HOST}")
+	if [ 0 -lt $IMAGE_EXISTS -a -z "$FORCE_INIT" ] ; then
+		echo "LVM2 disk phy [ $IMAGE ] exists; aborting."
+		echo "Use -f to force lvremove/lvcreate."
+		exit 1
+	elif [ 0 -lt $IMAGE_EXISTS ] ; then
+		echo "Removing LVM2 disk phy..."
+		lvremove -fv $IMAGE
+	fi
+	# Make LVM2-backed disk phy
+	echo "Creating LVM2-backed disk phy $IMAGE ($FSSIZE MB, $FSTYPE)..."
+	lvcreate -L ${FSSIZE}M -n $DOMU_HOST $VOL_GROUP
 fi
 
 ########################################################################
@@ -248,7 +386,7 @@ MOUNT="mount-$IMAGE_NAME"
 echo "About to mount $IMAGE..."
 mkdir -vp ./$MOUNT
 
-if [ -z $PHYS_DEV ] ; then
+if [ -n "$FILE_DEV" ] ; then
 	mount -o loop $IMAGE ./$MOUNT
 else
 	mount $IMAGE ./$MOUNT
@@ -291,8 +429,37 @@ echo "Unmounting $IMAGE and deleting mount point..."
 umount $MOUNT
 rmdir $MOUNT
 
+########################################################################
+#
+# Creating xl-compatible domU configuration file (/etc/xen/vm)
+#
+########################################################################
+mkdir -p /etc/xen/vm
+
+XL_DOMU_CONF=/etc/xen/vm/${DOMU_HOST}.conf
+
+if [ -e $XL_DOMU_CONF ] ; then
+	mv -vf $XL_DOMU_CONF ${XL_DOMU_CONF}-$(totime)
+fi
+
+cat > $XL_DOMU_CONF <<EOF
+kernel = "/boot/vmlinuz-3.1-lfs-7.0-domU"
+memory = $VIRT_MEM
+vcpus = $VIRT_CPUS
+name = "${DOMU_HOST}"
+vif = [ 'mac=${VIRT_MACADDR}, bridge=br0' ]
+disk = [ 'phy:${IMAGE},xvda1,w' ]
+root = "/dev/xvda1"
+tsc_mode = ${TSC_MODE}
+EOF
+
+echo "Using this xl-compatible configuration for domU:"
+cat $XL_DOMU_CONF
+
 echo "########################################################################"
 echo "#"
-echo "#     DomU [ $DOMU_HOST ] tempting complete; ready for Xen boot."
+echo "#   DomU xl-configuration written to [ $XL_DOMU_CONF ]."
+echo "#"
+echo "#    DomU [ $DOMU_HOST ] templating complete; ready for Xen boot."
 echo "#"
 echo "########################################################################"
