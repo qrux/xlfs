@@ -1,0 +1,8 @@
+#! /bin/bash
+
+./configure --prefix=/usr --sbindir=/sbin --sysconfdir=/etc --localstatedir=/var
+
+make
+
+make install
+

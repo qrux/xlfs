@@ -18,5 +18,5 @@ make test
 sudo make install
 sudo make install-private-headers
 sudo ln -v -sf tclsh8.5 /usr/bin/tclsh
-chmod -v 755 /usr/lib/libtcl8.5.so
+sudo chmod -v 755 /usr/lib/libtcl8.5.so
 
