@@ -65,7 +65,7 @@ cat >> $NEW_GRUB_FILE <<EOF
 # LFS (bare metal)
 title LFS                             (LFS-7.0, Linux-3.1)
         root(hd0,0)
-        kernel /vmlinuz-3.1-lfs-7.0 root=${XLAPP_LFS_PART} raid=noautodetect
+        kernel /vmlinuz-3.1-lfs-7.0 root=${XLAPP_LFS_PART} raid=noautodetect nomodeset
 EOF
 
 BOOT_INDEX_NEW=$BOOT_LINE_COUNT
