@@ -208,7 +208,7 @@ sudo mkdir -p /srv/named/usr/lib
 sudo /bin/cp -avf /usr/lib/engines /srv/named/usr/lib
 sudo mkdir -p /srv/named/var/log
 sudo ln -sfv /srv/named/var/log/named.run /var/log/named.run
-sudo chown -vR named.named /srv/named
+sudo chown -vR blfs.blfs /srv/named
 
 cd /srv/named
 sudo ln -sfv lib lib64
@@ -217,6 +217,8 @@ sudo ln -sfv lib lib64
 
 cd /srv/named/etc/namedb
 sudo ln -sfv ../../var/log log
+
+sudo chown -vR named.named /srv/named
 
 #sudo /etc/rc.d/init.d/bind start
 
