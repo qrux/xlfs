@@ -355,7 +355,7 @@ if [ -n "$FILE_DEV" ] ; then
 	dd if=/dev/zero of=$IMAGE bs=1m seek=$FSSIZE count=0
 else
 	IMAGE=/dev/${VOL_GROUP}/$DOMU_HOST
-	IMAGE_EXISTS=$(lvdisplay | grep -cE "LV Name\s*${DOMU_HOST}")
+	IMAGE_EXISTS=$(lvdisplay | grep -E "LV Name\s*${DOMU_HOST}" | wc -l)
 	if [ 0 -lt $IMAGE_EXISTS -a -z "$FORCE_INIT" ] ; then
 		echo "LVM2 disk phy [ $IMAGE ] exists; aborting."
 		echo "Use -f to force lvremove/lvcreate."

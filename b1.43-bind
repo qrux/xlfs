@@ -1,0 +1,13 @@
+#! /bin/bash
+
+./configure --prefix=/usr
+
+make -C lib/dns
+make -C lib/isc
+make -C lib/bind9
+make -C lib/isccfg
+make -C lib/lwres
+make -C bin/dig
+
+sudo make -C bin/dig install
+
