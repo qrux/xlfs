@@ -111,5 +111,6 @@ ftp://mirror.ovh.net/gentoo-distfiles/distfiles/db-5.2.36.tar.gz
 http://downloads.sourceforge.net/pcre/pcre-8.12.tar.bz2
 http://dovecot.org/releases/2.1/dovecot-2.1.0.tar.gz
 http://postfix.energybeam.com/source/official/postfix-2.8.4.tar.gz
+ftp://ftp.cac.washington.edu/alpine/alpine.tar.gz
 ftp://ftp.cac.washington.edu/pine/pine4.64.tar.bz2
 http://www.linuxfromscratch.org/patches/blfs/svn/pine-4.64-utf8-1.patch
