@@ -29,7 +29,7 @@ octet2hex()
 	if [ 255 -lt $octet ] ; then echo "Octet is greater than 255." ; return 1 ; fi
 	hi=$(($octet >> 4))
 	low=$(($octet & 0x0f))
-	echo "$(nibtohex ${hi})$(nib2hex ${low})"
+	echo "$(nib2hex ${hi})$(nib2hex ${low})"
 }
 
 usage()

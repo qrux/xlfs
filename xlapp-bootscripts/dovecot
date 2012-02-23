@@ -1,0 +1,91 @@
+#!/bin/sh
+########################################################################
+# Begin dovecot
+#
+# Description : Starts the Dovecot IMAP/SASL server
+#
+# Authors     : qrux dot qed at gmail dot com
+#
+# Version     : X/LAPP-0.01
+#
+# Notes       : Intended to be used with Postfix MTA
+#
+########################################################################
+
+### BEGIN INIT INFO
+# Provides:            dovecot
+# Required-Start:      network
+# Should-Start:
+# Required-Stop:       sendsignals
+# Should-Stop:
+# Default-Start:       3 4 5
+# Default-Stop:        0 1 2 6
+# Short-Description:   Starts dovecot daemon.
+# Description:         Starts dovecot daemon.
+# X-LFS-Provided-By:   LFS
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+DAEMON=/usr/sbin/dovecot
+
+if [ ! -x $DAEMON ] ; then
+	log_warning_msg "Cannot find dovecot daemon executable; exiting"
+	exit
+fi
+
+base_dir=`$DAEMON config -h base_dir`
+pidfile=$base_dir/master.pid
+
+if [ -f $pidfile ] ; then
+	running=yes
+else
+	running=no
+fi
+
+case "${1}" in
+   start)
+      log_info_msg "Starting Dovecot..."
+      start_daemon $DAEMON
+      evaluate_retval
+      ;;
+
+   stop)
+      if [ "yes" = $running ] ; then
+         log_info_msg "Stopping Dovecot..."
+         kill `cat $pidfile`
+         evaluate_retval
+      else
+         log_warning_msg "Dovecot isn't running."
+      fi
+      ;;
+
+   reload)
+      if [ "yes" = $running ] ; then
+         log_info_msg "Reloading Dovecot configuration"
+         kill -HUP `cat $pidfile`
+         evaluate_retval
+      else
+         log_warning_msg "Dovecot isn't running."
+      fi
+      ;;
+
+   restart)
+      log_info_msg "Restarting Dovecot..."
+      if [ "yes" = $running ] ; then
+         kill `cat $pidfile`
+         sleep 1
+      fi
+      start_daemon $DAEMON
+      evaluate_retval
+      ;;
+
+   *)
+      echo "Usage: ${0} {start|stop|reload|restart}"
+      exit 1
+      ;;
+esac
+
+exit 0
+
+# End dovecot

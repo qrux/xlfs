@@ -1,0 +1,10 @@
+#! /bin/bash
+
+cd blfs-bootscripts-*
+
+sudo make install-postfix
+
+sudo cp -vf xlapp-bootscripts/dovecot /etc/init.d/
+chmod 0754 /etc/init.d/dovecot
+
+xlapp-bootscripts/boot-links-create -s 24 -k 49 dovecot

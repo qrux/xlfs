@@ -1,0 +1,25 @@
+#! /bin/bash
+
+./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+
+make
+
+make check
+
+sudo make install
+
+sudo cp -a /usr/share/doc/dovecot/example-config/{dovecot.conf,conf.d} /etc/dovecot
+
+set +e
+grep -w "^dovenull" /etc/group > /dev/null 2>&1
+test $? -ne 0 && sudo groupadd -g 90 dovenull
+
+id dovenull > /dev/null 2>&1
+test $? -ne 0 && sudo useradd -d /dev/null -s /bin/false -g 90 -u 90 -c "Dovenull" -l -r -N dovenull
+
+grep -w "^dovecot" /etc/group > /dev/null 2>&1
+test $? -ne 0 && sudo groupadd -g 91 dovecot
+
+id dovecot > /dev/null 2>&1
+test $? -ne 0 && sudo useradd -d /dev/null -s /bin/false -g 91 -u 91 -c "Dovecot" -l -r -N dovecot
+set -e

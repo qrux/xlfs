@@ -1,0 +1,21 @@
+#! /bin/bash
+
+cat >> etc-aliases <<EOF
+# Begin /etc/aliases
+
+MAILER-DAEMON:    postmaster
+postmaster:       root
+
+#root:             LOGIN
+# End /etc/aliases
+EOF
+sudo mv etc-aliases /etc/aliases
+
+#sudo sed -i "s/LOGIN/<user>/" /etc/aliases
+sudo sed -i "s/#myhostname = host.domain.tld/myhostname = \
+  <localhost.localdomain>/" /etc/postfix/main.cf
+sudo usr/bin/newaliases
+
+sudo /usr/sbin/postfix check
+sudo /usr/sbin/postfix start
+

@@ -1,47 +1,23 @@
 #! /bin/bash
 
-CCARGS='-DUSE_TLS -DHAS_PCRE -DUSE_SASL_AUTH -DUSE_CYRUS_SASL -I/usr/include/sasl -I/usr/include/openssl/'
-AUXLIBS='-lsasl2 -lssl -lcrypto'
-
-sudo groupadd -g 32 postfix
+set +e
+grep "^postfix:" /etc/group > /dev/null 2>&1
+test $? -ne 0 && sudo groupadd -g 32 postfix
+grep "^postdrop:" /etc/group > /dev/null 2>&1
 sudo groupadd -g 33 postdrop
-sudo useradd -c "Postfix Daemon User" -d /dev/null -g postfix \
+id postfix > /dev/null 2>&1
+test $? -ne 0 && sudo useradd -c "Postfix Daemon User" -d /dev/null -g postfix \
     -s /bin/false -u 32 postfix
+set -e
 sudo chown -v postfix:postfix /var/mail
-
-PF_CCARGS="-DDEF_DAEMON_DIR=\\\"/usr/lib/postfix\\\""
-PF_CCARGS="$PF_CCARGS -DDEF_MANPAGE_DIR=\\\"/usr/share/man\\\""
-PF_CCARGS="$PF_CCARGS -DDEF_HTML_DIR=\\\"/usr/share/doc/postfix-2.8.4/html\\\""
-PF_CCARGS="$PF_CCARGS -DDEF_README_DIR=\\\"/usr/share/doc/postfix-2.8.4/README\\\""
-PF_CCARGS="$PF_CCARGS -DHAS_PCRE"
-PF_CCARGS="$PF_CCARGS -DUSE_TLS -I/usr/include/openssl"
 
 PF_AUXLIBS="-lpcre -lssl -lcrypto"
 
-make makefiles CCARGS="$PF_CCARGS" AUXLIBS="$PF_AUXLIBS"
+make makefiles CCARGS='-DUSE_SASL_AUTH -DUSE_TLS -DHAS_PCRE -I/usr/include/openssl -DDEF_DAEMON_DIR=\"/usr/lib/postfix\" -DDEF_MANPAGE_DIR=\"/usr/share/man\" -DDEF_README_DIR=\"/usr/share/doc/postfix-2.8.4/README\"' AUXLIBS="$PF_AUXLIBS"
 
 make
 
-unset PF_CCARGS PF_AUXLIBS
+unset PF_AUXLIBS
 
 sudo sh postfix-install -non-interactive
-
-cat >> etc-aliases <<EOF
-# Begin /etc/aliases
-
-MAILER-DAEMON:    postmaster
-postmaster:       root
-
-root:             LOGIN
-# End /etc/aliases
-EOF
-sudo mv etc-aliases /etc/aliases
-
-sudo sed -i "s/LOGIN/<user>/" /etc/aliases
-sudo sed -i "s/#myhostname = host.domain.tld/myhostname = \
-  <localhost.localdomain>/" /etc/postfix/main.cf
-sudo usr/bin/newaliases
-
-sudo /usr/sbin/postfix check
-sudo /usr/sbin/postfix start
 
