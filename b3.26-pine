@@ -9,7 +9,11 @@ sed -i "s@/usr/local/lib/pine@/etc/pine@g" \
     SSLDIR=/usr SSLCERTS=/etc/ssl/certs slx
 
 sudo install -v -m644 doc/*.1 /usr/share/man/man1
+sudo mkdir -p /usr/share/doc/pine4.64
 sudo install -v -p -m644 doc/tech-notes/*.html /usr/share/doc/pine4.64
 sudo install -v -m755 \
-bin/{pine,imapd,ipop2d,ipop3d,mailutil,mtest,pico,pilot,rpdump,rpload} \
-    /usr/bin
+   bin/{pine,mailutil,mtest,pico,pilot,rpdump,rpload} /usr/bin
+
+#sudo install -v -m755 \
+#bin/{pine,imapd,ipop2d,ipop3d,mailutil,mtest,pico,pilot,rpdump,rpload} \
+#    /usr/bin
