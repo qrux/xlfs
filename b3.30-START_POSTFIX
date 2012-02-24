@@ -1,0 +1,21 @@
+#! /bin/bash
+
+cd blfs-bootscripts-*
+
+sudo make install-postfix
+
+# Create /etc/aliases, and runs newaliases
+cat >> etc-aliases <<EOF
+# Begin /etc/aliases
+
+MAILER-DAEMON:    postmaster
+postmaster:       root
+
+# End /etc/aliases
+EOF
+sudo mv etc-aliases /etc/aliases
+sudo usr/bin/newaliases
+
+#
+# At this point, postfix still needs a lot of configuration...
+#
