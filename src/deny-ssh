@@ -1,0 +1,159 @@
+#! /bin/bash
+
+usage()
+{
+	cat <<EOF
+Usage: $0 [OPTION] [SLEEP_MINUTES]
+Scan the sshd-auth-log for baddies.  Add them to /etc/deny.hosts.
+
+-v MAX_INVALID_USER_ATTEMPTS	Maximum number of invalid-user attempts before
+				blacklisting. Default is 5.
+
+-t MAX_ATTEMPTS_PER_10MINS	Maximum frequency of failed attempts before
+				blacklisting. Default is 7-per-10min-duration.
+
+-r MAX_REVERSE_MAPPING_FAILURES	Maximum number of attempts--when a reverse
+				mapping failure is detected--before
+				blacklisting.  Default is 3.
+
+-n				See results, but don't modify system files.
+
+-h				Print this usage message.
+EOF
+	exit 1
+}
+
+process_badhost()
+{
+	local badhost=$1
+	local attempts=$2
+	local threshold=$3
+	local thresh_type=$4
+
+	if [ -z "${thresh_type}" ] ; then
+		echo "Usage: process_badhost <badhost> <attempts> <threshold> <threshold-type>"
+		exit
+	fi
+
+	if [ $attempts -gt $threshold ] ; then
+		local host_already_listed=$(/bin/ls -1 ${SPOOL_DIR}/${badhost}-* 2> /dev/null | wc -l)
+
+		if [ 0 -eq $host_already_listed ] ; then
+			# Always echo any new host found as a problem
+			echo "$totime deny-ssh: $badhost > $threshold $thresh_type (${attempts} x)"
+		else
+			# If DISPLAY_ONLY is set, then echo this result
+			test -n "$DISPLAY_ONLY" && echo "$badhost > $threshold $thresh_type (${attempts} x)"
+		fi
+
+		thresh_type=$(echo ${thresh_type} | cut -d _ -f 1)
+
+		if [ -z "$DISPLAY_ONLY" ] ; then
+			rm -f ${SPOOL_DIR}/${badhost}-evil-${thresh_type}-*
+			touch ${SPOOL_DIR}/${badhost}-evil-${thresh_type}-${attempts}
+		fi
+		return 0
+	else
+		return 1
+	fi
+}
+
+THRESHOLD_INVALID_USER=5
+THRESHOLD_INTERVAL_FREQ=7
+THRESHOLD_REVERSE_MAP=3
+WAIT_INTERVAL=1
+
+while getopts "nv:t:r:h" OPT ; do
+	case "$OPT" in
+		n) DISPLAY_ONLY=1;;
+		v) THRESHOLD_INVALID_USER=${OPTARG};;
+		t) THRESHOLD_INTERVAL_FREQ=${OPTARG};;
+		r) THRESHOLD_REVERSE_MAP=${OPTARG};;
+		h) usage;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+if [ -n "$DISPLAY_ONLY" ] ; then
+	echo "Using invalid-user threshold of ${THRESHOLD_INVALID_USER}"
+	echo "Using interval-freq threshold of ${THRESHOLD_INTERVAL_FREQ}"
+	echo "Using reverse-map threshold of ${THRESHOLD_REVERSE_MAP}"
+fi
+
+test -n "$1" && WAIT_INTERVAL=$1
+
+SSHD_LOG=/var/log/auth.log
+SPOOL_DIR=/var/spool/deny-ssh
+PID_FILE=/var/run/deny-ssh.pid
+INETD_CONF=/etc/inetd.conf
+DENY_FILE=/etc/hosts.deny
+ALLOW_FILE=/etc/hosts.allow
+DENY_SAVE="${DENY_FILE}-DENY_SSH_SAVE"
+test -n "$WAIT_INTERVAL" && WAIT_INTERVAL=$((60 * $WAIT_INTERVAL))
+
+test -z "$DISPLAY_ONLY" && mkdir -p $SPOOL_DIR
+
+if [ ! -r $SSHD_LOG ] ; then
+	echo "Auth log for sshd ($SSHD_LOG) doesn't exist (or isn't readable); exiting."
+	exit 1
+fi
+
+if [ -z "$DISPLAY_ONLY" ] ; then
+	if [ ! -d $SPOOL_DIR ] ; then
+		echo "Spool dir ($SPOOL_DIR) doesn't exist (and can't be created); exiting."
+		exit 1
+	fi
+
+	test -e  $DENY_FILE || touch $DENY_FILE
+	test -e $ALLOW_FILE || touch $ALLOW_FILE
+	test -e $INETD_CONF || touch $INETD_CONF
+fi
+
+
+# Write PID to pidfile
+echo $BASHPID > $PID_FILE
+
+while true ; do
+	# Unset this, in case it conflicts with a shell function
+	unset totime
+	totime=$(date '+%Y-%m%d %H:%M:%S')
+
+	badhosts="$(cat $SSHD_LOG |  grep "sshd.*:.*Failed password" | \
+	  sed -E 's/.*from\ ([0-9\.]*).*/\1/' | sort | uniq)"
+
+	for badhost in $badhosts ; do
+		attempts=$(grep -c "sshd.*Failed.*for invalid user.*from $badhost" $SSHD_LOG)
+		process_badhost $badhost $attempts $THRESHOLD_INVALID_USER "invalid_user_attempts"
+		test 0 -eq $? && continue;
+
+		ten_min=$(cat $SSHD_LOG | grep "sshd.*Failed.*from $badhost" | cut -b 1-11 | sed 's/ /_/g' | uniq)
+		for interval in $ten_min ; do
+			interval=$(echo $interval | sed 's/_/ /g')
+			attempts=$(cat $SSHD_LOG | grep -c "^$interval")
+			process_badhost $badhost $attempts $THRESHOLD_INTERVAL_FREQ "frequency_in_10m_window"
+			test 0 -eq $? && break
+		done
+	done
+
+	breakhosts=$(cat $SSHD_LOG | grep "POSSIBLE BREAK-IN" | awk '{print $12}' | sed -e 's/^\[//' -e 's/\]$//' | uniq | sort | uniq)
+
+	for badhost in $breakhosts ; do
+		attempts=$(cat $SSHD_LOG | grep -ci "${badhost}.*POSSIBLE BREAK-IN")
+		process_badhost $badhost $attempts $THRESHOLD_REVERSE_MAP "revmap_failures"
+	done
+
+	if [ -z "$DISPLAY_ONLY" ] ; then
+		#
+		# Write the evil hosts to /etc/hosts.deny.
+		#
+		/bin/cp -f $DENY_FILE $DENY_SAVE
+		(for evilhost in /var/spool/deny-ssh/*-evil-* ; do
+			echo "ALL: $(basename $evilhost | cut -d \- -f 1)"
+		done | sort | uniq ; cat $DENY_SAVE) | sort | uniq > $DENY_FILE
+
+		test -n "$DISPLAY_ONLY" && echo "  Rerunning in $WAIT_INTERVAL seconds..."
+		sleep $WAIT_INTERVAL
+	else
+		break
+	fi
+done

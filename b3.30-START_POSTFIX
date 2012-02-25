@@ -14,7 +14,10 @@ postmaster:       root
 # End /etc/aliases
 EOF
 sudo mv etc-aliases /etc/aliases
-sudo usr/bin/newaliases
+sudo chown root:root /etc/aliases
+sudo chmod 0644 /etc/aliases
+
+sudo /usr/bin/newaliases
 
 #
 # At this point, postfix still needs a lot of configuration...

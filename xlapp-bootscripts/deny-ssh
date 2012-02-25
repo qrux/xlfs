@@ -1,0 +1,87 @@
+#!/bin/sh
+########################################################################
+# Begin deny-ssh
+#
+# Description : Starts the deny-ssh daemon script.  This adds a
+#               tcpwrappers-based SSH blacklist (via /etc/hosts.deny).
+#
+# Authors     : qrux dot qed at gmail dot com
+#
+# Version     : X/LAPP-0.01
+#
+# Notes       : Intended to be used with tcpwrappers-enabled SSH.
+#
+########################################################################
+
+### BEGIN INIT INFO
+# Provides:            deny-ssh
+# Required-Start:      ssh
+# Should-Start:
+# Required-Stop:       sendsignals
+# Should-Stop:
+# Default-Start:       3 4 5
+# Default-Stop:        0 1 2 6
+# Short-Description:   Starts deny-ssh daemon.
+# Description:         Starts deny-ssh daemon.
+# X-LFS-Provided-By:   LFS
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+DAEMON_WRAPPER=/usr/sbin/deny-ssh-wrapper
+DAEMON=/usr/sbin/deny-ssh-wrapper
+
+if [ ! -x $DAEMON_WRAPPER ] ; then
+	log_warning_msg "Cannot find deny-ssh daemon-wrapper script; exiting"
+	exit
+fi
+if [ ! -x $DAEMON ] ; then
+	log_warning_msg "Cannot find deny-ssh daemon script; exiting"
+	exit
+fi
+
+pidfile=/var/run/deny-ssh.pid
+
+if [ -f $pidfile ] ; then
+	running=yes
+else
+	running=no
+fi
+
+case "${1}" in
+   start)
+      log_info_msg "Starting deny-ssh..."
+      start_daemon -p $pidfile $DAEMON_WRAPPER
+      evaluate_retval
+      ;;
+
+   stop)
+      if [ "yes" = $running ] ; then
+         log_info_msg "Stopping deny-ssh..."
+         killproc -p $pidfile $DAEMON
+         #kill `cat $pidfile` && rm -f $pidfile
+         evaluate_retval
+      else
+         log_warning_msg "deny-ssh isn't running."
+      fi
+      ;;
+
+   restart)
+      log_info_msg "Restarting deny-ssh..."
+      if [ "yes" = $running ] ; then
+         kill `cat $pidfile`
+         sleep 1
+      fi
+      start_daemon $DAEMON
+      evaluate_retval
+      ;;
+
+   *)
+      echo "Usage: ${0} {start|stop|restart}"
+      exit 1
+      ;;
+esac
+
+exit 0
+
+# End deny-ssh

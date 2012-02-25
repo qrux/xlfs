@@ -1,0 +1,5 @@
+#! /bin/bash
+
+install src/deny-ssh{,-wrapper} /usr/sbin
+install xlapp-bootscripts/deny-ssh /etc/rc.d/init.d
+xlapp-bootscripts/boot-links-create -s 29 -k 31 deny-ssh

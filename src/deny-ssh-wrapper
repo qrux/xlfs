@@ -1,0 +1,13 @@
+#! /bin/bash
+
+ACTUAL_DAEMON=/usr/sbin/deny-ssh
+DAEMON_LOG=/var/log/deny-ssh.log
+
+if [ ! -x $ACTUAL_DAEMON ] ; then
+	echo "Daemon script $ACTUAL_DAEMON doesn't exist; exiting."
+	exit 1
+fi
+
+test ! -f $DAEMON_LOG && touch $DAEMON_LOG
+
+(${ACTUAL_DAEMON} $* >> ${DAEMON_LOG} 2>&1 &)&
