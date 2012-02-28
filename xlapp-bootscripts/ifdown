@@ -10,7 +10,7 @@
 #
 # Version     : LFS 7.0
 #
-# Notes       : the IFCONFIG variable is passed to the scripts found
+# Notes       : the ${file} variable is passed to the scripts found
 #               in the /lib/services directory, to indicate what file the
 #               service should source to get interface specifications.
 #
@@ -62,8 +62,8 @@ fi
 
 . ${file}
 
-if [ "$IFACE" = "" ]; then
-  log_failure_msg "${file} does not define an interface [IFACE]."
+if [ -z "$PHYS" ]; then
+  log_failure_msg "${file} does not define any physical interfaces [PHYS]."
   exit 1
 fi
 
@@ -72,33 +72,46 @@ SERVICES=
 for S in ${SERVICE}; do SERVICES="${SERVICES} ${S}"; done
 
 # This will run the service scripts
-if ip link show ${IFACE} > /dev/null 2>&1; then
+EXISTING_INTERFACES=
+for PHY in ${PHYS} ; do
+  if ip link show ${PHY} > /dev/null 2>&1 ; then
+    EXISTING_INTERFACES="${EXISTING_INTERFACES} ${PHY}"
+  else
+    log_warning_msg "Interface ${PHY} doesn't exist."
+  fi
+done
+
+if [ -n "${EXISTING_INTERFACES}" ] ; then
   for S in ${SERVICES}; do
 
     if [ -n "${S}" -a -x "/lib/services/${S}" ]; then
-      IFCONFIG=${file} /lib/services/${S} ${IFACE} down
+      IFCONFIG=${file} /lib/services/${S} ${file} down
     else
-      MSG="Unable to process ${file}.  Either "
-      MSG="${MSG}the SERVICE variable was not set "
-      MSG="${MSG}or the specified service cannot be executed."
+      MSG="Unable to process ${file}.  Either"
+      MSG="${MSG} the SERVICE variable was not set"
+      MSG="${MSG} or the specified service cannot be executed."
       log_failure_msg "$MSG"
       exit 1
    fi
  done
+
+  for PHY in "${EXISTING_INTERFACES}" ; do
+    link_status=`ip link show ${PHY} 2>/dev/null`
+
+    if [ -n "${link_status}" ]; then
+      if [ "$(echo "${link_status}" | grep UP)" != "" ]; then
+         #QRUX - Why does it matter if ${PHY} has an IP address?
+         #QRUX - Seems like it should be taken it down regardless.
+         if [ "$(ip addr show ${PHY} | grep 'inet ')" != ""  ]; then
+            log_info_msg "Bringing down the ${PHY} interface..."
+            ip link set ${PHY} down
+            evaluate_retval
+         fi
+      fi
+    fi
+  done
 else
-  log_warning_msg "Interface ${1} doesn't exist."
-fi
-
-link_status=`ip link show ${IFACE} 2>/dev/null`
-
-if [ -n "${link_status}" ]; then
-  if [ "$(echo "${link_status}" | grep UP)" != "" ]; then
-     if [ "$(ip addr show ${IFACE} | grep 'inet ')" != ""  ]; then
-        log_info_msg "Bringing down the ${IFACE} interface..."
-        ip link set ${IFACE} down
-        evaluate_retval
-     fi
-  fi
+  log_warning_msg "No interfaces among (${PHYS}) exist."
 fi
 
 # End /sbin/ifdown

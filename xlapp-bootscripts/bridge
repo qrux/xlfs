@@ -12,24 +12,30 @@
 ########################################################################
 
 . /lib/lsb/init-functions
+
+if [ -z ${1} ] ; then
+  log_failure_msg "No ifconfig file specified"
+  exit 1
+fi
+IFCONFIG=$1
 . ${IFCONFIG}
 
-if [ -n "${INTERFACE}" ]; then
-  log_failure_msg "INTERFACES variable missing from ${IFCONFIG}"
+# Call the bridge ${BRIDGE_IF} for clarity.
+if [ -z ${BRIDGE_IF} ]; then
+  log_failure_msg "BRIDGE_IF variable missing from ${IFCONFIG}"
   exit 1
 fi
 
 case "${2}" in
   up)
      log_info_msg2 "\n"
-     log_info_msg "Creating the ${1} interface..."
-     brctl addbr ${1}
-     ip link set ${1} up
+     log_info_msg "Creating the ${BRIDGE_IF} interface..."
+     brctl addbr ${BRIDGE_IF}
+     ip link set ${BRIDGE_IF} up
      evaluate_retval
-     for I in ${INTERFACES}; do
-        log_info_msg "Adding ${I} to ${1}..."
-        ip link set ${I} up &&
-        brctl addif ${1} ${I}
+     for PHY in ${PHYS}; do
+        log_info_msg "Adding ${PHY} to ${BRIDGE_IF}..."
+        brctl addif ${BRIDGE_IF} ${PHY}
         evaluate_retval
      done
 
@@ -44,21 +50,20 @@ case "${2}" in
   ;;
 
   down)
-     for I in ${INTERFACES}; do
-        log_info_msg "Removing ${I} from ${1}..."
-        ip link set ${I} down &&
-        brctl delif ${1} ${I}
+     for PHY in ${PHYS}; do
+        log_info_msg "Removing ${PHY} from ${BRIDGE_IF}..."
+        brctl delif ${BRIDGE_IF} ${PHY}
         evaluate_retval
      done
 
-     log_info_msg "Bringing down the ${1} interface..."
-     ip link set ${1} down
-     brctl delbr ${1}
+     log_info_msg "Bringing down the ${BRIDGE_IF} interface..."
+     ip link set ${BRIDGE_IF} down
+     brctl delbr ${BRIDGE_IF}
      evaluate_retval
   ;;
 
   *)
-     echo "Usage: ${0} [interface] {up|down}"
+     echo "Usage: ${0} <ifconfig-file> {up|down}"
      exit 1
   ;;
 esac

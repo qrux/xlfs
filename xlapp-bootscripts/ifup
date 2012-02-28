@@ -10,7 +10,7 @@
 #
 # Version     : LFS 7.0
 #
-# Notes       : The IFCONFIG variable is passed to the SERVICE script
+# Notes       : The ${file} variable is passed to the SERVICE script
 #               in the /lib/services directory, to indicate what file the
 #               service should source to get interface specifications.
 #
@@ -55,19 +55,12 @@ file=/etc/sysconfig/ifconfig.${1}
 
 . /lib/lsb/init-functions
 
-log_info_msg "Bringing up the ${1} interface... "
-
 if [ ! -r "${file}" ]; then
   log_warning_msg "\n${file} is missing or cannot be accessed." 
   exit 1
 fi
 
 . $file
-
-if [ "$IFACE" = "" ]; then
-  log_failure_msg "\n${file} does not define an interface [IFACE]."
-  exit 1
-fi
 
 # Do not process this service if started by boot, and ONBOOT
 # is not set to yes
@@ -76,39 +69,67 @@ if [ "${IN_BOOT}" = "1" -a "${ONBOOT}" != "yes" ]; then
   exit 0
 fi
 
+log_info_msg "Bringing up the ${1} interface... "
+
+if [ -z "$PHYS" ]; then
+  log_failure_msg "\n${file} does not define any physical interfaces [PHYS]."
+  exit 1
+fi
+
 for S in ${SERVICE}; do
  if [ ! -n "${S}" -o ! -x "/lib/services/${S}" ]; then
-   MSG="\nUnable to process ${file}.  Either " 
-   MSG="${MSG}the SERVICE variable was not set "
-   MSG="${MSG}or the specified service cannot be executed."
+   MSG="\nUnable to process ${file}.  Either" 
+   MSG="${MSG} the SERVICE variable was not set"
+   MSG="${MSG} or the specified service cannot be executed."
    log_failure_msg "$MSG"
    exit 1
  fi
 done
 
-if [ -z "${CHECK_LINK}"         -o \
-       "${CHECK_LINK}" = "y"   -o \
-       "${CHECK_LINK}" = "yes" -o \
-       "${CHECK_LINK}" = "1" ]; then
+PHY_IDX=0
+for PHY in $PHYS ; do
+  if [ -z "${CHECK_LINK}"         -o \
+         "${CHECK_LINK}" = "y"   -o \
+         "${CHECK_LINK}" = "yes" -o \
+         "${CHECK_LINK}" = "1" ]; then
 
-  #  Bring up the interface
-  if ip link show ${IFACE} > /dev/null 2>&1; then
-     link_status=`ip link show ${IFACE}`
+    #  Bring up the interface
+    if ip link show ${PHY} > /dev/null 2>&1; then
+       link_status=`ip link show ${PHY}`
 
-     if [ -n "${link_status}" ]; then
-        if ! echo "${link_status}" | grep -q UP; then
-           ip link set ${IFACE} up
-        fi
-     fi
+       if [ -n "${link_status}" ]; then
+          if ! echo "${link_status}" | grep -q UP; then
+             ip link set ${PHY} up
+          fi
+       fi
 
-  else
-     log_warning_msg "\nInterface ${IFACE} doesn't exist."
-     exit 0
+    else
+       log_warning_msg "\nInterface ${PHY} doesn't exist."
+       exit 0
+    fi
+
+    # Link is up, so set MTU
+    if test -n "${MTU}"; then
+      # Use the proper MTU if there are multiple MTUs set in ${MTU}.
+      M=$(echo $MTU | awk -v idx=$PHY_IDX '{printf("%s", $idx);}')
+
+      # If there is only one ${MTU}, but multiple ${PHYS}, use ${MTU}.
+      test -z ${M} && M="${MTU}"
+
+      # Check if MTU has a "good" value.
+      if [ ${M} -gt 0 ] ; then
+        ip link set dev ${PHY} mtu ${M}
+      else
+        echo "Invalid MTU ${M}"
+      fi
+    fi
   fi
-fi
+
+  PHY_IDX=$((1 + ${PHY_IDX}))
+done
 
 for S in ${SERVICE}; do 
- IFCONFIG=${file} /lib/services/${S} ${IFACE} up
+  /lib/services/${S} ${file} up
 done
 
 # End /sbin/ifup
