@@ -114,3 +114,7 @@ http://postfix.energybeam.com/source/official/postfix-2.8.4.tar.gz
 ftp://ftp.cac.washington.edu/alpine/alpine.tar.gz
 ftp://ftp.cac.washington.edu/pine/pine4.64.tar.bz2
 http://www.linuxfromscratch.org/patches/blfs/svn/pine-4.64-utf8-1.patch
+http://www.carfab.com/apachesoftware//apr/apr-1.4.6.tar.gz
+http://www.carfab.com/apachesoftware//apr/apr-util-1.4.1.tar.gz
+http://sqlite.org/sqlite-autoconf-3071000.tar.gz
+http://archive.apache.org/dist/subversion/subversion-1.7.1.tar.bz2

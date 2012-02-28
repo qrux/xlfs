@@ -1,0 +1,12 @@
+#! /bin/bash
+
+./configure --prefix=/usr/local --with-apr=/usr/local --with-pgsql=/usr/local/pgsql
+
+export MAKEFLAGS="-j 1"
+make
+
+make test
+
+sudo make install
+sudo /sbin/ldconfig
+

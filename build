@@ -58,10 +58,13 @@ cd ./src
 
 TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG.tar*")
 if [ -z $TARBALL ] ; then
+	TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG-[0-9]*.tar*")
+fi
+if [ -z $TARBALL ] ; then
 	TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG*.tar*")
-	if [ -z $TARBALL ] ; then
-		TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG*.tgz*")
-	fi
+fi
+if [ -z $TARBALL ] ; then
+	TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG*.tgz*")
 fi
 
 echo "(Cleaning up files from previous builds...)"
