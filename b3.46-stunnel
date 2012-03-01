@@ -1,0 +1,14 @@
+#! /bin/bash
+
+./configure --prefix=/usr \
+            --sysconfdir=/etc \
+            --localstatedir=/var \
+            --disable-libwrap
+
+make
+
+sudo make docdir=/usr/share/doc/stunnel-4.46 install
+
+sudo groupadd -g 51 stunnel
+sudo useradd -c "Stunnel Daemon" -d /srv/stunnel \
+        -g stunnel -s /bin/false -u 51 stunnel

@@ -6,19 +6,20 @@ usage()
 Usage: $0 [OPTION] [SLEEP_MINUTES]
 Scan the sshd-auth-log for baddies.  Add them to /etc/deny.hosts.
 
--v MAX_INVALID_USER_ATTEMPTS	Maximum number of invalid-user attempts before
-				blacklisting. Default is 5.
+  -v INVALID_ATTEMPTS	Maximum number of invalid-user attempts before
+			blacklisting. Default is 5.
 
--t MAX_ATTEMPTS_PER_10MINS	Maximum frequency of failed attempts before
-				blacklisting. Default is 7-per-10min-duration.
+  -t ATTEMPTS_PER_10	Maximum frequency of failed attempts before
+			blacklisting. Default is 7-per-10min-duration.
 
--r MAX_REVERSE_MAPPING_FAILURES	Maximum number of attempts--when a reverse
-				mapping failure is detected--before
-				blacklisting.  Default is 3.
+  -r REVMAP_ATTEMPTS	Maximum number of attempts--when a reverse
+			mapping failure is detected--before
+			blacklisting.  Default is 3.
 
--n				See results, but don't modify system files.
+  -n			See results, but don't modify system files.
 
--h				Print this usage message.
+  -h			Print this usage message.
+
 EOF
 	exit 1
 }
@@ -142,18 +143,20 @@ while true ; do
 		process_badhost $badhost $attempts $THRESHOLD_REVERSE_MAP "revmap_failures"
 	done
 
-	if [ -z "$DISPLAY_ONLY" ] ; then
-		#
-		# Write the evil hosts to /etc/hosts.deny.
-		#
+	# In run-once-display-results-only mode?
+	test -n "$DISPLAY_ONLY" && break;
+
+	#
+	# Write the evil hosts to /etc/hosts.deny (if any exist).
+	#
+	EVIL_COUNT=$(/bin/ls -1 ${SPOOL_DIR}/*-evil-* 2> /dev/null | wc -l)
+	if [ 0 -lt $EVIL_COUNT ] ; then
 		/bin/cp -f $DENY_FILE $DENY_SAVE
-		(for evilhost in /var/spool/deny-ssh/*-evil-* ; do
+		(for evilhost in ${SPOOL_DIR}/*-evil-* ; do
 			echo "ALL: $(basename $evilhost | cut -d \- -f 1)"
 		done | sort | uniq ; cat $DENY_SAVE) | sort | uniq > $DENY_FILE
-
-		test -n "$DISPLAY_ONLY" && echo "  Rerunning in $WAIT_INTERVAL seconds..."
-		sleep $WAIT_INTERVAL
-	else
-		break
 	fi
+
+	echo "  Rerunning in $WAIT_INTERVAL seconds..."
+	sleep $WAIT_INTERVAL
 done

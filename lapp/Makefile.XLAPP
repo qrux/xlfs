@@ -86,7 +86,7 @@ XCACHE_CONF_OPTS :=			$(PHP_PREFIX) \
 PHP_CONF_OPTS :=			$(PHP_PREFIX) \
 	--with-apxs2=/usr/local/a2/bin/apxs \
 	--with-pgsql=/usr/local/pgsql \
-	--with-curl=/usr/local/bin \
+	--with-curl \
 	--with-curlwrappers \
 	--with-openssl-dir \
 	--with-gd \
@@ -192,7 +192,7 @@ gd-xl:			.gd-xl
 
 .PHONY:			libs-xl
 libs-xl:		.libs-xl
-.libs-xl:		.event-xl .curl-xl .xslt-xl .mem-xl
+.libs-xl:		.event-xl .xslt-xl .mem-xl
 	@touch $@ && $(LDCONFIG)
 
 .event-xl:		event-src

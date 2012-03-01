@@ -99,6 +99,8 @@ EOF
 	exit 1
 }
 
+test ! -e /proc/cpuinfo && usage
+
 VIRT_CPUS=$(cat /proc/cpuinfo | grep -cE "^processor\s+:")
 
 FSTYPE=ext3

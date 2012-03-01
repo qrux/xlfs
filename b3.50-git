@@ -1,0 +1,11 @@
+#! /bin/bash
+
+./configure --prefix=/usr --with-gitconfig=/etc/gitconfig \
+	--without-python \
+	--with-libpcre
+
+make
+
+sudo make install
+
+sudo tar xf ../git-manpages-1.7.9.2.tar.gz -C /usr/share/man --no-same-owner
