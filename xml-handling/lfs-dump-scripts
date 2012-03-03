@@ -1,0 +1,59 @@
+#! /bin/bash
+
+XML=$1
+
+if [ -z $XML ] ; then
+	echo
+	echo "  Usage: $0 <xml file>"
+	echo
+	exit
+fi
+
+if [ ! -f $XML ] ; then
+	echo "Specified file [ $XML ] doesn't exist; exiting."
+	exit
+fi
+
+cd $(dirname $XML)
+XML=$(basename $XML)
+
+rm -f .parse-* .re-* .cent-*
+PARSE_OUT=$(mktemp .parse-XXXXXX)
+RE_OUT=$(mktemp .re-XXXXXX)
+CENT_OUT=$(mktemp .cent-XXXX)
+touch $CENT_OUT
+
+# Lines that contain external ENTITIES
+xml-re $XML  | grep "\!ENTITY" | grep -w SYSTEM | awk '{print $5}' | while read LINE ; do
+	LINE=$(echo $LINE)
+	eval xml-cent $LINE $CENT_OUT >> $CENT_OUT
+done
+
+# In-place ENTITIES
+xml-re $XML  | grep "\!ENTITY" | grep -vw SYSTEM | while read LINE ; do
+	echo "<${LINE}>"
+done > $RE_OUT
+
+xml-cent $RE_OUT $CENT_OUT >> $CENT_OUT
+
+# Load ENTITY values
+. $CENT_OUT
+
+# Only the <userinput> values
+xml-parse $XML userinput > $PARSE_OUT
+
+while read LINE ; do while true ; do
+	echo "${LINE}" | grep -E -c "\&[a-zA-Z0-9\-]+\;" > /dev/null 2>&1
+	if [ 0 -ne $? ] ; then
+		echo ${LINE}
+		break
+	else
+		VAR=$(echo "${LINE}" | sed -E 's/.*\&([a-zA-Z0-9\-]+)\;.*/\1/')
+		ORIGVAR="${VAR}"
+		VAR=$(echo ${VAR} | sed 's/\-/_/g')
+		eval VAL=\$${VAR}
+		#echo "    var name: ${VAR}"
+		#echo "    var value: ${VAL}"
+		LINE=$(echo "${LINE}" | sed -E "s^\&${ORIGVAR}\;^${VAL}^")
+	fi
+done ; done < $PARSE_OUT

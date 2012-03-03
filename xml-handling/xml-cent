@@ -1,0 +1,77 @@
+#! /bin/bash
+
+XML=$1
+
+if [ -z $XML ] ; then
+	echo
+	echo "Usage: $0 <entity file>"
+	echo
+	exit
+fi
+
+EXISTING=$2
+
+if [ -n "${EXISTING}" ] ; then
+	if [ -f "$EXISTING" ] ; then
+		. $EXISTING
+	fi
+fi
+
+html2txt()
+{
+  echo $* | \
+    sed -E -e 's/\&amp\;/\&/g' \
+           -e 's/\&lt\;/\</g' \
+           -e 's/\&gt\;/\>/g' \
+           -e 's/\&nbsp\;/\ /g' \
+           -e 's/\&quot\;/\"/g' \
+           -e "s/\&apos\;/\'/g"
+}
+
+convertEnts()
+{
+  local file=$1
+  test -z $file && return 1
+  # Remove empty lines
+  # Remove XML comments
+  # Convert ENTITY's into things that look like shell
+  #   variable assignments
+  cat $file | grep . | sed -e '/<!--.*-->/d' -e '/<!--/,/-->/d' | \
+    sed -E -e 's/^<!ENTITY[[:space:]]*//' \
+           -e 's/[[:space:]]+/=/' -e 's/^=//' -e 's/\">.*$/\"/'
+}
+
+rm -f .ent{raw,1}-*
+RAW=$(mktemp .entraw-XXXXXX) || exit 1
+TMP1=$(mktemp .ent1-XXXXXX) || exit 1
+convertEnts $XML | sed 's/\$/\\\\\$/g' > $RAW
+touch $TMP1
+
+while read ENT ; do while true ; do
+	echo "${ENT}" | grep -E -c "\&[a-zA-Z0-9\-]+\;" > /dev/null 2>&1
+	if [ 0 -ne $? ] ; then
+		VAR=$(echo "${ENT}" | cut -d '=' -f 1)
+		VAL=$(echo "${ENT}" | cut -s -d '=' -f 2-)
+		VAR=$(echo ${VAR} | sed 's/\-/_/g')
+		if [ -n "${VAL}" ] ; then
+			LINE="${VAR}=${VAL}"
+		else
+			LINE="${VAR}"
+		fi
+
+		echo "${LINE}" >> $TMP1
+		echo "${LINE}"
+		break
+	else
+		#echo "  MATCH - ${ENT}"
+		. $TMP1
+		VAR=$(echo "${ENT}" | sed -E 's/.*\&([a-zA-Z0-9\-]+)\;.*/\1/')
+		ORIGVAR="${VAR}"
+		VAR=$(echo ${VAR} | sed 's/\-/_/g')
+		eval VAL=\$${VAR}
+		#echo "    var name: ${VAR}"
+		#echo "    var value: ${VAL}"
+		ENT=$(echo "${ENT}" | sed -E "s^\&${ORIGVAR}\;^${VAL}^")
+		#echo $ENT
+	fi
+done ; done < $RAW

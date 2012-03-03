@@ -1,0 +1,33 @@
+#! /bin/bash
+
+XML=$1
+TAG=$2
+
+if [ -z $TAG ] ; then
+	echo
+	echo "Usage: $0 <xml file> <tag>"
+	echo
+	exit
+fi
+
+rdom () { local IFS=\> ; read -d \< E C ;}
+
+html2txt()
+{
+  echo $* | \
+    sed -E -e 's/\&amp\;/\&/g' \
+           -e 's/\&lt\;/\</g' \
+           -e 's/\&gt\;/\>/g' \
+           -e 's/\&nbsp\;/\ /g' \
+           -e 's/\&quot\;/\"/g' \
+           -e "s/\&apos\;/\'/g"
+}
+
+VALUE=
+
+while rdom; do
+    if [[ $E = $TAG ]]; then
+	html2txt "$C"
+    fi
+done < $XML
+
