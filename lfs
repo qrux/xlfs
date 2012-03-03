@@ -113,6 +113,7 @@ fi
 
 echo "  Checking MD5 sums on packages..."
 pushd $__SOURCE_DIR/src
+wget -nc -i _wget-list-7.0.1
 md5sum -c md5sums
 if [ 0 -ne $? ] ; then echo "MD5 sums failed to match; aborting hard." ; exit 1 ; fi
 popd

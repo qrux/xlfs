@@ -6,6 +6,8 @@
 
 LANG=
 export LANG
+LC_COLLATE="C"
+export LC_COLLATE
 
 path () 
 { 
