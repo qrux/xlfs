@@ -22,12 +22,7 @@ I use openSUSE-11.4.  It meets all the requirements to build LFS-7.0, the base s
 TL;DR
 --
 
-* Install the host system (e.g., openSUSE-11.4).
-** Create 3 partitions: /boot, /, and /mnt/lfs partitions.
-** Give /boot at least 256 MB.  I use 2 GB myself.
-** Give / no more than 8 GB.  Give /mnt/lfs at least 8.  If you use less, you're on your own.
-* When install is finished, give yourself SSH access from the machine you intend to work from (say, your laptop).
-* SSH in.
+Install the host system (e.g., openSUSE-11.4).  Create 3 partitions: /boot, /, and /mnt/lfs partitions.  Give /boot at least 256 MB.  I use 2 GB myself.  Give / no more than 8 GB.  Give /mnt/lfs at least 8.  If you use less, you're on your own.  When install is finished, give yourself SSH access from the machine you intend to work from (say, your laptop).  Finally, SSH in (as root).
 
 	cd /
 	tar xf xlapp-984985.tar.gz # (or whatever version your tarball is)
@@ -51,12 +46,12 @@ So, you'll be doing this:
 
 If you can't get in, it will reboot into the host system in 30 seconds.  If you *can* get in, do this immediately:
 
-	# cd /etc/init.d
-	# ./xlapp-watchdog stop
+	cd /etc/init.d
+	./xlapp-watchdog stop
 
 If that works, you can uninstall the watchdog for the next reboot:
 
-	# ./xlapp-watchdog uninstall
+	./xlapp-watchdog uninstall
 
 Now you can move on to stage 2:
 
