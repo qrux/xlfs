@@ -1,19 +1,77 @@
-What is X/LAPP?
-===============
+What is XLAPP?
+==
 
-X/LAPP is a take on "LAPP".  It stands for "Xen/LFS Apache Postgres PHP".
+XLAPP is a set of scripts that creates a virtualization-capable Linux system using Xen.
 
-It's a project that originally set out to create a LAPP stack on top of a Xen cluster that could be completely built from source.  It seems clear that it could be adapted for different types of cluster/VM deployments, and it seems particularly conducive to development work.
+It's not a distro, per se, in that the goal is to minimize bloat.  Most bloat comes from X11 and the huge array of packages and services envisioned for huge enterprises (Gnome, KDE, LDAP, Kerberos/OpenDirectory, etc).
 
-I thought the 'L' in "LAPP" stood for Linux.  What's this 'LFS'?
-----------------------------------------------------------------
+It stands for "Xen LFS APP".  The "APP" can mean anything you want.  Maybe "application".  Or "appliance".  It was, at the start, meant to be a take on "LAPP", but since XLAPP now supports multiple server types that have nothing to do with a traditional web stack, it just didn't make sense to tie it to any particular use.
 
-Well, LFS itself stands for "Linux From Scratch".  It's a project intended to teach people how Linux works, and is a book intended to guide a user through the entire process of compiling Linux from source.  X/LAPP, then, is a way to compile the entire OS, the virtualization stack (hypervisor, kernel, and tools), plus a web stack entirely from source code.
+Well, LFS itself stands for "Linux From Scratch".  It's a project intended to teach people how Linux works, and is a book intended to guide a user through the entire process of compiling Linux from source.  XLAPP, then, is a way to compile the entire OS, the virtualization stack (hypervisor, kernel, and tools), plus a
+few application stacks entirely from source code.
 
-Why? (Or, "Motivations")
-------------------------
+How does it work?
+--
 
-Prior to this, I've run RedHat and SuSE in production systems. It's frustrating to see more and more bloat go into these system, especially when it was always my intention to run them as servers.
+Since XLAPP is a compiled-from-source system, you first have to start with a system that has a working compiler and set of tools that are used to build XLAPP.  Refer to the requirements here:
+
+	http://www.linuxfromscratch.org/lfs/view/7.0/prologue/hostreqs.html
+
+I use openSUSE-11.4.  It meets all the requirements to build LFS-7.0, the base system.  That's all I'm looking for.  Plus, I put the ISO image on a thumb drive, and it means my servers don't need CD drives.  It also means my installs go much faster.  Since you can't find version 11.4 anywhere (now that 12+ is out), I'll be hosting a copy myself soon.  No, don't use version 12+ (or later).  I've already tried it, and while all the prerequisite packages are newer, they are "too new."  They cause LFS-7.0 not to build properly (a lot of the regression tests fails, due to some recent changes).  There are some details below.
+
+TL;DR
+--
+
+* Install the host system (e.g., openSUSE-11.4).
+** Create 3 partitions: /boot, /, and /mnt/lfs partitions.
+** Give /boot at least 256 MB.  I use 2 GB myself.
+** Give / no more than 8 GB.  Give /mnt/lfs at least 8.  If you use less, you're on your own.
+* When install is finished, give yourself SSH access from the machine you intend to work from (say, your laptop).
+* SSH in.
+
+	cd /
+	tar xf xlapp-984985.tar.gz # (or whatever version your tarball is)
+	cd ~
+	ln -s /lfs lfs
+	cd lfs/src
+	wget -nc -i wget-list
+	cd ..
+	./lfs
+
+Then, just answer the questions (paying particular attention to the root password and the SSH key; that's how you'll gain access to the new system).
+
+About 3 hours later, (on an 1st-gen i5), you'll have a bootable XLAPP-Phase-1 system (with SSH access).  When it's finished (assuming it finishes without error), it will have modified the entries in /boot/grub/menu.lst to boot your new XLAPP system by default.
+
+Before rebooting, make sure you're ready to do these new few steps.  Having 2 windows open helps.  Right after rebooting, you'll have 30 seconds to log in and stop the watchdog timer.  During the development process, sometimes mistakes would creep into the bootscripts (or other touchy initialization steps).  Allows the system to reboot itself back into the host was a nice feature that prevented having to log in at the console of the target computer.
+
+So, you'll be doing this:
+
+* Reboot
+* Log in (SSH or console)
+
+If you can't get in, it will reboot into the host system in 30 seconds.  If you *can* get in, do this immediately:
+
+	# cd /etc/init.d
+	# ./xlapp-watchdog stop
+
+If that works, you can uninstall the watchdog for the next reboot:
+
+	# ./xlapp-watchdog uninstall
+
+Now you can move on to stage 2:
+
+	cd /lfs
+	./lfs2
+
+When this finishes, you'll have built the a dom0-capable kernel.  The system adds the GRUB entries you'll need (again)--though this time without a watchdog (if you uninstalled it).  Then, go ahead and reboot.  When this happens, you'll have a finished XLAPP system, running on top of the Xen hypervisor.
+
+*You're ready to make domU guest systems!*
+
+
+Why?
+----
+
+Prior to this, I've run RedHat and SuSE in production systems. It's frustrating to see more and more bloat go into these distributions, especially when it was always my intention to run them as servers.
 
 For example, in the last two versions of openSUSE, in order to install the Xen system, you had to install the X11 libraries.  That's a ridiculous amount of bloat to accommodate a hypervisor.  In addition, you had to install Python (which, itself, required X11).  It seemed like there was no easy way to get rid of X11.
 
@@ -21,14 +79,14 @@ Running a Xen cluster should place as few dependencies on Domain 0 (the priviled
 
 In production systems, bloat makes backups take up more space and take longer to complete.  Bloat can also be a source of security issues (the more code running, the more code exposed).  It can also mean more bugs.  Plus, if this bloat comes through a commercial packaging system, it can also mean more dependencies in the future, and difficulty separating updating specific packages (e.g., OpenSSL) if the vendor has not updated them through their online-update system.
 
-LFS meets the criteria for the "smallest usable" toolchain.  In addition, its members seem knowledgeable, and support for the core project is strong.  BLFS is a slightly different matter...But for those people looking to run a X/LAPP cluster, this guide should serve as a value-add for BLFS to get you started.
+LFS meets the criteria for the "smallest usable" toolchain.  In addition, its members seem knowledgeable, and support for the core project is strong.  BLFS is a slightly different matter...But for those people looking to run a XLAPP cluster, this guide should serve as a value-add for BLFS to get you started.
 
 Goals
 -----
 
 I want to run a Xen cluster using an LFS-based Dom0 and LFS-based paravirtualized DomU's.  In fact, I plan to just clone the Dom0 system and use file-based disk images for Dom0.  I want to have a pure 64-bit system (i.e., no multilib gcc/glibc, no 32-bit toolchains, no 32-bit libs in /lib vs 64-bit libs in /lib64).  I want to install as little as possible in Dom0 and each of the DomU's.  That's roughly the same goal, since the DomU's will just be clones of Dom0.
 
-Originally, I narrowed my focus to just being able to install the web-stack on the DomU's.  It turns out, a variety of things could be done with the DomU stack, including serving as a testbed for new LFS builds.  A significant amount of effort was expended trying to keep the hardware abstracted away from the build scripts.  This was done by having a configuration script at the beginning which prompted for good values.  It turns out that with a bit more scripting, the entire X/LAPP build could be bootstrapped this way, and set to be easily deployable against a DomU once the Dom0 is built.  This would go a long way toward verification-testing of the DomU--especially running test-heavy packages like BerkeleyDB (not to mention the web-stack itself).
+Originally, I narrowed my focus to just being able to install the web-stack on the DomU's.  It turns out, a variety of things could be done with the DomU stack, including serving as a testbed for new LFS builds.  A significant amount of effort was expended trying to keep the hardware abstracted away from the build scripts.  This was done by having a configuration script at the beginning which prompted for good values.  It turns out that with a bit more scripting, the entire XLAPP build could be bootstrapped this way, and set to be easily deployable against a DomU once the Dom0 is built.  This would go a long way toward verification-testing of the DomU--especially running test-heavy packages like BerkeleyDB (not to mention the web-stack itself).
 
 In addition, I want to be able to deploy stripped-down DomU's that only run a DNS server or SMTP/IMAP server; this makes new domains easy to deploy in a colo server.
 
@@ -42,7 +100,7 @@ So, to begin, we need a running Linux system to build LFS.  Since LFS is compile
 
 I'm going to call this host the *"LFS-host"*, to avoid confusion with other things called "the host" (like the Xen-host).
 
-There are lots of way to do this.  Some people suggest a LiveCD.  Some suggest free distros.  Other suggest commercial distros.  I'm choosing a free, commercial distro that is readily available, and has a toolschain that's current enough to build LFS-7.0.  I used openSUSE-11.4, because it was free, readily available, and I'm familiar with its installation process.  Plus, I think choosing an installed LFS-host is the most flexible way that allows you to fall back to a commercial distro if something goes wrong.  Which was, quite frankly, impossible to live without while I was creating X/LAPP.
+There are lots of way to do this.  Some people suggest a LiveCD.  Some suggest free distros.  Other suggest commercial distros.  I'm choosing a free, commercial distro that is readily available, and has a toolschain that's current enough to build LFS-7.0.  I used openSUSE-11.4, because it was free, readily available, and I'm familiar with its installation process.  Plus, I think choosing an installed LFS-host is the most flexible way that allows you to fall back to a commercial distro if something goes wrong.  Which was, quite frankly, impossible to live without while I was creating XLAPP.
 
 I also chose openSUSE because I know that Xen is functional on this platform, and if necessary, I can refer to it.  Fortunately, that was never the case, but it's nice to have it there, in case I needed it.
 
@@ -62,12 +120,12 @@ I did a custom install of openSUSE: custom disk partitioning and the software ch
 
 	I'm not sure where to get 11.4 now that 12.1 is released; I'll post a copy once xlapp.org is up.
 
-My advice: run the ISO off of a USB flash drive: it's quieter and faster.  Then, run memtest off that install image.  Once you're done with the memtest, run the install.  Once you get to disk partitioning, pause.  I'll give you my config, and explain why I did it the way I did.  I'll also try to give a reasonable alternative if you're doing things the way I did.  Beyond that, I sort of expect that if you're tackling X/LAPP, you are...not exactly a nubsicle, so you should have a good idea of what you want to do--and how to achieve it with disk partitioning.
+My advice: run the ISO off of a USB flash drive: it's quieter and faster.  Then, run memtest off that install image.  Once you're done with the memtest, run the install.  Once you get to disk partitioning, pause.  I'll give you my config, and explain why I did it the way I did.  I'll also try to give a reasonable alternative if you're doing things the way I did.  Beyond that, I sort of expect that if you're tackling XLAPP, you are...not exactly a nubsicle, so you should have a good idea of what you want to do--and how to achieve it with disk partitioning.
 
 I decided to use 3 partitions with an MBR-style disk.  I like being able to use fdisk.  I created one primary partition, one extended partition that took up the remaining space.  In general, I feel that approach is reasonable because most people want a /boot partition that's below 1024 cylinders.  Plus, it will make life easier when we bootstrap.  Then, in extended partition, I created two logical partitions to hold data and also to serve as the target partition where LFS was going to get installed.
 
 * /dev/sda1 - /
-* /dev/sda5 - /mnt/lfs - Partition for X/LAPP
+* /dev/sda5 - /mnt/lfs - Partition for XLAPP
 * /dev/sda6 - /home
 
 I intended to installed LFS to /dev/sda5.  And, I used /dev/sda6 to be /home.  Why put /home in a separate directory?  Simple: I needed a place where I could put files that wouldn't get clobbered if I needed to wipe the LFS target partition clean (I like clean slates, I cannot lie) or if I needed to wipe the openSUSE install (even cleaner).  Since I knew I would be writing tons of scripts and downloading lots of packages--and I didn't want all that disappearing when I "cleaned house", I made it a separate partition where I kept a backup.  Yes, I reinstalled openSUSE-as-LFS-host. Several times.  Once because of a mistake in a script that wasn't run in a chroot-jail properly.  Other times because...I was afraid something wasn't right, and I prefer to be paranoid rather than spend needless hours on a wild goose chase.
@@ -82,7 +140,7 @@ Moving on...Get to where you choose your software packages.  Select "Other" (as 
 * C/C++ Dev
 * Xen
 
-Then, change to "Search" mode (i.e. no longer "Pattern"), and search for these packages to make your life possible/easier.  Replace 'vim' with whatever editor you're comfortable with.  But, I install 'vim' again for X/LAPP.  If you'd rather have something else, do your own investigations.
+Then, change to "Search" mode (i.e. no longer "Pattern"), and search for these packages to make your life possible/easier.  Replace 'vim' with whatever editor you're comfortable with.  But, I install 'vim' again for XLAPP.  If you'd rather have something else, do your own investigations.
 
 * vim
 * expect
@@ -113,7 +171,7 @@ Now, we get to the "meat" of the LFS install.  Here, you need to do the heartwre
 
 Once you've mentally settled on what these values are, take a quick peek at machine.config.in.  There, you'll you see the parameters laid out.  But, don't start editing this file.  Run the script.  It's nice, and it will write the values in.  Trust me--you don't want to try to calculate the SHA-512 hash of your password by hand.  You can't, anyway, unless you modify passhash.c to do some really crazy shiz.  That's why I call crypt().
 
-You're ready to configure your LFS system.  And, keep in mind that the X/LAPP build system is...impatient.  As soon as you've finished answering the quick questionnaire, the X/LAPP build system will start to build LFS for you.  At this point, you best find something else to do.  On a quad-core Intel i5-760, the build takes about 3 hours.
+You're ready to configure your LFS system.  And, keep in mind that the XLAPP build system is...impatient.  As soon as you've finished answering the quick questionnaire, the XLAPP build system will start to build LFS for you.  At this point, you best find something else to do.  On a quad-core Intel i5-760, the build takes about 3 hours.
 
 	I'm running your build with MAKEFLAGS="-j 4" when it's safe to do so.
 
