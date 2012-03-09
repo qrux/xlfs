@@ -18,3 +18,7 @@ make tools
 sudo make install-xen
 sudo make install-tools
 
+sudo sed -i -E -e 's/\(dom0-min-mem ([[:digit:]]+)\)/\(dom0-min-mem 1024\)/' \
+  -e 's/\(enable-dom0-ballooning [a-z]+\)/\(enable-dom0-ballooning no\)/' \
+  /etc/xen/xend-config.sxp
+
