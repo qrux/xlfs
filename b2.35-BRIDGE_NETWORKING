@@ -6,10 +6,9 @@ for INTERFACE_FILE in $(echo ifconfig.eth*) ; do
 	INTERFACE=$(basename ${INTERFACE_FILE} | cut -d \. -f 2)
 	IFNUM=$(echo $INTERFACE | sed 's/^eth//')
 	BRIDGE_IF="br${IFNUM}"
-	BRIDGE_FILE="ifconfig.${BRIDGE_IF}"
 
-	if [ -f $BRIDGE_FILE ] ; then
-		echo "  The bridge config [ $BRIDGE_FILE ] appears to exist; skipping."
+	if [ -f ifconfig.${BRIDGE_IF} ] ; then
+		echo "  The bridge config [ ifconfig.${BRIDGE_IF} ] appears to exist; skipping."
 		continue;
 	fi
 
@@ -21,31 +20,26 @@ for INTERFACE_FILE in $(echo ifconfig.eth*) ; do
 	echo "Loading old interface config..."
 	. $INTERFACE_FILE
 
-	# Create new bridge config file
-	echo "Creating new bridge config file [ $BRIDGE_FILE ]..."
-	cp $INTERFACE_FILE $BRIDGE_FILE
-
 	# Move old interface config out of the way
-	echo "Moving old interface out of the way [ -> NOSTART_${INTERFACE} ]..."
+	echo "Moving old config out of the way [ -> NOSTART_${INTERFACE} ]..."
 	mv $INTERFACE_FILE NOSTART-${INTERFACE}
 
-	# Changing name from eth<N> to br<N>
-	echo "Changing name in bridge interface from [ $INTERFACE ] to [ $BRIDGE_IF ]..."
-	sed -i "s/IFACE=.*/IFACE=\"${BRIDGE_IF}\"/" $BRIDGE_FILE
+	# Create new bridge config file
+	echo "Creating new bridge config file for [ $BRIDGE_IF ]..."
 
-	# Add "bridge" to services (e.g., SERVICE="bridge ipv4-static")
-	echo "Adding 'bridge' to services..."
-	sed -i "s/SERVICE=.*/SERVICE=\"bridge ${SERVICE}\"/" $BRIDGE_FILE
-
-	# Enslaving old interface
-	echo "Enslaving phy port [ $INTERFACE ] to bridge [ $BRIDGE_IF ]..."
-
-	# Editing config file to add (CHECK_LINK, STP, INTERFACES)
-	cat >> $BRIDGE_FILE <<EOF
-CHECK_LINK=no      # Don't check before it's created
-STP=no             # Use Spanning Tree Protocol?
-INTERFACES=${INTERFACE}    # Enslaved ports
+cat > ifconfig.${BRIDGE_IF} <<EOF
+ONBOOT=yes
+PHYS="${PHYS}"
+SERVICE="bridge ipv4-static"
+BRIDGE_IF="${BRIDGE_IF}"
+STP=no
+IPV4_IF="${BRIDGE_IF}"
+IP=${IP}
+GATEWAY=${GATEWAY}
+PREFIX=${PREFIX}
 EOF
+
+	more NOSTART-${INTERFACE} ifconfig.${BRIDGE_IF} | cat
 
 	# Bring up new interface
 	#echo "Bringing up new interface [ $BRIDGE_IF ]..."
