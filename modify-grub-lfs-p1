@@ -53,6 +53,7 @@ CURRENT_BOOT=$(cat $NEW_GRUB_FILE | grep "^[[:space:]]*default" | awk '{print $2
 echo "There are $BOOT_LINE_COUNT boot entries."
 cat $NEW_GRUB_FILE | grep "^[[:space:]]*title"
 echo "The current boot index is $CURRENT_BOOT."
+BOOT_INDEX_NEW=$BOOT_LINE_COUNT
 
 cat >> $NEW_GRUB_FILE <<EOF
 
@@ -62,13 +63,12 @@ cat >> $NEW_GRUB_FILE <<EOF
 #
 ########################################################################
 
-# LFS (bare metal)
-title LFS                             (LFS-7.0, Linux-3.1)
+# [${BOOT_INDEX_NEW}] LFS (bare metal)
+title [${BOOT_INDEX_NEW}] LFS                         (LFS-7.0, Linux-3.1)
         root(hd0,0)
         kernel /vmlinuz-3.1-lfs-7.0 root=${XLAPP_LFS_PART} raid=noautodetect nomodeset
 EOF
 
-BOOT_INDEX_NEW=$BOOT_LINE_COUNT
 
 sed -i "s/^[[:space:]]*default.*/default ${BOOT_INDEX_NEW}/" $NEW_GRUB_FILE
 

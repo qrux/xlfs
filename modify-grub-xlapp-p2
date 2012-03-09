@@ -53,23 +53,23 @@ CURRENT_BOOT=$(cat $NEW_GRUB_FILE | grep "^[[:space:]]*default" | awk '{print $2
 echo "There are $BOOT_LINE_COUNT boot entries."
 cat $NEW_GRUB_FILE | grep "^[[:space:]]*title"
 echo "The current boot index is $CURRENT_BOOT."
+BOOT_INDEX_NEW=$BOOT_LINE_COUNT
+BOOT_INDEX_DEBUG=$((1 + $BOOT_LINE_COUNT))
 
 cat >> $NEW_GRUB_FILE <<EOF
 
-# X/LAPP Xen
-title X/LAPP Xen                      (LFS-7.0, Linux-3.1, Xen-4.1.2)
+# [${BOOT_INDEX_NEW}] X/LAPP Xen
+title [${BOOT_INDEX_NEW}] X/LAPP Xen                  (LFS-7.0, Linux-3.1, Xen-4.1.2)
         root(hd0,0)
         kernel /xen-4.1.2.gz dom0_mem=1024M
         module /vmlinuz-3.1-lfs-7.0 root=${XLAPP_LFS_PART} raid=noautodetect console=tty0 earlyprintk=xen nomodeset
 
-# X/LAPP Xen (with DEBUG)
-title X/LAPP Xen (with DEBUG)         (LFS-7.0, Linux-3.1, Xen-4.1.2)
+# [${BOOT_INDEX_DEBUG}] X/LAPP Xen (with DEBUG)
+title [${BOOT_INDEX_DEBUG}] X/LAPP Xen (with DEBUG)     (LFS-7.0, Linux-3.1, Xen-4.1.2)
         root(hd0,0)
         kernel /xen-4.1.2.gz dom0_mem=1024M loglvl=all guest_loglvl=all console_to_ring sync_console
         module /vmlinuz-3.1-lfs-7.0-dom0-DEBUG root=${XLAPP_LFS_PART} raid=noautodetect console=tty0 earlyprintk=xen nomodeset initcall_debug debug loglevel=10
 EOF
-
-BOOT_INDEX_NEW=$BOOT_LINE_COUNT
 
 sed -i "s/^[[:space:]]*default.*/default ${BOOT_INDEX_NEW}/" $NEW_GRUB_FILE
 
