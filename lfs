@@ -43,15 +43,20 @@ cat ${ROOT_DOT_ALIAS_ROOT}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $ROOT_DOT_ALIA
 
 /bin/cp -fv $ROOT_DOT_ALIAS_ROOT ~root/.alias-root
 
-echo -n "  Skipping tests? "
-unset SKIP_TESTS
-while getopts "n" OPT ; do
+SKIP_TESTS=
+MAKEFLAGS="-j4"
+while getopts "nj:" OPT ; do
 	case "$OPT" in
 		n) SKIP_TESTS=1 ;;
-		?) echo "Unknown option $OPT; continuing...";;
+		j) MAKEFLAGS="-j${OPTARG}" ;;
+		?) echo "Unknown option $OPT; continuing..." ;;
 	esac
 done
+
+echo -n "  Skipping tests? "
 if [ ! -z $SKIP_TESTS ] ; then echo "Yes." ; else echo "No." ; fi
+echo -n "  \$MAKEFLAGS? ${MAKEFLAGS}"
+export MAKEFLAGS
 
 echo "  Checking \$LFS var..."
 # We need to test if $LFS is /; if so, abort.  Otherwise, this will be devastating.
@@ -113,8 +118,16 @@ fi
 
 echo "  Checking MD5 sums on packages..."
 pushd $__SOURCE_DIR/src
-wget -nc -i _wget-list-7.0.1
-md5sum -c md5sums
+
+for download in $(cat _wget-7.0.1) ; do
+	download_file=$(basename $download)
+	if [ ! -f $download_file ] ; then
+		wget $download
+	fi
+done
+
+#wget -nc -i _wget-7.0.1
+md5sum -c _md5sums
 if [ 0 -ne $? ] ; then echo "MD5 sums failed to match; aborting hard." ; exit 1 ; fi
 popd
 
@@ -138,7 +151,9 @@ if [ 0 -eq $? ] ; then
 fi
 set -e
 
-/bin/mv -f /etc/skel /etc/skel-ORIG
+if [ -d /etc/skel ] ; then
+	/bin/mv -f /etc/skel /etc/skel-ORIG
+fi
 /bin/mkdir -p /etc/skel
 /bin/chmod 0755 /etc/skel
 groupadd lfs

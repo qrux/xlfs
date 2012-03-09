@@ -10,7 +10,7 @@ while getopts "x" OPT ; do
 done
 shift $(($OPTIND-1))
 
-export MAKEFLAGS="-j 4"
+#export MAKEFLAGS="-j 4"
 if [ "blfs" == "$USER" ] ; then
 	echo "User [ $USER ] ; adjusting path."
 	PATH=$PATH:/sbin:/usr/sbin
