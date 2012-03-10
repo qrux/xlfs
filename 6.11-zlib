@@ -5,7 +5,10 @@ CFLAGS='-mstackrealign -fPIC -O3' ./configure --prefix=/usr
 make
 
 export MAKEFLAGS="-j 1"
-#test make check
+
+if [ -z $SKIP_TESTS ] ; then
+	make check
+fi
 
 make install
 

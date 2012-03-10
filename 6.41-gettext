@@ -5,6 +5,8 @@
 
 make
 
-#test make check
+if [ -z $SKIP_TESTS ] ; then
+	make check
+fi
 
 make install

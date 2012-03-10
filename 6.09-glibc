@@ -30,30 +30,33 @@ esac
 make
 
 cp -v ../glibc-2.14.1/iconvdata/gconv-modules iconvdata
-#
-# Well, GLIBC will have errors, so we turn bash error-
-# handling off...
-#
-set +e
-#test make -k check 2>&1 | tee glibc-check-log
-set -e
-#
-# Now, turn bash error-handling back on, and check for
-# the specific errors that are common.  If we find any
-# other errors, then FAIL; otherwise, PASS.
-#
-#test cp glibc-check-log ~/glibc-2.14.1-LFS-test-check-log-$(totime)
-#test __GLIBC_FAIL_COUNT=$(grep Error glibc-check-log | grep sources | wc -l)
-#test __GLIBC_OKAY_FAIL_COUNT=$(grep Error glibc-check-log | grep sources | egrep -v "posix/annexc|nptl/tst-clock2|nptl/tst-attr3|rt/tst-cpuclock2|misc/tst-writev|elf/check-textrel|nptl/tst-getpid2|stdio-common/bug22|posix/bug-regex32" | wc -l)
 
-#test if [ 0 -lt $__GLIBC_OKAY_FAIL_COUNT ] ; then
-	#test grep Error glibc-check-log | grep sources
-	#test echo "glibc-2.14.1 FAILED testing with unexpected errors; aborting"
-	#test false
-#test elif [ 0 -lt $__GLIBC_FAIL_COUNT ] ; then
-	#test grep Error glibc-check-log | grep sources
-	#test echo "glibc-2.14.1 had some acceptable failures; continuing"
-#test fi
+if [ -z $SKIP_TESTS ] ; then
+	#
+	# Well, GLIBC will have errors, so we turn bash error-
+	# handling off...
+	#
+	set +e
+	make -k check 2>&1 | tee glibc-check-log
+	set -e
+	#
+	# Now, turn bash error-handling back on, and check for
+	# the specific errors that are common.  If we find any
+	# other errors, then FAIL; otherwise, PASS.
+	#
+	cp glibc-check-log ~/glibc-2.14.1-LFS-test-check-log-$(totime)
+	__GLIBC_FAIL_COUNT=$(grep Error glibc-check-log | grep sources | wc -l)
+	__GLIBC_OKAY_FAIL_COUNT=$(grep Error glibc-check-log | grep sources | egrep -v "posix/annexc|nptl/tst-clock2|nptl/tst-attr3|rt/tst-cpuclock2|misc/tst-writev|elf/check-textrel|nptl/tst-getpid2|stdio-common/bug22|posix/bug-regex32" | wc -l)
+
+	if [ 0 -lt $__GLIBC_OKAY_FAIL_COUNT ] ; then
+		grep Error glibc-check-log | grep sources
+		echo "glibc-2.14.1 FAILED testing with unexpected errors; aborting"
+		false
+	elif [ 0 -lt $__GLIBC_FAIL_COUNT ] ; then
+		grep Error glibc-check-log | grep sources
+		echo "glibc-2.14.1 had some acceptable failures; continuing"
+	fi
+fi
 
 touch /etc/ld.so.conf
 

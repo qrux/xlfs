@@ -24,26 +24,28 @@ make
 
 ulimit -s 16384
 
-#
-# GCC has a lot of tests, and some very complex ones can fail.
-#
-set +e
-#test make -k check
-set -e
+if [ -z $SKIP_TESTS ] ; then
+	#
+	# GCC has a lot of tests, and some very complex ones can fail.
+	#
+	set +e
+	make -k check
+	set -e
 
-#test ../gcc-4.6.1/contrib/test_summary > ~/gcc-4.6.1-test_summary-LFS-$(totime)
+	../gcc-4.6.1/contrib/test_summary > ~/gcc-4.6.1-test_summary-LFS-$(totime)
 
-#test __GCC_FAIL_COUNT=$(../gcc-4.6.1/contrib/test_summary | grep FAIL | wc -l)
-#test __GCC_OKAY_FAIL_COUNT=$(../gcc-4.6.1/contrib/test_summary | grep FAIL | egrep -v "gcc.c-torture/compile/limits-exprparen.c|libmudflap.c/pass49-frag.c" | wc -l)
+	__GCC_FAIL_COUNT=$(../gcc-4.6.1/contrib/test_summary | grep FAIL | wc -l)
+	__GCC_OKAY_FAIL_COUNT=$(../gcc-4.6.1/contrib/test_summary | grep FAIL | egrep -v "gcc.c-torture/compile/limits-exprparen.c|libmudflap.c/pass49-frag.c" | wc -l)
 
-#test if [ 0 -lt $__GCC_OKAY_FAIL_COUNT ] ; then
-	#test ../gcc-4.6.1/contrib/test_summary | grep FAIL
-	#test echo "GCC testing failed; aborting"
-	#test false
-#test elif [ 0 -lt $__GCC_FAIL_COUNT ] ; then
-	#test ../gcc-4.6.1/contrib/test_summary | grep FAIL
-	#test echo "GCC testing had some failures, but these might be okay; continuing anyway..."
-#test fi
+	if [ 0 -lt $__GCC_OKAY_FAIL_COUNT ] ; then
+		../gcc-4.6.1/contrib/test_summary | grep FAIL
+		echo "GCC testing failed; aborting"
+		false
+	elif [ 0 -lt $__GCC_FAIL_COUNT ] ; then
+		../gcc-4.6.1/contrib/test_summary | grep FAIL
+		echo "GCC testing had some failures, but these might be okay; continuing anyway..."
+	fi
+fi
 
 make install
 

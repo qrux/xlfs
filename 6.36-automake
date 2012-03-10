@@ -4,7 +4,10 @@
 
 make
 
-#test export MAKEFLAGS="-j 1"
-#test make check
+export MAKEFLAGS="-j 1"
+
+if [ -z $SKIP_TESTS ] ; then
+	make check
+fi
 
 make install

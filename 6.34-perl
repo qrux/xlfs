@@ -18,6 +18,8 @@ sh Configure -des -Dprefix=/usr \
 
 make
 
-#test make test
+if [ -z $SKIP_TESTS ] ; then
+	make test
+fi
 
 make install
