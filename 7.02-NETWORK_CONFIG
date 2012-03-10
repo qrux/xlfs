@@ -10,12 +10,3 @@ GATEWAY=${XLAPP_HOST_GW}
 PREFIX=${XLAPP_HOST_PREFIX}
 EOF
 
-cat > /etc/resolv.conf <<EOF
-# Begin /etc/resolv.conf
-
-domain ${XLAPP_DNS_DOMAIN_NAME}
-nameserver ${XLAPP_DNS_NS_1}
-nameserver ${XLAPP_DNS_NS_2}
-
-# End /etc/resolv.conf
-EOF

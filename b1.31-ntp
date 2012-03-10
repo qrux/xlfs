@@ -11,10 +11,13 @@ sudo make install
 sudo install -v -m755 -d /usr/share/doc/ntp-4.2.6p4
 sudo cp -v -R html/* /usr/share/doc/ntp-4.2.6p4/
 
-cat > _etc_ntp.conf <<EOF
-server ${XLAPP_NTP_SERVER_1}   iburst burst
-server ${XLAPP_NTP_SERVER_2}   iburst burst
-server ${XLAPP_NTP_SERVER_3}   iburst burst
+touch _etc_ntp.conf
+for SERVER in ${XLAPP_NTP_SERVERS} ; do
+	NS=$(echo $SERVER)
+	echo "server ${NS}" >> _etc_ntp.conf
+done
+
+cat >> _etc_ntp.conf <<EOF
 
 driftfile /var/cache/ntp.drift
 pidfile   /var/run/ntpd.pid

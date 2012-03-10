@@ -4,3 +4,4 @@ cd blfs-bootscripts-*
 
 make install-ntpd
 
+sed -i 's/ntpd \-gx/ntpd \-g/' /etc/init.d/ntpd

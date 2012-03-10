@@ -1,0 +1,17 @@
+#! /bin/bash
+
+cat > /etc/resolv.conf <<EOF
+# Begin /etc/resolv.conf
+
+domain ${XLAPP_DNS_DOMAIN_NAME}
+EOF
+
+for NAMESERVER in ${XLAPP_DNS_SERVERS} ; do
+	NS=$(echo $NAMESERVER)
+	echo "nameserver ${NS}" >> /etc/resolv.conf
+done
+
+cat >> /etc/resolv.conf <<EOF
+
+# End /etc/resolv.conf
+EOF
