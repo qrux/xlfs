@@ -4,6 +4,8 @@
 
 make
 
+sed -i -e '41s/ENOENT/& || errno == EINVAL/' tests/test-readlink.h
+
 make check
 
 make install
