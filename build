@@ -47,14 +47,47 @@ BUILD="${__PKG}-build"
 __CHAPTER=$(echo $__SECTION | cut -d \. -f 1)
 __CHAPTER_CONF_FILE="opts-${__CHAPTER}"
 
-#cd $__SOURCES_DIR
 PROG_DIR=$(pwd)
-cd ./src
+__SCRIPT="${PROG_DIR}/${__PROG_NAME}"
 
-#if [ -f $__CHAPTER_CONF_FILE ] ; then
-	#echo "  Using chapter config-file: $__CHAPTER_CONF_FILE..."
-	#. $__CHAPTER_CONF_FILE
-#fi
+########################################################################
+#
+# At this point, decide if it's a TO-RUN script (will be +x).
+#
+########################################################################
+if [ -x ${__SCRIPT} ] ; then
+	# Precaution against running on host system...
+	if [ -d /mnt/lfs ] ; then
+		echo "This looks like the HOST system (not LFS)..."
+		echo "  CHAPTER: $__CHAPTER"
+		if [ 5 -ne $__CHAPTER ] ; then echo "Aborting!" ; false ; fi
+	fi
+
+	echo    "################################################################"
+	echo    "#"
+	echo    "#  RUNNING - $__SECTION - $__PKG"
+	echo    "#"
+	echo -n "#    Working in directory: " ; pwd
+	echo    "#"
+	echo    "################################################################"
+
+	. ${__SCRIPT}
+
+	echo "################################################################"
+	echo "#"
+	echo "#  [ $__SECTION - $__PKG ] run successfully; continuing"
+	echo "#"
+	echo "################################################################"
+	
+	exit
+fi
+
+########################################################################
+#
+# If it's a TO-BUILD, (not executable), descend into src dir.
+#
+########################################################################
+cd ./src
 
 TARBALL=$(find . -mindepth 1 -maxdepth 1 -type f -name "$__PKG.tar*")
 if [ -z $TARBALL ] ; then
@@ -75,37 +108,30 @@ echo    "################################################################"
 echo    "#"
 echo    "#  BUILDING - $__SECTION - $__PKG (with ${MAKEFLAGS})"
 echo    "#"
-echo    "#    Unpacking $TARBALL..." ; tar xf $TARBALL ; UNPACK_DIR=$(find . -mindepth 1 -maxdepth 1 -type d -name "$__PKG*") ; cd $UNPACK_DIR
+echo    "#    Unpacking $TARBALL..."
 echo -n "#    Working in directory: " ; pwd
 echo    "#"
 echo    "################################################################"
+
+#
+# Untar
+#
+tar xf $TARBALL
+
+#
+# Descend into untar'ed directory.
+#
+UNPACK_DIR=$(find . -mindepth 1 -maxdepth 1 -type d -name "$__PKG*")
+cd $UNPACK_DIR
 
 unset BUILD
 unset TARBALL
 
 ################################################################
-# Run LFS script
+# Run TO-BUILD script
 ################################################################
 
-#__BUILD_SCRIPT="${__SCRIPTS_DIR}/${__PROG_NAME}"
-__BUILD_SCRIPT="${PROG_DIR}/${__PROG_NAME}"
-
-if [ -f $__BUILD_SCRIPT ] ; then
-	. $__BUILD_SCRIPT
-	#. ./${__PROG_NAME}
-else
-	echo "  Build script [ $__BUILD_SCRIPT ] doesn\'t exist; aborting"
-	false
-fi
-
-################################################################
-# Cleanup after this (NO EDITS BEYOND THIS POINT)
-################################################################
-
-#cd $__SOURCES_DIR
-#echo "  Cleaning up source/build dirs..."
-#find . -mindepth 1 -maxdepth 1 -type d
-#find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
+. ${__SCRIPT}
 
 echo "################################################################"
 echo "#"
