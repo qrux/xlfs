@@ -2,173 +2,155 @@
 set -e
 set +h
 
-BUILD_CONF="machine.config"
-BUILD_INPUT="${BUILD_CONF}.in"
-BUILD_TMP=".${BUILD_CONF}"
-BUILD_TMP2="${BUILD_TMP}_"
+usage() {
+	cat <<EOF
 
-bump()
-{
-	if [ -f $BUILD_TMP2 ] ; then
-		cp $BUILD_TMP2 $BUILD_TMP
-		rm -f $BUILD_TMP2
-	fi
-}
+Usage: $0 [OPTION]... lfs-mount-point target-fqdn-hostname
 
-ask()
-{
-	_VARNAME=$1
-	_QUESTION=$2
+Creates an LFS build using the following parameters:
 
-	if [ -z $_VARNAME ] ; then 
-		echo "ask() requires at least one arguments: <varname> [default-val]"
-		exit 1
-	fi
+  -l    LFS partition:fstype
+  -p    Host partition:fstype
+  -b    Boot partition:fstype
+  -s    SSH key
+  -i    IP address/prefix
+  -g    Gateway
+  -d    DNS server (can be given multiple times)
+  -t    NTP server (can be given multiple times)
+  -a    Lang (e.g. an entry from 'locale -a')
+  -z    TZ (e.g. tzselect output)
+  -j    MAKEFLAGS
+  -n    NO-TESTS (build Chap6 without tests)
+  -h    This message
 
-	_VARNAME="XLAPP_${_VARNAME}"
-	_DEFAULT="$(eval echo \$$_VARNAME)"
-	_ANSWER=""
-
-	while [ "" == "$_ANSWER" ] ; do
-		echo
-		echo -n "$_QUESTION "
-		test "" != "$_DEFAULT" && echo -n "[$_DEFAULT] "
-		#if [ ! -z $_DEFAULT ] ; then echo -n "[$_DEFAULT] " ; fi
-
-		read _ANSWER
-		if [ -z "$_ANSWER" ] ; then
-			if [ -z "$_DEFAULT" ] ; then
-				echo "  [error] No answer given for $_VARNAME, and no default is allowed."
-				echo "  [error]   Please try again..."
-				continue
-			else
-				_ANSWER="$_DEFAULT"
-			fi
-		fi
-	done
-
-	echo "  [ $_VARNAME ] --> $_ANSWER"
-	cat $BUILD_TMP | \
-	  sed "s,^${_VARNAME}=.*,${_VARNAME}=\"$_ANSWER\"," > $BUILD_TMP2
-	bump
-}
-
-if [ -e $BUILD_CONF ] ; then
-	#echo "  Using config file [ $BUILD_CONF ] for X/LAPP build..."
-	#echo
-	echo "    There is already a config file here."
-	echo -n "      Keep?  <Enter> to 'keep', or 'new' to overwrite --> "
-	read _ANSWER
-	test -z $_ANSWER && _ANSWER="keep"
-	_ANSWER=$(echo $_ANSWER | tr [:upper:] [:lower:])
-	if [ "new" == $_ANSWER ] ; then
-		echo
-		echo "    Creating new configuration..."
-	else
-		echo
-		echo "    Preserving existing configuration in [ $BUILD_CONF ]."
-		exit
-	fi
-	. $BUILD_CONF
-else
-	echo "    The config file for this X/LAPP build doesn't exist; creating one."
-	. $BUILD_INPUT
-fi
-
-_REDO=1
-while [ ! -z ${_REDO} ] ; do # MAIN LOOP
-cp $BUILD_INPUT $BUILD_TMP
-
-#
-# LFS partition mount-point
-#
-echo
-echo -n "What is the LFS partition mount point (e.g., \$LFS)? "
-read ANSWER
-if [ -z $ANSWER ] ; then
-	echo "  [error] No LFS partition mount point given; aborting"
-	exit 2
-fi
-echo "  [ LFS ] --> $ANSWER"
-cat $BUILD_TMP | sed "s,^XLAPP_LFS=.*,XLAPP_LFS=$ANSWER," > $BUILD_TMP2
-bump
-
-cat <<EOF
-
-##########################################################################
-Use the short name (e.g., /dev/sdaN) instead of the long udev names; we
-don't create an initrd image, so udev isn't loaded; using those names just
-results in the partition not being found.
-##########################################################################
 EOF
+	exit 1
+}
 
-#
-# LFS partition (disk device)
-#
-ask LFS_PART "What is the LFS partition?"
-#echo
-#echo -n "What is the LFS partition (e.g., /dev/sda5)? "
-#read ANSWER
-#if [ -z $ANSWER ] ; then
-        #echo "  [error] No LFS partition given; aborting"
-        #exit 2
-#fi
-#ANSWER=$(basename $(echo $ANSWER))
-#echo "  [ LFS_PART ] --> $ANSWER"
-#cat $BUILD_TMP | sed "s,^XLAPP_LFS_PART=.*,XLAPP_LFS_PART=$ANSWER," > $BUILD_TMP2
-#bump
+SKIP_TESTS=
+while getopts "l:p:b:s:i:g:d:t:a:j:nh" OPT ; do
+	case "${OPT}" in
+		l) XLAPP_LFS_PART="${OPTARG}";;
+		p) XLAPP_HOST_PART="${OPTARG}";;
+		b) XLAPP_BOOT_PART="${OPTARG}";;
+		s) XLAPP_SSH_PUBKEY="${OPTARG}";;
+		i) XLAPP_HOST_IP="${OPTARG}";;
+		g) XLAPP_HOST_GW="${OPTARG}";;
+		d) XLAPP_DNS_SERVERS="${XLAPP_DNS_SERVERS} ${OPTARG}";;
+		t) XLAPP_NTP_SERVERS="${XLAPP_NTP_SERVERS} ${OPTARG}";;
+		a) XLAPP_TARGET_LANG="${OPTARG}";;
+		z) XLAPP_TARGET_TZ="${OPTARG}";;
+		j) MAKEFLAGS="-j ${OPTARG}";;
+		n) SKIP_TESTS=true;;
+		h) usage;;
+		*) echo "Unrecognized option $OPT.";;
+	esac
+done
+shift $(($OPTIND - 1))
 
-ask HOST_PART "What is the HOST (i.e., current working) partition?"
-#
-# Host partition (disk device)
-#
-#echo
-#echo -n "What is the HOST (current root) partition (e.g., /dev/sda2)? "
-#read ANSWER
-#if [ -z $ANSWER ] ; then
-        #echo "  [error] No HOST partition given; aborting"
-        #exit 2
-#fi
-#ANSWER=$(basename $(echo $ANSWER))
-#echo "  [ HOST_PART ] --> $ANSWER"
-#cat $BUILD_TMP | sed "s,^XLAPP_HOST_PART=.*,XLAPP_HOST_PART=$ANSWER," > $BUILD_TMP2
-#bump
+XLAPP_LFS=$1
+XLAPP_DNS_FQDN=$2
 
-ask BOOT_PART "What is the boot-loader partition?"
-#
-# Boot partition (disk device)
-#
-#echo
-#echo -n "Where is the boot-loader? (e.g., /dev/sda1; <enter> to use previous answer)? "
-#PREV_ANSWER="${ANSWER}"
-#read ANSWER
-#if [ -z $ANSWER ] ; then
-	#ANSWER="${PREV_ANSWER}"
-#else
-	#ANSWER=$(basename $(echo $ANSWER))
-#fi
-#echo "  [ BOOT_PART ] --> $ANSWER"
-#cat $BUILD_TMP | sed "s,^XLAPP_BOOT_PART=.*,XLAPP_BOOT_PART=$ANSWER," > $BUILD_TMP2
-#bump
+if [ -z $XLAPP_LFS ] ; then
+	echo "Requires 2 arguments: lfs-mount-point (missing) and target-fqdn-hostname."
+	usage
+fi
 
-#
-# LFS partition type
-#
-ask LFS_FSTYPE "What is the LFS partition type (ext2|ext3|ext4)?"
+if [ -z $XLAPP_DNS_FQDN ] ; then
+	echo "Requires 2 arguments: lfs-mount-point and target-fqdn-hostname (missing)."
+	usage
+fi
 
-#
-# HOST partition type
-#
-ask HOST_FSTYPE "What is the HOST partition type (ext2|ext3|ext4)?"
+if [ ! -d $XLAPP_LFS ] ; then
+	echo "LFS target directory ($XLAPP_LFS) isn't a directory."
+	usage
+fi
 
-#
-# BOOT partition type
-#
-ask BOOT_FSTYPE "What is the BOOT partition type (ext2|ext3|ext4)?"
+if [ -z $XLAPP_HOST_PART ] ; then
+	echo "Please specific the HOST partition (e.g., /dev/sda2)."
+	usage
+fi
 
-#
-# New root password
-#
+if [ -z $XLAPP_LFS_PART ] ; then
+	echo "Please specify the LFS partition (e.g., /dev/sda5)."
+	usage
+fi
+
+if [ -z $XLAPP_BOOT_PART ] ; then
+	echo "Please specify the BOOT partition (e.g., /dev/sda1)."
+	usage
+fi
+
+XLAPP_HOST_FSTYPE=$(echo $XLAPP_HOST_PART | cut -d \: -f 2)
+if [ -z $XLAPP_HOST_FSTYPE ] ; then
+	XLAPP_HOST_FSTYPE=ext4
+else
+	XLAPP_HOST_PART=$(echo $XLAPP_HOST_PART | cut -d \: -f 1)
+fi
+
+if [ ! -b $XLAPP_HOST_PART ] ; then
+	echo "HOST partition ($XLAPP_HOST_PART) is not a block device."
+	usage
+fi
+
+XLAPP_LFS_FSTYPE=$(echo $XLAPP_LFS_PART | cut -d \: -f 2)
+if [ -z $XLAPP_LFS_FSTYPE ] ; then
+	XLAPP_LFS_FSTYPE=ext4
+else
+	XLAPP_LFS_PART=$(echo $XLAPP_LFS_PART | cut -d \: -f 1)
+fi
+
+if [ ! -b $XLAPP_LFS_PART ] ; then
+	echo "LFS partition ($XLAPP_LFS_PART) is not a block device."
+	usage
+fi
+
+XLAPP_BOOT_FSTYPE=$(echo $XLAPP_BOOT_PART | cut -d \: -f 2)
+if [ -z $XLAPP_BOOT_FSTYPE ] ; then
+	XLAPP_BOOT_FSTYPE=ext4
+else
+	XLAPP_BOOT_PART=$(echo $XLAPP_BOOT_PART | cut -d \: -f 1)
+fi
+
+if [ ! -b $XLAPP_BOOT_PART ] ; then
+	echo "BOOT partition ($XLAPP_BOOT_PART) is not a block device."
+	usage
+fi
+
+INSTALL_INTO_BOOT=
+if [ "${XLAPP_BOOT_PART}" = "${XLAPP_LFS_PART}" ] ; then
+	echo "Installing XLAPP into BOOT partition."
+	INSTALL_INTO_BOOT=true
+fi
+
+XLAPP_HOST_PREFIX=$(echo $XLAPP_HOST_IP | cut -d \/ -f 2)
+if [ -z $XLAPP_HOST_PREFIX ] ; then
+	echo "Please enter the IP address in prefix notation (e.g., a.b.c.d/prefix)."
+	usage
+fi
+XLAPP_HOST_IP=$(echo $XLAPP_HOST_IP | cut -d \/ -f 1)
+if [ -z $XLAPP_HOST_IP ] ; then
+	echo "Please specify the target IP address."
+	usage
+fi
+
+XLAPP_HOST_HOSTNAME=$(echo $XLAPP_DNS_FQDN | cut -d '.' -f 1)
+XLAPP_DNS_DOMAIN_NAME=$(echo $XLAPP_DNS_FQDN | cut -d '.' -f 2-)
+
+if [ -z $XLAPP_HOST_HOSTNAME ] ; then
+	echo "The specified FQDN does not appear to be fully-qualified."
+	usage
+fi
+if [ -z $XLAPP_DNS_DOMAIN_NAME ] ; then
+	echo "The specified FQDN does not appear to be fully-qualified."
+	usage
+fi
+
+# Set LANG/TZ if unspecified.
+test -z $XLAPP_TARGET_LANG && XLAPP_TARGET_LANG="en_US.UTF-8"
+test -z $XLAPP_TARGET_TZ && XLAPP_TARGET_TZ="America/Los_Angeles"
+
+# Grab root password
 rm -f passhash
 gcc passhash.c -lcrypt -o passhash
 _PASSWD="1"
@@ -191,7 +173,7 @@ while [ "$_PASSWD" != "$_PASSWD2" ] ; do
   	read _PASSWD2
 	stty echo && echo
 	if [ -z $_PASSWD2 ] ; then
-		echo "    [error] No new LFS root password confirmation given; try entering both again, please."
+		echo "    [error] No LFS root password confirmation given; try entering both again, please."
 		continue
 	fi
 	_PASSWD2=$(./passhash $_PASSWD2 $_PASS_SALT)
@@ -200,66 +182,89 @@ while [ "$_PASSWD" != "$_PASSWD2" ] ; do
 	# Check that the passwords match...
 	#
 	if [ "$_PASSWD" != "$_PASSWD2" ] ; then
-		echo "    [error] New LFS root passwords don't match; aborting"
+		echo "    [error] New LFS root passwords don't match; retrying"
 	else
-		echo "    [ ROOT_PASSWD_HASH ] --> $_PASSWD"
-		cat $BUILD_TMP | sed "s%^XLAPP_ROOT_PASSWD_HASH=.*%XLAPP_ROOT_PASSWD_HASH=\'$_PASSWD\'%" > $BUILD_TMP2
-		bump
+		XLAPP_ROOT_PASSWD_HASH="$_PASSWD"
 	fi
 done
 unset _PASSWD _PASSWD2
 
-ask SSH_PUBKEY "What is the SSH public key to use for root's remote login on LFS box?"
+BUILD_CONF="machine.config"
 
-ask HOST_HOSTNAME "What is the desired hostname?"
+cat > $BUILD_CONF <<EOF
+export XLAPP_LFS="${XLAPP_LFS}"
+export MAKEFLAGS="${MAKEFLAGS}"
+export SKIP_TESTS="${SKIP_TESTS}"
 
-ask DNS_DOMAIN_NAME "What is the DNS domain name (e.g., if host is host1.my-domain.com, then my-domain.com)?"
+export XLAPP_HOST_PART="${XLAPP_HOST_PART}"
+export XLAPP_LFS_PART="${XLAPP_LFS_PART}"
+export XLAPP_BOOT_PART="${XLAPP_BOOT_PART}"
 
-ask HOST_IP "What is the desired IP address?"
+export XLAPP_HOST_FSTYPE="${XLAPP_HOST_FSTYPE}"
+export XLAPP_LFS_FSTYPE="${XLAPP_LFS_FSTYPE}"
+export XLAPP_BOOT_FSTYPE="${XLAPP_BOOT_FSTYPE}"
 
-ask HOST_PREFIX "What is the bitmask--bitcount only (e.g., 24 for Class C /24)?"
+export XLAPP_DNS_FQDN="${XLAPP_DNS_FQDN}"
+export XLAPP_HOST_HOSTNAME="${XLAPP_HOST_HOSTNAME}"
+export XLAPP_DNS_DOMAIN_NAME="${XLAPP_DNS_DOMAIN_NAME}"
+export XLAPP_HOST_IP="${XLAPP_HOST_IP}"
+export XLAPP_HOST_PREFIX="${XLAPP_HOST_PREFIX}"
+export XLAPP_HOST_NETMASK="/${XLAPP_HOST_PREFIX}"
+export XLAPP_DNS_SERVERS="${XLAPP_DNS_SERVERS}"
+export XLAPP_NTP_SERVERS="${XLAPP_NTP_SERVERS}"
 
-ask HOST_BROADCAST "What is the broadcast address (dotted-decimal; e.g., 192.168.0.255)?"
+export XLAPP_TARGET_LANG="${XLAPP_TARGET_LANG}"
+export XLAPP_TARGET_TZ="${XLAPP_TARGET_TZ}"
 
-ask HOST_GW "What is the gateway (IP; e.g., 192.168.0.1)?"
+export XLAPP_CONF_DISTRO="Xen/LFS Apache Postgres PHP"
+export XLAPP_CONF_DISTRO_CONTACT="qrux@xlapp.org"
+export XLAPP_CONF_DISTRO_MINI="XLAPP"
+export XLAPP_SSH_PUBKEY="${XLAPP_SSH_PUBKEY}"
+export XLAPP_ROOT_PASSWD_HASH='${XLAPP_ROOT_PASSWD_HASH}'
+EOF
 
-ask DNS_NS_1 "What is the primary nameserver (IP)?"
-
-ask DNS_NS_2 "What is the secondary nameserver (IP)?"
-
-ask NTP_SERVER_1 "What is the primary NTP server (IP or FQDN)?"
-
-ask NTP_SERVER_2 "What is the secondary NTP server (IP or FQDN)?"
-
-ask NTP_SERVER_3 "What is the tertiary NTP server (IP or FQDN)?"
-
-ask TARGET_LANG "What is the target language (i.e., an entry from 'locale -a')?"
-
-ask TARGET_TZ "What is the target timezone (i.e., run tzselect if you don't know)?"
-
-echo
-echo "  Creating machine.config from answers..."
-echo
-cat $BUILD_TMP | sed 's/^XLAPP_/export XLAPP_/' > $BUILD_CONF
+. $BUILD_CONF
 
 echo "################################################################"
-echo
 echo "These are the settings..."
 echo
-grep "^export\s*XLAPP_" $BUILD_CONF | sed 's/^export\s*/\ \ /' | sed G
-echo -n "Are these settings good (<enter> for 'yes', otherwise, 'no')? "
-read ANSWER
-if [ "no" == "$ANSWER" ] ; then 
-	. $BUILD_CONF
-	echo "Redoing questions..."
-else
-	unset _REDO
-fi
-done # MAIN LOOP
+
+cat <<EOF
+         Installing LFS to: ${XLAPP_LFS}
+                 MAKEFLAGS: ${MAKEFLAGS}
+                SKIP_TESTS: ${SKIP_TESTS} (empty string implies 'no')
+
+            HOST partition: ${XLAPP_HOST_PART}
+             LFS partition: ${XLAPP_LFS_PART}
+            BOOT partition: ${XLAPP_BOOT_PART}
+
+      HOST filesystem type: ${XLAPP_HOST_FSTYPE}
+       LFS filesystem type: ${XLAPP_LFS_FSTYPE}
+      BOOT filesystem type: ${XLAPP_BOOT_FSTYPE}
+
+                  New FQDN: ${XLAPP_DNS_FQDN}
+             New host name: ${XLAPP_HOST_HOSTNAME}
+           New domain name: ${XLAPP_DNS_DOMAIN_NAME}
+                    New IP: ${XLAPP_HOST_IP}
+                New prefix: ${XLAPP_HOST_PREFIX}
+               New netmask: ${XLAPP_HOST_NETMASK}
+               DNS servers: ${XLAPP_DNS_SERVERS}
+               NTP servers: ${XLAPP_NTP_SERVERS}
+
+                  Language: ${XLAPP_TARGET_LANG}
+                  Timezone: ${XLAPP_TARGET_TZ}
+
+                  "Distro": ${XLAPP_CONF_DISTRO}
+          "Distro" (short): ${XLAPP_CONF_DISTRO_MINI}
+          "Distro Contact": ${XLAPP_CONF_DISTRO_CONTACT}
+            SSH Public Key: ${XLAPP_SSH_PUBKEY}
+    Root Password (hashed): ${XLAPP_ROOT_PASSWD_HASH}
+EOF
+echo
 echo "################################################################"
 echo "#"
 echo "# Configuration complete; data written to [ $BUILD_CONF ]."
 echo "#"
-echo "#   * To change, just run this script again, and answer 'new'."
+echo "#   * To change, just run this script again."
 echo "#"
 echo "################################################################"

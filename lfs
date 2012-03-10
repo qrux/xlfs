@@ -4,7 +4,7 @@ set +h
 
 echo "########################################################################"
 echo "#"
-echo "#         -----=====> Starting X/LAPP build... <=====-----"
+echo "#         -----=====> Starting XLAPP build... <=====-----"
 echo "#"
 echo "########################################################################"
 echo
@@ -12,10 +12,10 @@ echo "  Looking for config file..."
 
 XLAPP_CONFIG_FILE=machine.config
 
-./lfs-conf
+./lfs-conf "${@}"
 
 if [ ! -e $XLAPP_CONFIG_FILE ] ; then
-	echo "X/LAPP config file could not be produced; aborting"
+	echo "XLAPP config file could not be produced; aborting"
 	false
 fi
 
@@ -25,7 +25,7 @@ fi
 . $XLAPP_CONFIG_FILE
 
 if [ -z $XLAPP_LFS ] ; then
-	echo "  Problem with X/LAPP config file (XLAPP_LFS is not set); aborting"
+	echo "  Problem with XLAPP config file (XLAPP_LFS is not set); aborting"
 	false
 fi
 
@@ -43,20 +43,9 @@ cat ${ROOT_DOT_ALIAS_ROOT}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $ROOT_DOT_ALIA
 
 /bin/cp -fv $ROOT_DOT_ALIAS_ROOT ~root/.alias-root
 
-SKIP_TESTS=
-MAKEFLAGS="-j4"
-while getopts "nj:" OPT ; do
-	case "$OPT" in
-		n) SKIP_TESTS=1 ;;
-		j) MAKEFLAGS="-j${OPTARG}" ;;
-		?) echo "Unknown option $OPT; continuing..." ;;
-	esac
-done
-
 echo -n "  Skipping tests? "
-if [ ! -z $SKIP_TESTS ] ; then echo "Yes." ; else echo "No." ; fi
-echo -n "  \$MAKEFLAGS? ${MAKEFLAGS}"
-export MAKEFLAGS
+if [ -n $SKIP_TESTS ] ; then echo "Yes." ; else echo "No." ; fi
+echo "  \$MAKEFLAGS? ${MAKEFLAGS}"
 
 echo "  Checking \$LFS var..."
 # We need to test if $LFS is /; if so, abort.  Otherwise, this will be devastating.
@@ -107,14 +96,18 @@ echo "  Creating LFS work directory [ ${__SOURCE_DIR} ]..."
 mkdir -pv $__SOURCE_DIR
 chmod -v a+wt $__SOURCE_DIR
 
-echo "  Copying X/LAPP scripts..."
+echo "  Copying XLAPP scripts..."
 cp -a * $__SOURCE_DIR
-if [ -z $SKIP_TESTS ] ; then
-	for CHAP_SIX_PKG in $(grep -l "^#test " 6*) ; do
-		echo "  Uncommenting tests for package [ $CHAP_SIX_PKG ]..."
-		cat $CHAP_SIX_PKG | sed 's/^\(\s*\)#test /\1/' > $__SOURCE_DIR/$CHAP_SIX_PKG
-	done
-fi
+#if [ -z $SKIP_TESTS ] ; then
+	#for CHAP_SIX_PKG in $(grep -l "^#test " 6*) ; do
+		#echo "  Uncommenting tests for package [ $CHAP_SIX_PKG ]..."
+		#cat $CHAP_SIX_PKG | sed 's/^\(\s*\)#test /\1/' > $__SOURCE_DIR/$CHAP_SIX_PKG
+	#done
+#fi
+
+/bin/rm -f run run-domu
+ln -s build run
+ln -s build-domu run-domu
 
 echo "  Checking MD5 sums on packages..."
 pushd $__SOURCE_DIR/src
@@ -179,7 +172,7 @@ fi
 
 echo "########################################################################"
 echo "#"
-echo "# Building X/LAPP (Phase 1) - ${_EXTRA_BUILD_MESG}..."
+echo "# Building XLAPP (Phase 1) - ${_EXTRA_BUILD_MESG}..."
 echo "#"
 echo "#   * Use tail -f lfs.out to see build outout."
 echo "#"
@@ -201,7 +194,7 @@ time ./lfs-actual > $__SOURCE_DIR/lfs.out 2>&1
 if [ 0 -ne $? ] ; then
 	echo "########################################################################"
 	echo "#"
-	echo "# -----=====> X/LAPP (Phase 1) build FAILED. <=====-----"
+	echo "# -----=====> XLAPP (Phase 1) build FAILED. <=====-----"
 	echo "#"
 	echo "#   See lfs.out for more information."
 	echo "#"
@@ -227,13 +220,13 @@ LFS_KERNEL=$(ls /boot/vmlinuz*-dom0)
 
 echo "########################################################################"
 echo "#"
-echo "#     -----=====> X/LAPP (Phase 1) build successful. <=====-----"
+echo "#     -----=====> XLAPP (Phase 1) build successful. <=====-----"
 echo "#"
 echo "#  * Adjust host system to boot LFS build."
 echo "#"
 echo "#  * dom0-capable kernel [ $LFS_KERNEL ] installed to /boot."
 echo "#"
-echo "#  * Reboot system after boot-adjustment to build X/LAPP (Phase 2)..."
+echo "#  * Reboot system after boot-adjustment to build XLAPP (Phase 2)..."
 echo "#"
 echo "########################################################################"
 
