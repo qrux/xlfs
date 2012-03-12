@@ -123,14 +123,35 @@ if [ "${XLAPP_BOOT_PART}" = "${XLAPP_LFS_PART}" ] ; then
 	INSTALL_INTO_BOOT=true
 fi
 
-XLAPP_HOST_PREFIX=$(echo $XLAPP_HOST_IP | cut -d \/ -f 2)
-if [ -z $XLAPP_HOST_PREFIX ] ; then
-	echo "Please enter the IP address in prefix notation (e.g., a.b.c.d/prefix)."
+# Make sure that IP was given in IP/prefix mode
+if [ -z $XLAPP_HOST_IP ] ; then
+	echo "Please specify the target IP address."
 	usage
 fi
+set +e
+echo $XLAPP_HOST_IP | grep -c / > /dev/null 2>&1
+set -e
+if [ 0 -ne $? ] ; then
+	echo "Please enter the IP address in prefix notation (e.g., a.b.c.d/pre)."
+	usage
+fi
+
+XLAPP_HOST_PREFIX=$(echo $XLAPP_HOST_IP | cut -d \/ -f 2)
+set +e
+test 0 -le $XLAPP_HOST_PREFIX -a 32 -ge $XLAPP_HOST_PREFIX > /dev/null 2>&1
+if [ 0 -ne $? ] ; then
+	echo "Please enter a valid prefix [0,32] as the netmask ($XLAPP_HOST_PREFIX)."
+	usage
+fi
+set -e
 XLAPP_HOST_IP=$(echo $XLAPP_HOST_IP | cut -d \/ -f 1)
 if [ -z $XLAPP_HOST_IP ] ; then
 	echo "Please specify the target IP address."
+	usage
+fi
+
+if [ -z $XLAPP_HOST_GW ] ; then
+	echo "Please specify the Default Gateway IP address."
 	usage
 fi
 
@@ -210,6 +231,7 @@ export XLAPP_DNS_DOMAIN_NAME="${XLAPP_DNS_DOMAIN_NAME}"
 export XLAPP_HOST_IP="${XLAPP_HOST_IP}"
 export XLAPP_HOST_PREFIX="${XLAPP_HOST_PREFIX}"
 export XLAPP_HOST_NETMASK="/${XLAPP_HOST_PREFIX}"
+export XLAPP_HOST_GW="${XLAPP_HOST_GW}"
 export XLAPP_DNS_SERVERS="${XLAPP_DNS_SERVERS}"
 export XLAPP_NTP_SERVERS="${XLAPP_NTP_SERVERS}"
 
@@ -250,6 +272,7 @@ cat <<EOF
                New netmask: ${XLAPP_HOST_NETMASK}
                DNS servers: ${XLAPP_DNS_SERVERS}
                NTP servers: ${XLAPP_NTP_SERVERS}
+           Default Gateway: ${XLAPP_HOST_GW}
 
                   Language: ${XLAPP_TARGET_LANG}
                   Timezone: ${XLAPP_TARGET_TZ}
