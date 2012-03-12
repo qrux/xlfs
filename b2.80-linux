@@ -2,10 +2,15 @@
 
 make mrproper
 
-cp -vf ../../zkernel-3.1-domU.config .config
+#cp -vf ../../zkernel-3.1-domU.config .config
+cp -vf ../../zkernel-3.1-domU-nodebug-tmem.config .config
 make oldconfig
 
-make
+# Obviously kludgey...Needs overhaul of xlapp-p2 script.
+if [ -z ${MAKEFLAGS} ] ; then
+	MAKEFLAGS="-j 4"
+fi
+make ${MAKEFLAGS}
 
 make modules_install
 

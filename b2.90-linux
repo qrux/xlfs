@@ -5,7 +5,11 @@ make mrproper
 cp -vf ../../zkernel-3.1-dom0-debug.config .config
 make oldconfig
 
-make
+# Obviously kludgey...Needs overhaul of xlapp-p2 script.
+if [ -z ${MAKEFLAGS} ] ; then
+	MAKEFLAGS="-j 4"
+fi
+make ${MAKEFLAGS}
 
 make modules_install
 
