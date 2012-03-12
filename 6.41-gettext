@@ -3,10 +3,15 @@
 ./configure --prefix=/usr \
             --docdir=/usr/share/doc/gettext-0.18.1.1
 
+sed -i -e '41s/ENOENT/& || errno == EINVAL/' gettext-tools/gnulib-tests/test-readlink.h
+sed -i -e '39s/ENOENT/& || errno == EINVAL/' gettext-tools/gnulib-tests/test-areadlink.h
+
 make
 
+export MAKEFLAGS="-j 1"
 if [ -z $SKIP_TESTS ] ; then
-	make check
+	make check 2>&1 | tee ${__TEST_OUTPUT}
+	test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
 fi
 
 make install
