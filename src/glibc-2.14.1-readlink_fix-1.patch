@@ -1,0 +1,37 @@
+--- glibc-2.14.1/sysdeps/unix/sysv/linux/readlinkat.c-ORIG	2011-10-07 02:48:55.000000000 -0700
++++ glibc-2.14.1/sysdeps/unix/sysv/linux/readlinkat.c	2012-03-09 19:02:37.559601401 -0800
+@@ -38,6 +38,20 @@
+ {
+   int result;
+ 
++  /* Qrux - 9 Mar 2012
++
++     This check used to only happen if __ASSUME_ATFCTS is defined,
++     which is true for all current (year 2012) kernels.  But, this
++     was causing readlink to return EINVAL improperly when path is
++     a zero-length string?  This check should *always* happen, and
++     set errno properly (via POSIX) to ENOENT (not EINVAL). */
++  size_t pathlen = strlen (path);
++  if (__builtin_expect (pathlen == 0, 0))
++    {
++      __set_errno (ENOENT);
++      return -1;
++    }
++
+ #ifdef __NR_readlinkat
+ # ifndef __ASSUME_ATFCTS
+   if (__have_atfcts >= 0)
+@@ -58,13 +72,6 @@
+ 
+   if (fd != AT_FDCWD && path[0] != '/')
+     {
+-      size_t pathlen = strlen (path);
+-      if (__builtin_expect (pathlen == 0, 0))
+-	{
+-	  __set_errno (ENOENT);
+-	  return -1;
+-	}
+-
+       static const char procfd[] = "/proc/self/fd/%d/%s";
+       /* Buffer for the path name we are going to use.  It consists of
+ 	 - the string /proc/self/fd/
