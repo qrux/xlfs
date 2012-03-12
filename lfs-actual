@@ -31,10 +31,8 @@ time
 cd $LFS/lfs
 
 sed "s,#! /bin/bash,#! /tools/bin/bash," build-all | \
-	sed 's,./build ,./build-jail ,' | \
-	sed 's,./run ,./run-jail ,' > build-all-jail
+	sed 's,./build ,./build-jail ,' > build-all-jail
 sed "s,#! /bin/bash,#! /tools/bin/bash," build > build-jail
-sed "s,#! /bin/bash,#! /tools/bin/bash," run > run-jail
 chmod 0755 *-jail
 
 # Unpack the BLFS bootscripts for later

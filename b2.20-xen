@@ -9,7 +9,7 @@ popd
 
 # This is necessary, because otherwise, we can't
 # find some of the shared libs (like openssl's libcrypto).
-sudo ldconfig -v
+sudo /sbin/ldconfig -v
 
 export MAKEFLAGS="-j 1"
 make xen

@@ -48,17 +48,12 @@ for PHASE in $(seq $STARTING_CHAPTER 9) b0 b1 b2 ; do
 		fi
 
 		SCRIPT=$(echo ${CURRENT}*)
-		if [ -x $SCRIPT ] ; then
-			echo "  Running $SCRIPT..."
-			if [ 1 -ne $JUST_TESTING ] ; then
-				if [ 1 -eq $HAS_STARTED ] ; then time ./run $SCRIPT ; fi
-			fi
-		elif [ -e $SCRIPT ] ; then
+		if [ -e $SCRIPT ] ; then
 			echo "  Building $SCRIPT (with ${MAKEFLAGS})..."
 			if [ 1 -ne $JUST_TESTING ] ; then
 				if [ 1 -eq $HAS_STARTED ] ; then time ./build $SCRIPT ; fi
-		fi
 			fi
+		fi
 
 		if [ $CURRENT == $END ] ; then exit ; fi
 	done

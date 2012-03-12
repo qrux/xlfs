@@ -10,12 +10,6 @@ while getopts "x" OPT ; do
 done
 shift $(($OPTIND-1))
 
-#export MAKEFLAGS="-j 4"
-if [ "blfs" == "$USER" ] ; then
-	echo "User [ $USER ] ; adjusting path."
-	PATH=$PATH:/sbin:/usr/sbin
-fi
-
 totime()
 {
 	date '+%Y%m%d_%H%M%S'
@@ -46,6 +40,16 @@ BUILD="${__PKG}-build"
 
 __CHAPTER=$(echo $__SECTION | cut -d \. -f 1)
 __CHAPTER_CONF_FILE="opts-${__CHAPTER}"
+#
+# See outermost script (lfs) to ensure this is created.
+#
+__TEST_OUTPUT_DIR="../../tests"
+__TEST_OUTPUT="${__TEST_OUTPUT_DIR}/${__PROG_NAME}.tout"
+
+export __PROG_NAME
+export __SECTION
+export __CHAPTER
+export __TEST_OUTPUT
 
 PROG_DIR=$(pwd)
 __SCRIPT="${PROG_DIR}/${__PROG_NAME}"
