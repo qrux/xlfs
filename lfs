@@ -91,6 +91,7 @@ set -e
 # Assume that $LFS might be a boot partition.  So, don't remove /boot files.
 #
 find $LFS/ -mindepth 1 -maxdepth 1 -type d \( -not -name "grub*" -a -not -name "lost+found" \) -exec rm -rf {} \;
+/bin/rm -f $LFS/tools
 
 echo "  Creating LFS work directory [ ${__SOURCE_DIR} ]..."
 mkdir -pv $__SOURCE_DIR
@@ -104,10 +105,6 @@ cp -a * $__SOURCE_DIR
 		#cat $CHAP_SIX_PKG | sed 's/^\(\s*\)#test /\1/' > $__SOURCE_DIR/$CHAP_SIX_PKG
 	#done
 #fi
-
-/bin/rm -f run run-domu
-ln -s build run
-ln -s build-domu run-domu
 
 echo "  Checking MD5 sums on packages..."
 pushd $__SOURCE_DIR/src
@@ -185,7 +182,10 @@ echo "########################################################################"
 #
 rm -f $__SOURCE_DIR/lfs.out
 find src -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
-ln -sf $__SOURCE_DIR/lfs.out ./lfs.out
+ln -sfv $__SOURCE_DIR/lfs.out ./lfs.out
+rm -rf $__SOURCE_DIR/tests
+mkdir -pv $__SOURCE_DIR/tests
+ln -sfv $__SOURCE_DIR/tests ./tests
 
 cd $__SOURCE_DIR
 set +e
