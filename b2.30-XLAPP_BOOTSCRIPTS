@@ -1,11 +1,7 @@
 #! /bin/bash
 
-cp -vf xlapp-bootscripts/{bridge,ipv4-static} /lib/services/
-cp -vf xlapp-bootscripts/{ifup,ifdown} /sbin/
 cp -vf xlapp-bootscripts/xlapp-domains /etc/init.d/
 
-chmod 0754 /lib/services/{bridge,ipv4-static}
-chmod 0754 /sbin/{ifup,ifdown}
 chmod 0754 /etc/init.d/xlapp-domains
 
 xlapp-bootscripts/boot-links-create -s 81 -k 20 xlapp-domains
