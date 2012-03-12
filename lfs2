@@ -3,12 +3,12 @@ set -e
 
 echo "########################################################################"
 echo "#"
-echo "#      -----=====> Starting X/LAPP (Phase 2) build... <=====-----"
+echo "#      -----=====> Starting XLAPP (Phase 2) build... <=====-----"
 echo "#"
 echo "########################################################################"
 
 if [ ! -e /etc/lfs-release ] ; then
-	echo "  This does not look like the X/LAPP install."
+	echo "  This does not look like the XLAPP install."
 	echo "    (No /etc/lfs-release) found; aborting"
 	exit 1
 fi
@@ -25,16 +25,16 @@ echo "  Modifying GRUB boot..."
 if [ 0 -ne $? ] ; then
 echo "########################################################################"
 echo "#"
-echo "#       -----=====> X/LAPP (Phase 2) build FAILED <=====-----"
+echo "#       -----=====> XLAPP (Phase 2) build FAILED <=====-----"
 echo "#"
 echo "########################################################################"
 exit 1
 else
 echo "########################################################################"
 echo "#"
-echo "#      -----=====> X/LAPP (Phase 2) build successful! <=====-----"
+echo "#      -----=====> XLAPP (Phase 2) build successful! <=====-----"
 echo "#"
-echo "#  * Adjust X/LAPP system to boot Xen Hypervisor/dom0 kernel."
+echo "#  * Adjust XLAPP system to boot Xen Hypervisor/dom0 kernel."
 echo "#"
 echo "#  * Xen Hypervisor [ xen-4.1.2.gz ] installed to /boot."
 echo "#"
