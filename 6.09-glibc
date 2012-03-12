@@ -37,24 +37,25 @@ if [ -z $SKIP_TESTS ] ; then
 	# handling off...
 	#
 	set +e
-	make -k check 2>&1 | tee glibc-check-log
+	make -k check 2>&1 | tee ${__TEST_OUTPUT}
 	set -e
 	#
 	# Now, turn bash error-handling back on, and check for
 	# the specific errors that are common.  If we find any
 	# other errors, then FAIL; otherwise, PASS.
 	#
-	cp glibc-check-log ~/glibc-2.14.1-LFS-test-check-log-$(totime)
-	__GLIBC_FAIL_COUNT=$(grep Error glibc-check-log | grep sources | wc -l)
-	__GLIBC_OKAY_FAIL_COUNT=$(grep Error glibc-check-log | grep sources | egrep -v "posix/annexc|nptl/tst-clock2|nptl/tst-attr3|rt/tst-cpuclock2|misc/tst-writev|elf/check-textrel|nptl/tst-getpid2|stdio-common/bug22|posix/bug-regex32" | wc -l)
+	#cp glibc-check-log ~/glibc-2.14.1-LFS-test-check-log-$(totime)
+	__ERROR_FILE_STR="glibc-build"
+	__GLIBC_FAIL_COUNT=$(grep Error ${__TEST_OUTPUT} | grep ${__ERROR_FILE_STR} | wc -l)
+	__GLIBC_OKAY_FAIL_COUNT=$(grep Error ${__TEST_OUTPUT} | grep ${__ERROR_FILE_STR} | egrep -v "posix/annexc|nptl/tst-clock2|nptl/tst-attr3|rt/tst-cpuclock2|misc/tst-writev|elf/check-textrel|nptl/tst-getpid2|stdio-common/bug22|posix/bug-regex32" | wc -l)
 
 	if [ 0 -lt $__GLIBC_OKAY_FAIL_COUNT ] ; then
-		grep Error glibc-check-log | grep sources
-		echo "glibc-2.14.1 FAILED testing with unexpected errors; aborting"
+		grep Error ${__TEST_OUTPUT} | grep ${__ERROR_FILE_STR}
+		echo "XLAPP:glibc-2.14.1 FAILED testing with unexpected errors; aborting"
 		false
 	elif [ 0 -lt $__GLIBC_FAIL_COUNT ] ; then
-		grep Error glibc-check-log | grep sources
-		echo "glibc-2.14.1 had some acceptable failures; continuing"
+		grep Error ${__TEST_OUTPUT} | grep ${__ERROR_FILE_STR}
+		echo "XLAPP:glibc-2.14.1 had some acceptable failures; continuing"
 	fi
 fi
 

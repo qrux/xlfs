@@ -5,7 +5,11 @@ FORCE_UNSAFE_CONFIGURE=1 ./configure --prefix=/usr \
 
 make
 
-make check
+export MAKEFLAGS="-j 1"
+if [ -z $SKIP_TESTS ] ; then
+	make check 2>&1 | tee ${__TEST_OUTPUT}
+	test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
+fi
 
 make install
 make -C doc install-html docdir=/usr/share/doc/tar-1.26

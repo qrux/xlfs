@@ -6,10 +6,11 @@ patch -Np1 -i ../flex-2.5.35-gcc44-1.patch
 
 make
 
-__SAVE_MAKEFLAGS=$MAKEFLAGS
 export MAKEFLAGS="-j 1"
-make check
-export MAKEFLAGS=$__SAVE_MAKEFLAGS
+if [ -z $SKIP_TESTS ] ; then
+	make check 2>&1 | tee ${__TEST_OUTPUT}
+	test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
+fi
 
 make install
 

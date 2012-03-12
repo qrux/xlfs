@@ -22,14 +22,19 @@ cd ../gcc-build
 
 make
 
-ulimit -s 16384
+#
+# Set to unlimited for crazy deep recursion in exprtest, and
+# hope it doesn't kill the machine.
+#
+#ulimit -s 16384
+ulimit -s unlimited
 
 if [ -z $SKIP_TESTS ] ; then
 	#
 	# GCC has a lot of tests, and some very complex ones can fail.
 	#
 	set +e
-	make -k check
+	make -k check 2>&1 | tee ${__TEST_OUTPUT}
 	set -e
 
 	../gcc-4.6.1/contrib/test_summary > ~/gcc-4.6.1-test_summary-LFS-$(totime)

@@ -15,32 +15,16 @@ make
 
 make NON_ROOT_USERNAME=nobody check-root
 
-echo "dummy:x:1000:nobody" >> /etc/group
+if [ -z $SKIP_TESTS ] ; then
+	echo "dummy:x:1000:nobody" >> /etc/group
 
-chown -Rv nobody . 
+	chown -Rv nobody . 
 
-#
-# Standard expected-fail handling
-#
-#set +e
-su-tools nobody -s /bin/bash -c "make RUN_EXPENSIVE_TESTS=yes check"
-#set -e
-#
-# Now handle the expected failures...
-#
-#__COREUTILS_FAIL_COUNT=$(grep FAIL gnulib-tests/test-suite.log | wc -l)
-#__COREUTILS_OKAY_FAIL_COUNT=$(grep FAIL gnulib-tests/test-suite.log | grep -v "FAIL: test-parse-datetime" | wc -l)
-#if [ 0 -lt $__COREUTILS_OKAY_FAIL_COUNT ] ; then
-	#cp gnulib-tests/test-suite.log ~/coreutils-8.14-LFS-test-suite-$(totime).log
-	#grep FAIL gnulib-tests/test-suite.log
-	#echo "coreutils-8.14 test-suite FAILED; aborting"
-	#false
-#elif [ 0 -lt $__COREUTILS_FAIL_COUNT ] ; then
-	#grep FAIL gnulib-tests/test-suite.log
-	#echo "coreutils-8.14 test-suite had some acceptable failures; continuing"
-#fi
+	su-tools nobody -s /bin/bash -c "make RUN_EXPENSIVE_TESTS=yes check" 2>&1 | tee ${__TEST_OUTPUT}
+	test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
 
-sed -i '/dummy/d' /etc/group
+	sed -i '/dummy/d' /etc/group
+fi
 
 make install
 

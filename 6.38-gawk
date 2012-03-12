@@ -4,10 +4,11 @@
 
 make
 
-__save_MAKEFLAGS="$MAKEFLAGS"
 export MAKEFLAGS="-j 1"
-make check
-MAKEFLAGS="$__save_MAKEFFLAGS"
+if [ -z $SKIP_TESTS ] ; then
+	make check 2>&1 | tee ${__TEST_OUTPUT}
+	test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
+fi
 
 make install
 

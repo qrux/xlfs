@@ -19,7 +19,8 @@ sh Configure -des -Dprefix=/usr \
 make
 
 if [ -z $SKIP_TESTS ] ; then
-	make test
+	make test 2>&1 | tee ${__TEST_OUTPUT}
+	test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
 fi
 
 make install

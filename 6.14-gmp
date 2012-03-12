@@ -4,12 +4,16 @@ sed -i 's/np + dn, qn/& - dn/' mpn/generic/dcpi1_bdiv_q.c
 
 make
 
-make check 2>&1 | tee gmp-check-log
+if [ -z $SKIP_TESTS ] ; then
+	make check 2>&1 | tee ${__TEST_OUTPUT}
+	test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
+	#make check 2>&1 | tee gmp-check-log
 
-__GMP_TEST_COUNT=$(awk '/tests passed/{total+=$2} ; END{print total}' gmp-check-log)
-if [ 162 -ne $__GMP_TEST_COUNT ] ; then
-	echo "GMP tests failed; exiting"
-	false;
+	__GMP_TEST_COUNT=$(awk '/tests passed/{total+=$2} ; END{print total}' ${__TEST_OUTPUT})
+	if [ 162 -ne $__GMP_TEST_COUNT ] ; then
+		echo "GMP tests failed; exiting"
+		false;
+	fi
 fi
 
 make install
