@@ -1,0 +1,7 @@
+#! /bin/bash
+
+cp -vf xlapp-bootscripts/{bridge,ipv4-static} /lib/services/
+cp -vf xlapp-bootscripts/{ifup,ifdown} /sbin/
+
+chmod 0754 /lib/services/{bridge,ipv4-static}
+chmod 0754 /sbin/{ifup,ifdown}

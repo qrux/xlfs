@@ -27,7 +27,7 @@
 unset totime
 totime() { date '+%Y%m%d_%H%M%S'; }
 
-XLAPP_BOOTWATCH_TIMEOUT=30
+XLAPP_BOOTWATCH_TIMEOUT=60
 XLAPP_RUN_DIR=/var/run/xlapp
 XLAPP_BOOTWATCH_PIDFILE="${XLAPP_RUN_DIR}/boot-watchdog.pid"
 XLAPP_GRUB_CONFIG=/boot/grub/menu.lst
