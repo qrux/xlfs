@@ -50,11 +50,32 @@ proxy for / (the root directory); i.e., the TAR archive must be extractable
 using --strip-components=1.  Using an image which is not created as a snapshot
 at the end of the X/LAPP Phase 1 build can results in an unusable domU.
 
-  -v VOL_GROUP		Use the specified volume group (this VG must exist,
+VOL_GROUP must point to an existing LVM2 Volume Group.  Other logical-volume
+management systems are not support at this time.  This is the preferred
+mechanism for creating a disk device for use by the VM.  Using a loopback
+disk-image for a PV domU is STRONGLY DISCOURAGED.
+
+The 'type' sub-argument of -v must be one of ext2, ext3, ext4.  Others may
+work, but are used entirely at your caution.  FSTYPE must support creation via
+'mkfs -t FSTYPE'.  FSSIZE is expressed as MiB: multiples of 1048576-bytes.
+
+VM_MEM is expressed as MiB: multiples of 1048576-bytes.  VM_CPUS
+is expressed an integer number of VCPUS allocated for use by the VM.  Using a
+value greater than the number of cores detected by dom0 can result in undefined
+behavior.
+
+SWAP_MUL is expressed as an integer multiple of VM_MEM.  For example, if VM_MEM
+is set to 2048 (i.e., 2048 MB, or, 2 GB) and SWAP_MUL is set to 3, then a swap
+device will be created for use by the VM that is 3 * 2048 MB (6144 MB, or 6 GB).
+
+When complete, the logical-volume will be created with a working domU filesystem
+written to it.  The xl-compatible configuration file will be written to
+/etc/xen/vm (this dir will be created if it doesn't already exist).  The file
+will be named by the domU-FQDN (first non-option argument).
+
+  -v VOL_GROUP:type	Use the specified volume group (this VG must exist,
 			and this option is mutually exclusive from -f)
-  -l FILE_NAME		Use loopback disk image (mutually exclusive from -v)
   -f			Force the creation of the LVM disk (or loopback image)
-  -t FSTYPE		[OPT] Create this type of filesystem (ext3 by default)
   -s FSSIZE		Create a filesystem this large (in megabytes)
   -m VM_MEM		Allocate this much memory for the VM (in megabytes)
   -c VM_CPUS		[OPT] Allocate this many CPUs for the VM
@@ -64,56 +85,21 @@ at the end of the X/LAPP Phase 1 build can results in an unusable domU.
   -n			Don't do any writing; just create the xl-conf file.
   -h                    Usage (this information)
 
-VOL_GROUP must point to an existing LVM2 Volume Group.  Other logical-volume
-management systems are not support at this time.  This is the preferred
-mechanism for creating a disk device for use by the VM.  Using a loopback
-disk-image for a PV domU is STRONGLY DISCOURAGED.
-
-FILE_NAME will be created if it does not exist; this is interpreted as a path,
-so relative filenames (e.g.: "../file-for-vm01.img" or "~/file-for-vm02.img")
-are valid.  Using a file-backed disk-image for a VM is STRONGLY DISCOURAGED.
-Consider using LVM2 (and thus -v) instead to create logical-volume-backed
-disks for a PV domU.
-
-FSTYPE must be one of ext2, ext3, ext4.  Others may work, but are used entirely
-at your caution.  FSTYPE must support creation via 'mkfs -t FSTYPE'.  FSSIZE is
-expressed an integer number of megabytes (1048576 bytes).
-
-VM_MEM is expressed as an integer number of megabytes (1048576 bytes).  VM_CPUS
-is expressed an integer number of VCPUS allocated for use by the VM.  Using a
-value greater than the number of cores detected by dom0 can result in undefined
-behavior.
-
-SWAP_MUL is expressed as an integer multiple of VM_MEM.  For example, if VM_MEM
-is set to 2048 (i.e., 2048 MB, or, 2 GB) and SWAP_MUL is set to 3, then a swap
-device will be created for use by the VM that is 3 * 2048 MB (6144 MB, or 6 GB).
-  
-When complete, the logical-volume will be created with a working domU filesystem
-written to it (or, in the case of a file-backed disk-image, the named file will
-be created with a working domU filesystem written to it--via a loopback mount).
-The xl-compatible configuration file will be written to /etc/xen/vm (this dir
-will be created if it doesn't already exist).  The file will be named by the
-domU-FQDN (first non-option argument).
-
 EOF
 	exit 1
 }
 
-test ! -e /proc/cpuinfo && usage
-
-VIRT_CPUS=$(cat /proc/cpuinfo | grep -cE "^processor\s+:")
+./lfs-conf "${@}"
 
 FSTYPE=ext3
 unset FILE_DEV FSSIZE
 unset SWAP_MUL VIRT_MEM VIRT_SWAP VOL_GROUP FORCE_INIT
 unset SKIP_ACTUAL
 VIRT_ETH_COUNT=0
-while getopts "v:l:ft:s:m:c:w:enh" OPT ; do
+while getopts "v:fs:m:c:w:enuk:i:g:d:t:a:z:j:o:h" OPT ; do
 	case "$OPT" in
 		v) VOL_GROUP="$OPTARG";;
-		l) FILE_DEV="$OPTARG";;
 		f) FORCE_INIT=1;;
-		t) FSTYPE="$OPTARG";;
 		s) FSSIZE="$OPTARG";;
 		m) VIRT_MEM="$OPTARG";;
 		c) VIRT_CPUS="$OPTARG";;
@@ -121,17 +107,36 @@ while getopts "v:l:ft:s:m:c:w:enh" OPT ; do
 		e) VIRT_ETH_COUNT=$((1 + $VIRT_ETH_COUNT));;
 		n) SKIP_ACTUAL=1;;
                 h) usage;;
+		*) true;;
 	esac
 done
 shift $(($OPTIND - 1))
-
 DOMU_HOST=$1
 TARBALL=$2
+DOMU_CONF_DIR="$DOMU_HOST"
+BUILD_CONF="${DOMU_HOST}-config"
+
+echo " DOMU_HOST: ${DOMU_HOST}"
+echo "   TARBALL: ${TARBALL}"
+echo "BUILD_CONF: ${BUILD_CONF}"
 
 if [ -z $TARBALL ] ; then usage ; fi
 
-if [ -z "$FILE_DEV" -a -z "$VOL_GROUP" ] ; then
-	echo "At least one of -v or -f must be used; exiting."
+#
+# Pass config (and CL args) to lfs-conf.
+#
+rm -fv lfs-conf passhash.c
+ln -s ../lfs-conf .
+ln -s ../passhash.c .
+
+# Test if we're on Linux and are a dom0
+test ! -e /proc/cpuinfo && usage
+test ! -d /proc/xen     && usage
+
+VIRT_CPUS=$(cat /proc/cpuinfo | grep -cE "^processor\s+:")
+
+if [ -z "$VOL_GROUP" ] ; then
+	echo "Volume group must be specified with -v."
 	exit 1
 fi
 if [ -z $VIRT_MEM ] ; then
@@ -152,6 +157,14 @@ if [ -n "$SWAP_MUL" ] ; then
 	VIRT_SWAP=$(($SWAP_MUL * $VIRT_MEM))
 else
 	unset VIRT_SWAP
+fi
+
+# Get the volume group and the fstype (if given).
+FSTYPE=$(echo $VOL_GROUP | cut -d \: -f 2)
+if [ -z $FSTYPE ] ; then
+	FSTYPE=ext3
+else
+	VOL_GROUP=$(echo $VOL_GROUP | cut -d \: -f 1)
 fi
 
 # Insane TSC issue with EXT4 (this needs to be looked into).
@@ -175,63 +188,13 @@ echo "                    TSC mode: $TSC_MODE"
 echo "          VM memory (in MiB): $VIRT_MEM"
 echo "                VM CPU count: $VIRT_CPUS"
 echo "                Swap amount?: $VIRT_SWAP"
-echo "Using file-backed disk-image? $FILE_DEV"
-
 
 ########################################################################
 #
 # Configuration
 #
 ########################################################################
-DOMU_CONF_DIR="$DOMU_HOST"
 
-. ask
-
-BUILD_CONF="${DOMU_HOST}-config"
-BUILD_INPUT="${BUILD_CONF}.in"
-BUILD_TMP=".${BUILD_CONF}"
-BUILD_TMP2="${BUILD_TMP}_"
-
-/bin/cp -f domu.config.in $BUILD_INPUT
-sed -i "s/XLAPP_DOMU_HOSTNAME=.*/XLAPP_DOMU_HOSTNAME=$DOMU_HOST/" $BUILD_INPUT
-sed -i "s/XLAPP_DOMU_DNS_DOMAIN_NAME=.*/XLAPP_DOMU_DNS_DOMAIN_NAME=$DOMAIN_NAME/" $BUILD_INPUT
-
-echo "input file: $BUILD_INPUT"
-
-unset KEEP_CONFIG
-if [ -e $BUILD_CONF ] ; then
-        echo "    There is already a DomU config file named ${BUILD_CONF}."
-        echo -n "      Keep?  <Enter> to 'keep', or 'new' to overwrite --> "
-        read _ANSWER
-        test -z $_ANSWER && _ANSWER="keep"
-	_ANSWER=$(echo $_ANSWER | tr [:upper:] [:lower:])
-        if [ "new" == $_ANSWER ] ; then
-                echo
-                echo "    Creating new configuration and removing conf dir ${DOMU_CONF_DIR}..."
-		if [ -d ${DOMU_CONF_DIR} ] ; then
-			rm -rf ${DOMU_CONF_DIR}
-		fi
-        else
-                echo
-                echo "    Preserving existing configuration in [ $BUILD_CONF ]."
-		echo "    Preserving configuration files in [ $DOMU_CONF_DIR ]."
-		exit
-        fi
-        . $BUILD_CONF
-else
-        echo "    The config file for this DomU doesn't exist; creating one."
-        . $BUILD_INPUT
-fi
-
-/bin/cp -f $BUILD_INPUT $BUILD_TMP
-
-#ask DOMU_SWAP "DomU - Use swap?"
-ask DOMU_HOST_IP "DomU - IP?"
-ask DOMU_HOST_GW "DomU - Gateway IP?"
-ask DOMU_HOST_PREFIX "DomU - Network Prefix (e.g., 24 for a class-C)?"
-ask DOMU_HOST_BCAST "DomU - Network Broadcast (e.g., 192.168.0.255)?"
-
-#VIRT_MAC_ETH0=$(echo $XLAPP_DOMU_HOST_IP | awk -F \. '{printf("00:16:3e:00:%02x:%02x", $3, $4);}')
 VIRT_ETH_IDX=0
 VIRT_MACADDRS=""
 while [ $VIRT_ETH_IDX -le $VIRT_ETH_COUNT ] ; do
@@ -240,26 +203,18 @@ while [ $VIRT_ETH_IDX -le $VIRT_ETH_COUNT ] ; do
 	VIRT_ETH_IDX=$((1 + $VIRT_ETH_IDX))
 done
 
-echo "  Writing config to $BUILD_CONF..."
-/bin/mv -vf $BUILD_TMP $BUILD_CONF
-/bin/rm -vf $BUILD_TMP2 $BUILD_INPUT
-
 . $BUILD_CONF
 
-echo "    DomU -    Hostname? $DOMU_HOST"
-echo "    DomU -  DNS Domain? $DOMAIN_NAME"
-echo "    DomU -    Use swap? $XLAPP_DOMU_SWAP"
-echo "    DomU -          IP? $XLAPP_DOMU_HOST_IP"
-echo "    DomU -          GW? $XLAPP_DOMU_HOST_GW"
-echo "    DomU -      Prefix? $XLAPP_DOMU_HOST_PREFIX"
-echo "    DomU -   Broadcast? $XLAPP_DOMU_HOST_BCAST"
-echo "    DomU -   MAC addrs? $VIRT_MACADDRS"
+#echo "    DomU -    Hostname? $DOMU_HOST"
+#echo "    DomU -  DNS Domain? $DOMAIN_NAME"
+#echo "    DomU -    Use swap? $XLAPP_DOMU_SWAP"
+#echo "    DomU -          IP? $XLAPP_DOMU_HOST_IP"
+#echo "    DomU -          GW? $XLAPP_DOMU_HOST_GW"
+#echo "    DomU -      Prefix? $XLAPP_DOMU_HOST_PREFIX"
+#echo "    DomU -   Broadcast? $XLAPP_DOMU_HOST_BCAST"
+#echo "    DomU -   MAC addrs? $VIRT_MACADDRS"
 
-if [ -n "$FILE_DEV" ] ; then
-	IMAGE="$FILE_DEV"
-else
-	IMAGE=/dev/${VOL_GROUP}/$DOMU_HOST
-fi
+IMAGE=/dev/${VOL_GROUP}/$DOMU_HOST
 
 if [ -z "$SKIP_ACTUAL" ] ; then # This block is only run if '-n' IS NOT GIVEN.
 
@@ -279,6 +234,8 @@ cat > ${DOMU_CONF_DIR}/etc/fstab <<EOF
 /dev/xvda1     /            ${FSTYPE}   defaults,noatime   1     1
 EOF
 
+# FIXME -- this is now wrong...The correct var is something other
+# than XLAPP_DOMU_SWAP
 if [ "yes" == $XLAPP_DOMU_SWAP ] ; then
 	echo "    Adding swap in /etc/fstab..."
 	cat >> ${DOMU_CONF_DIR}/etc/fstab <<EOF
@@ -307,7 +264,7 @@ cat > ${DOMU_CONF_DIR}/etc/hosts <<EOF
 127.0.0.1 localhost
 
 # IP			HOSTNAME		[alias1, alias 2, ...]
-${XLAPP_DOMU_HOST_IP}	${DOMU_HOST}	${DOMU_HOSTNAME}
+${XLAPP_HOST_IP}	${XLAPP_DNS_FQDN}	${XLAPP_HOST_HOSTNAME}
 
 # End /etc/hosts (network card version)
 EOF
@@ -335,26 +292,31 @@ EOF
 echo "  Creating /etc/sysconfig/ifconfig.eth0..."
 cat > ${DOMU_CONF_DIR}/etc/sysconfig/ifconfig.eth0 <<EOF
 ONBOOT=yes
-IFACE=eth0
+PHYS=eth0
 SERVICE="ipv4-static"
-IP=$XLAPP_DOMU_HOST_IP
-GATEWAY=$XLAPP_DOMU_HOST_GW
-PREFIX=$XLAPP_DOMU_HOST_PREFIX
-BROADCAST=$XLAPP_DOMU_HOST_BCAST
+IP=$XLAPP_HOST_IP
+GATEWAY=$XLAPP_HOST_GW
+PREFIX=$XLAPP_HOST_PREFIX
 EOF
 
 echo "  Creating /etc/sysconfig/network..."
 cat > ${DOMU_CONF_DIR}/etc/sysconfig/network <<EOF
-HOSTNAME=$DOMU_HOST
+HOSTNAME=$XLAPP_HOST_HOSTNAME
 EOF
 
 echo "  Creating /etc/resolv.conf..."
 cat > ${DOMU_CONF_DIR}/etc/resolv.conf <<EOF
 # Begin /etc/resolv.conf
 
-domain $XLAPP_DOMU_DNS_DOMAIN_NAME
-nameserver 208.67.222.222
-nameserver 208.67.220.220
+domain $XLAPP_DNS_DOMAIN_NAME
+EOF
+
+for NAMESERVER in ${XLAPP_DNS_SERVERS} ; do
+	NS=$(echo $NAMESERVER)
+	echo "nameserver ${NS}" >> ${DOMU_CONF_DIR}/etc/resolv.conf
+done
+
+cat >> ${DOMU_CONF_DIR}/etc/resolv.conf <<EOF
 
 # End /etc/resolv.conf
 EOF
@@ -363,33 +325,20 @@ echo "domU [ $DOMU_HOST ] configuration complete."
 
 ########################################################################
 #
-# Creating image
+# Creating image (LVM2)
 #
 ########################################################################
-if [ -n "$FILE_DEV" ] ; then
-	# Make file-backed disk-image
-	echo "Making loopback disk-image $IMAGE ($FSSIZE MB, $FSTYPE)..."
-	if [ -e $IMAGE -a -z "$FORCE_INIT" ] ; then
-		echo "Loopback disk-image [ $IMAGE ] already exists; aborting."
-		echo "Use -f to force overwrite."
-		exit 1
-	fi
-	echo "Creating Loopback disk-image $IMAGE ($FSSIZE MB, $FSTYPE)..."
-	dd if=/dev/zero of=$IMAGE bs=1m seek=$FSSIZE count=0
-else
-	# Make LVM2-backed disk phy
-	IMAGE_EXISTS=$(lvdisplay | grep -E "LV Name\s*${DOMU_HOST}" | wc -l)
-	if [ 0 -lt $IMAGE_EXISTS -a -z "$FORCE_INIT" ] ; then
-		echo "LVM2 disk phy [ $IMAGE ] exists; aborting."
-		echo "Use -f to force lvremove/lvcreate."
-		exit 1
-	elif [ 0 -lt $IMAGE_EXISTS ] ; then
-		echo "Removing LVM2 disk phy..."
-		lvremove -fv $IMAGE
-	fi
-	echo "Creating LVM2-backed disk phy $IMAGE ($FSSIZE MB, $FSTYPE)..."
-	lvcreate -L ${FSSIZE}M -n $DOMU_HOST $VOL_GROUP
+IMAGE_EXISTS=$(lvdisplay | grep -E "LV Name\s*${DOMU_HOST}" | wc -l)
+if [ 0 -lt $IMAGE_EXISTS -a -z "$FORCE_INIT" ] ; then
+	echo "LVM2 disk phy [ $IMAGE ] exists; aborting."
+	echo "Use -f to force lvremove/lvcreate."
+	exit 1
+elif [ 0 -lt $IMAGE_EXISTS ] ; then
+	echo "Removing LVM2 disk phy..."
+	lvremove -fv $IMAGE
 fi
+echo "Creating LVM2-backed disk phy $IMAGE ($FSSIZE MB, $FSTYPE)..."
+lvcreate -L ${FSSIZE}M -n $DOMU_HOST $VOL_GROUP
 
 ########################################################################
 #

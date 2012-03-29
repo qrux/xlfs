@@ -5,35 +5,47 @@ set +h
 usage() {
 	cat <<EOF
 
-Usage: $0 [OPTION]... lfs-mount-point target-fqdn-hostname
+Usage: $0 [OPTION]... target-FQDN [lfs-mount-point]
 
-Creates an LFS build using the following parameters:
+Creates an LFS-like config file using the following parameters:
 
-  -l    LFS partition:fstype
-  -p    Host partition:fstype
-  -b    Boot partition:fstype
-  -s    SSH key
-  -i    IP address/prefix
-  -g    Gateway
-  -d    DNS server (can be given multiple times)
-  -t    NTP server (can be given multiple times)
-  -a    Lang (e.g. an entry from 'locale -a')
-  -z    TZ (e.g. tzselect output)
-  -j    MAKEFLAGS
-  -n    NO-TESTS (build Chap6 without tests)
-  -h    This message
+  -u              Create domU config file (skip LFS params)
+  -l part:type    LFS partition:fstype
+  -p part:type    Host partition:fstype
+  -b part:type    Boot partition:fstype
+  -k "key"        SSH key
+  -i a.b.c.d/p    IP address/prefix
+  -g e.f.g.h"     Gateway
+  -d fqdn         DNS server (can be given multiple times)
+  -t fqdn         NTP server (can be given multiple times)
+  -a lang         Lang (e.g. an entry from 'locale -a')
+  -z tz           TZ (e.g. tzselect output)
+  -j concurrency  MAKEFLAGS
+  -n              NO-TESTS (build Chap6 without tests)
+  -o file         Write output to 'file'
+  -h              Usage (this information)
+
+If this script is called with '-u', then the <lfs-mount-point>
+argument, if given, is ignored.  If this script is called
+without '-u'--i.e., for a XLAPP dom0 build--then lfs-mount-point
+must be given.
 
 EOF
 	exit 1
 }
 
+echo "lfs-conf args: [ ${@} ]"
+
+FOR_DOMU=
 SKIP_TESTS=
-while getopts "l:p:b:s:i:g:d:t:a:j:nh" OPT ; do
+OPTERR=0 # Disables getopts errors (when called by domU).
+while getopts "v:fs:m:c:w:enuk:i:g:d:t:a:z:j:o:h" OPT ; do
 	case "${OPT}" in
+		u) FOR_DOMU=true;;
 		l) XLAPP_LFS_PART="${OPTARG}";;
 		p) XLAPP_HOST_PART="${OPTARG}";;
 		b) XLAPP_BOOT_PART="${OPTARG}";;
-		s) XLAPP_SSH_PUBKEY="${OPTARG}";;
+		k) XLAPP_SSH_PUBKEY="${OPTARG}";;
 		i) XLAPP_HOST_IP="${OPTARG}";;
 		g) XLAPP_HOST_GW="${OPTARG}";;
 		d) XLAPP_DNS_SERVERS="${XLAPP_DNS_SERVERS} ${OPTARG}";;
@@ -42,85 +54,97 @@ while getopts "l:p:b:s:i:g:d:t:a:j:nh" OPT ; do
 		z) XLAPP_TARGET_TZ="${OPTARG}";;
 		j) MAKEFLAGS="-j ${OPTARG}";;
 		n) SKIP_TESTS=true;;
+		o) OUTPUT_FILE="${OPTARG}";;
 		h) usage;;
-		*) echo "Unrecognized option $OPT.";;
+		*) if [ -z ${FOR_DOMU} ] ; then echo "Unrecognized option $OPT." ; fi;;
 	esac
 done
 shift $(($OPTIND - 1))
 
-XLAPP_LFS=$1
-XLAPP_DNS_FQDN=$2
-
-if [ -z $XLAPP_LFS ] ; then
-	echo "Requires 2 arguments: lfs-mount-point (missing) and target-fqdn-hostname."
-	usage
-fi
+# This arg is going to be there regardless of caller (xlapp or domU).
+XLAPP_DNS_FQDN=$1
 
 if [ -z $XLAPP_DNS_FQDN ] ; then
-	echo "Requires 2 arguments: lfs-mount-point and target-fqdn-hostname (missing)."
+	echo "Requires target-FQDN as mandatory first argument (missing)."
 	usage
 fi
 
-if [ ! -d $XLAPP_LFS ] ; then
-	echo "LFS target directory ($XLAPP_LFS) isn't a directory."
-	usage
-fi
+echo "For domU? ${FOR_DOMU}"
 
-if [ -z $XLAPP_HOST_PART ] ; then
-	echo "Please specific the HOST partition (e.g., /dev/sda2)."
-	usage
-fi
-
-if [ -z $XLAPP_LFS_PART ] ; then
-	echo "Please specify the LFS partition (e.g., /dev/sda5)."
-	usage
-fi
-
-if [ -z $XLAPP_BOOT_PART ] ; then
-	echo "Please specify the BOOT partition (e.g., /dev/sda1)."
-	usage
-fi
-
-XLAPP_HOST_FSTYPE=$(echo $XLAPP_HOST_PART | cut -d \: -f 2)
-if [ -z $XLAPP_HOST_FSTYPE ] ; then
-	XLAPP_HOST_FSTYPE=ext4
+if [ -n "${FOR_DOMU}" ] ; then
+	# If this is domU caller.
+	BUILD_CONF="${XLAPP_DNS_FQDN}-config"
 else
-	XLAPP_HOST_PART=$(echo $XLAPP_HOST_PART | cut -d \: -f 1)
-fi
+	# If this is xlapp caller (not domU).
+	BUILD_CONF="machine.config"
+	XLAPP_LFS=$2
 
-if [ ! -b $XLAPP_HOST_PART ] ; then
-	echo "HOST partition ($XLAPP_HOST_PART) is not a block device."
-	usage
-fi
+	if [ -z $XLAPP_LFS ] ; then
+		echo "Requires 2 arguments: target-FQDN and lfs-mount-point (missing)."
+		usage
+	fi
 
-XLAPP_LFS_FSTYPE=$(echo $XLAPP_LFS_PART | cut -d \: -f 2)
-if [ -z $XLAPP_LFS_FSTYPE ] ; then
-	XLAPP_LFS_FSTYPE=ext4
-else
-	XLAPP_LFS_PART=$(echo $XLAPP_LFS_PART | cut -d \: -f 1)
-fi
+	if [ ! -d $XLAPP_LFS ] ; then
+		echo "LFS target directory ($XLAPP_LFS) isn't a directory."
+		usage
+	fi
 
-if [ ! -b $XLAPP_LFS_PART ] ; then
-	echo "LFS partition ($XLAPP_LFS_PART) is not a block device."
-	usage
-fi
+	if [ -z $XLAPP_HOST_PART ] ; then
+		echo "Please specific the HOST partition (e.g., /dev/sda2)."
+		usage
+	fi
 
-XLAPP_BOOT_FSTYPE=$(echo $XLAPP_BOOT_PART | cut -d \: -f 2)
-if [ -z $XLAPP_BOOT_FSTYPE ] ; then
-	XLAPP_BOOT_FSTYPE=ext4
-else
-	XLAPP_BOOT_PART=$(echo $XLAPP_BOOT_PART | cut -d \: -f 1)
-fi
+	if [ -z $XLAPP_LFS_PART ] ; then
+		echo "Please specify the LFS partition (e.g., /dev/sda5)."
+		usage
+	fi
 
-if [ ! -b $XLAPP_BOOT_PART ] ; then
-	echo "BOOT partition ($XLAPP_BOOT_PART) is not a block device."
-	usage
-fi
+	if [ -z $XLAPP_BOOT_PART ] ; then
+		echo "Please specify the BOOT partition (e.g., /dev/sda1)."
+		usage
+	fi
 
-INSTALL_INTO_BOOT=
-if [ "${XLAPP_BOOT_PART}" = "${XLAPP_LFS_PART}" ] ; then
-	echo "Installing XLAPP into BOOT partition."
-	INSTALL_INTO_BOOT=true
+	XLAPP_HOST_FSTYPE=$(echo $XLAPP_HOST_PART | cut -d \: -f 2)
+	if [ -z $XLAPP_HOST_FSTYPE ] ; then
+		XLAPP_HOST_FSTYPE=ext4
+	else
+		XLAPP_HOST_PART=$(echo $XLAPP_HOST_PART | cut -d \: -f 1)
+	fi
+
+	if [ ! -b $XLAPP_HOST_PART ] ; then
+		echo "HOST partition ($XLAPP_HOST_PART) is not a block device."
+		usage
+	fi
+
+	XLAPP_LFS_FSTYPE=$(echo $XLAPP_LFS_PART | cut -d \: -f 2)
+	if [ -z $XLAPP_LFS_FSTYPE ] ; then
+		XLAPP_LFS_FSTYPE=ext4
+	else
+		XLAPP_LFS_PART=$(echo $XLAPP_LFS_PART | cut -d \: -f 1)
+	fi
+
+	if [ ! -b $XLAPP_LFS_PART ] ; then
+		echo "LFS partition ($XLAPP_LFS_PART) is not a block device."
+		usage
+	fi
+
+	XLAPP_BOOT_FSTYPE=$(echo $XLAPP_BOOT_PART | cut -d \: -f 2)
+	if [ -z $XLAPP_BOOT_FSTYPE ] ; then
+		XLAPP_BOOT_FSTYPE=ext4
+	else
+		XLAPP_BOOT_PART=$(echo $XLAPP_BOOT_PART | cut -d \: -f 1)
+	fi
+
+	if [ ! -b $XLAPP_BOOT_PART ] ; then
+		echo "BOOT partition ($XLAPP_BOOT_PART) is not a block device."
+		usage
+	fi
+
+	INSTALL_INTO_BOOT=
+	if [ "${XLAPP_BOOT_PART}" = "${XLAPP_LFS_PART}" ] ; then
+		echo "Installing XLAPP into BOOT partition."
+		INSTALL_INTO_BOOT=true
+	fi
 fi
 
 # Make sure that IP was given in IP/prefix mode
@@ -210,12 +234,11 @@ while [ "$_PASSWD" != "$_PASSWD2" ] ; do
 done
 unset _PASSWD _PASSWD2
 
-BUILD_CONF="machine.config"
+echo "BUILD_CONF (config file): ${BUILD_CONF}"
 
-cat > $BUILD_CONF <<EOF
+if [ -z "$FOR_DOMU" ] ; then
+	cat >> $BUILD_CONF <<EOF
 export XLAPP_LFS="${XLAPP_LFS}"
-export MAKEFLAGS="${MAKEFLAGS}"
-export SKIP_TESTS="${SKIP_TESTS}"
 
 export XLAPP_HOST_PART="${XLAPP_HOST_PART}"
 export XLAPP_LFS_PART="${XLAPP_LFS_PART}"
@@ -224,6 +247,14 @@ export XLAPP_BOOT_PART="${XLAPP_BOOT_PART}"
 export XLAPP_HOST_FSTYPE="${XLAPP_HOST_FSTYPE}"
 export XLAPP_LFS_FSTYPE="${XLAPP_LFS_FSTYPE}"
 export XLAPP_BOOT_FSTYPE="${XLAPP_BOOT_FSTYPE}"
+EOF
+else
+	touch $BUILD_CONF
+fi
+
+cat >> $BUILD_CONF <<EOF
+export MAKEFLAGS="${MAKEFLAGS}"
+export SKIP_TESTS="${SKIP_TESTS}"
 
 export XLAPP_DNS_FQDN="${XLAPP_DNS_FQDN}"
 export XLAPP_HOST_HOSTNAME="${XLAPP_HOST_HOSTNAME}"
