@@ -2,11 +2,11 @@
 
 set +e
 grep "^postfix:" /etc/group > /dev/null 2>&1
-test $? -ne 0 && sudo groupadd -g 32 postfix
+test $? -ne 0 && sudo /usr/sbin/groupadd -g 32 postfix
 grep "^postdrop:" /etc/group > /dev/null 2>&1
-sudo groupadd -g 33 postdrop
+sudo /usr/sbin/groupadd -g 33 postdrop
 id postfix > /dev/null 2>&1
-test $? -ne 0 && sudo useradd -c "Postfix Daemon User" -d /dev/null -g postfix \
+test $? -ne 0 && sudo /usr/sbin/useradd -c "Postfix Daemon User" -d /dev/null -g postfix \
     -s /bin/false -u 32 postfix
 set -e
 sudo chown -v postfix:postfix /var/mail
