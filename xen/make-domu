@@ -236,7 +236,7 @@ EOF
 
 # FIXME -- this is now wrong...The correct var is something other
 # than XLAPP_DOMU_SWAP
-if [ "yes" == $XLAPP_DOMU_SWAP ] ; then
+if [ "yes" = "${XLAPP_DOMU_SWAP}" ] ; then
 	echo "    Adding swap in /etc/fstab..."
 	cat >> ${DOMU_CONF_DIR}/etc/fstab <<EOF
 /dev/xvda2     none         swap   sw                 0     0
