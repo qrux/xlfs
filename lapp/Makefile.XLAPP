@@ -89,7 +89,6 @@ PHP_CONF_OPTS :=			$(PHP_PREFIX) \
 	--with-pgsql=/usr/local/pgsql \
 	--with-curl \
 	--with-curlwrappers \
-	--with-openssl-dir \
 	--with-gd \
 	--with-jpeg-dir=/usr/local \
 	--with-png-dir=/usr/local \
@@ -112,7 +111,8 @@ PHP_CONF_OPTS :=			$(PHP_PREFIX) \
 	--with-zlib-dir=/usr \
 	--with-bz2=/usr \
 	--with-imap=/usr/local \
-	--with-imap-ssl
+	--with-imap-ssl \
+	--with-openssl
 
 ################################################################
 #
