@@ -222,7 +222,7 @@ libs-xl:		.libs-xl
 	@touch $@ && $(LDCONFIG)
 
 .imap-xl:		imap-src
-	cd $< && patch < ../imap-xlapp-patch && make xfs
+	cd $< && /bin/cp -f Makefile Makefile.ORIG && patch < ../imap-xlapp-patch && make xfs
 	$(INSTALL) -m 0644 $</c-client/c-client.a /usr/local/lib/libc-client.a
 	$(INSTALL) -m 0644 $</c-client/c-client.h /usr/local/include
 	$(INSTALL) -d /usr/local/include/c-client
