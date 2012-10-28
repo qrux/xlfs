@@ -89,7 +89,10 @@ EOF
 	exit 1
 }
 
+# Run config file
 ./lfs-conf "${@}"
+# Source output
+. $BUILD_CONF
 
 FSTYPE=ext3
 unset FILE_DEV FSSIZE
@@ -198,12 +201,10 @@ echo "                Swap amount?: $VIRT_SWAP"
 VIRT_ETH_IDX=0
 VIRT_MACADDRS=""
 while [ $VIRT_ETH_IDX -le $VIRT_ETH_COUNT ] ; do
-	VIRT_MACADDR="$(echo $XLAPP_DOMU_HOST_IP | awk -v eth=$VIRT_ETH_IDX -F \. '{printf("00:16:3e:%02x:%02x:%02x", eth, $3, $4);}')"
+	VIRT_MACADDR="$(echo $XLAPP_HOST_IP | awk -v eth=$VIRT_ETH_IDX -F \. '{printf("00:16:3e:%02x:%02x:%02x", eth, $3, $4);}')"
 	VIRT_MACADDRS="$VIRT_MACADDRS $VIRT_MACADDR"
 	VIRT_ETH_IDX=$((1 + $VIRT_ETH_IDX))
 done
-
-. $BUILD_CONF
 
 #echo "    DomU -    Hostname? $DOMU_HOST"
 #echo "    DomU -  DNS Domain? $DOMAIN_NAME"
