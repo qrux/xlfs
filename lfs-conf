@@ -39,7 +39,7 @@ echo "lfs-conf args: [ ${@} ]"
 FOR_DOMU=
 SKIP_TESTS=
 OPTERR=0 # Disables getopts errors (when called by domU).
-while getopts "v:fs:m:c:w:enuk:i:g:d:t:a:z:j:o:h" OPT ; do
+while getopts "l:p:b:v:fs:m:c:w:enuk:i:g:d:t:a:z:j:o:h" OPT ; do
 	case "${OPT}" in
 		u) FOR_DOMU=true;;
 		l) XLAPP_LFS_PART="${OPTARG}";;
