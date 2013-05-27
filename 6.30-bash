@@ -11,7 +11,7 @@ make
 chown -Rv nobody .
 
 if [ -z $SKIP_TESTS ] ; then
-	su-tools nobody -s /bin/bash -c "make tests" 2>&1 | tee ${__TEST_OUTPUT}
+	/tools/bin/su-tools nobody -s /bin/bash -c "make tests" 2>&1 | tee ${__TEST_OUTPUT}
 	test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
 fi
 
