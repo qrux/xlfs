@@ -9,7 +9,7 @@ rm -fv dot.alias-root
 rm -fv BLFS-ca-bundle*.crt
 rm -fv *-jail
 rm -fv certdata.txt
-rm -fv lfs.out lfs2.out
+rm -fv lfs.out
 rm -fv src/wl
 rm -fv tmpl
 rm -rfv blfs-bootscripts-*
