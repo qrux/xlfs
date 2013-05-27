@@ -3,7 +3,8 @@
 make mrproper
 
 #cp -vf ../../zkernel-3.1-dom0.config .config
-cp -vf ../../zkernel-3.1-dom0-full.config .config
+#cp -vf ../../zkernel-3.1-dom0-full.config .config
+cp -vf ../../zkernel-3.1-dom0-full-gen-x64-xfs.config .config
 make oldconfig
 
 make ${MAKEFLAGS}
