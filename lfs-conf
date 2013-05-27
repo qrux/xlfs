@@ -22,6 +22,7 @@ Creates an LFS-like config file using the following parameters:
   -z tz           TZ (e.g. tzselect output)
   -j concurrency  MAKEFLAGS
   -n              NO-TESTS (build Chap6 without tests)
+  -r              Use RAMFS to build the system
   -o file         Write output to 'file'
   -h              Usage (this information)
 
@@ -38,8 +39,9 @@ echo "lfs-conf args: [ ${@} ]"
 
 FOR_DOMU=
 SKIP_TESTS=
+XLAPP_USE_RAMFS=
 OPTERR=0 # Disables getopts errors (when called by domU).
-while getopts "l:p:b:v:fs:m:c:w:enuk:i:g:d:t:a:z:j:o:h" OPT ; do
+while getopts "l:p:b:v:fs:m:c:w:enruk:i:g:d:t:a:z:j:o:h" OPT ; do
 	case "${OPT}" in
 		u) FOR_DOMU=true;;
 		l) XLAPP_LFS_PART="${OPTARG}";;
@@ -55,6 +57,7 @@ while getopts "l:p:b:v:fs:m:c:w:enuk:i:g:d:t:a:z:j:o:h" OPT ; do
 		j) MAKEFLAGS="-j ${OPTARG}";;
 		n) SKIP_TESTS=true;;
 		o) OUTPUT_FILE="${OPTARG}";;
+		r) XLAPP_USE_RAMFS=true;;
 		h) usage;;
 		*) if [ -z ${FOR_DOMU} ] ; then echo "Unrecognized option $OPT." ; fi;;
 	esac
@@ -104,7 +107,7 @@ else
 		usage
 	fi
 
-	XLAPP_HOST_FSTYPE=$(echo $XLAPP_HOST_PART | cut -d \: -f 2)
+	XLAPP_HOST_FSTYPE=$(echo $XLAPP_HOST_PART | awk -F \: '{print $2}')
 	if [ -z $XLAPP_HOST_FSTYPE ] ; then
 		XLAPP_HOST_FSTYPE=ext4
 	else
@@ -116,7 +119,7 @@ else
 		usage
 	fi
 
-	XLAPP_LFS_FSTYPE=$(echo $XLAPP_LFS_PART | cut -d \: -f 2)
+	XLAPP_LFS_FSTYPE=$(echo $XLAPP_LFS_PART | awk -F \: '{print $2}')
 	if [ -z $XLAPP_LFS_FSTYPE ] ; then
 		XLAPP_LFS_FSTYPE=ext4
 	else
@@ -128,7 +131,7 @@ else
 		usage
 	fi
 
-	XLAPP_BOOT_FSTYPE=$(echo $XLAPP_BOOT_PART | cut -d \: -f 2)
+	XLAPP_BOOT_FSTYPE=$(echo $XLAPP_BOOT_PART | awk -F \: '{print $2}')
 	if [ -z $XLAPP_BOOT_FSTYPE ] ; then
 		XLAPP_BOOT_FSTYPE=ext4
 	else
@@ -236,6 +239,14 @@ unset _PASSWD _PASSWD2
 
 echo "BUILD_CONF (config file): ${BUILD_CONF}"
 
+if [ -z $BUILD_CONF ] ; then
+	echo "  No BUILD_CONF (config file); aborting."
+	exit 1
+fi
+
+# Should we remove the BUILD_CONF (machine.config or <machine>-config) file?
+rm -f $BUILD_CONF
+
 if [ -z "$FOR_DOMU" ] ; then
 	cat >> $BUILD_CONF <<EOF
 export XLAPP_LFS="${XLAPP_LFS}"
@@ -255,6 +266,7 @@ fi
 cat >> $BUILD_CONF <<EOF
 export MAKEFLAGS="${MAKEFLAGS}"
 export SKIP_TESTS="${SKIP_TESTS}"
+export XLAPP_USE_RAMFS="${XLAPP_USE_RAMFS}"
 
 export XLAPP_DNS_FQDN="${XLAPP_DNS_FQDN}"
 export XLAPP_HOST_HOSTNAME="${XLAPP_HOST_HOSTNAME}"
@@ -286,6 +298,7 @@ cat <<EOF
          Installing LFS to: ${XLAPP_LFS}
                  MAKEFLAGS: ${MAKEFLAGS}
                 SKIP_TESTS: ${SKIP_TESTS} (empty string implies 'no')
+           XLAPP_USE_RAMFS: ${XLAPP_USE_RAMFS} (empty string implies 'no')
 
             HOST partition: ${XLAPP_HOST_PART}
              LFS partition: ${XLAPP_LFS_PART}

@@ -30,16 +30,20 @@ if [ -z $XLAPP_LFS ] ; then
 fi
 
 echo "  Setting \$LFS to [ ${XLAPP_LFS} ]..."
-export LFS=$XLAPP_LFS
+if [ -n "$XLAPP_USE_RAMFS" ] ; then
+	export LFS=/mnt/xlapp-build-ram
+else
+	export LFS=$XLAPP_LFS
+fi
 export __SOURCE_DIR="${LFS}/lfs"
 
 echo "  Creating .bashrc for LFS-user, and lfs-05-buid-as-lfs..."
 LFS_DOT_BASHRC="dot.bashrc-lfs"
-cat ${LFS_DOT_BASHRC}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $LFS_DOT_BASHRC
+cat ${LFS_DOT_BASHRC}.in | sed "s,^LFS=.*,LFS=$LFS," > $LFS_DOT_BASHRC
 LFS_05_BUILD="lfs-05-build-as-lfs"
-cat ${LFS_05_BUILD}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $LFS_05_BUILD
+cat ${LFS_05_BUILD}.in | sed "s,^LFS=.*,LFS=$LFS," > $LFS_05_BUILD
 ROOT_DOT_ALIAS_ROOT="dot.alias-root"
-cat ${ROOT_DOT_ALIAS_ROOT}.in | sed "s,^LFS=.*,LFS=$XLAPP_LFS," > $ROOT_DOT_ALIAS_ROOT
+cat ${ROOT_DOT_ALIAS_ROOT}.in | sed "s,^LFS=.*,LFS=$LFS," > $ROOT_DOT_ALIAS_ROOT
 
 /bin/cp -fv $ROOT_DOT_ALIAS_ROOT ~root/.alias-root
 
@@ -73,8 +77,15 @@ umount $LFS/dev 2> /dev/null
 #umount ${XLAPP_LFS_PART} 2> /dev/null
 echo "  Make sure LFS mount point [ $LFS ] exists and is mounted..."
 mkdir -pv $LFS
-mount ${XLAPP_LFS_PART} $LFS
+if [ -z "$XLAPP_USE_RAMFS" ] ; then
+	mount ${XLAPP_LFS_PART} $LFS
+else
+	umount -v $LFS
+	mount -v -t tmpfs -o size=16384m tmpfs $LFS
+fi
 set -e
+
+#exit #TMPFS - testing.
 
 ########################################################################
 #
@@ -215,6 +226,33 @@ echo "    Installing new dom0-capaable kernel: lfs-7.0-linux-3.1..."
 for file in $(echo $LFS/boot/*) ; do
 	/bin/cp -vf $file /boot
 done
+
+echo "    Ummounting jail filesystems..."
+set +e
+umount $LFS/sys 2> /dev/null
+umount $LFS/proc 2> /dev/null
+umount $LFS/dev/pts 2> /dev/null
+umount $LFS/dev/shm 2> /dev/null
+umount $LFS/dev 2> /dev/null
+set -e
+
+if [ -n "$XLAPP_USE_RAMFS" ] ; then
+	echo "    Ummounting jail filesystems at target..."
+	set +e
+	umount ${XLAPP_LFS}/sys 2> /dev/null
+	umount ${XLAPP_LFS}/proc 2> /dev/null
+	umount ${XLAPP_LFS}/dev/pts 2> /dev/null
+	umount ${XLAPP_LFS}/dev/shm 2> /dev/null
+	umount ${XLAPP_LFS}/dev 2> /dev/null
+	set -e
+
+	echo "    Used RAMFS to build; mounting & copying..."
+	echo "     XLAPP Partition:   $XLAPP_LFS_PART"
+	echo "     XLAPP Mount-Point: $XLAPP_LFS"
+	cd $LFS
+	mount $XLAPP_LFS_PART $XLAPP_LFS
+	find . -depth -print | cpio -pdmv $XLAPP_LFS
+fi
 
 LFS_KERNEL=$(ls /boot/vmlinuz*-dom0)
 
