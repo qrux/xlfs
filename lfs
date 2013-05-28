@@ -14,6 +14,22 @@ XLAPP_CONFIG_FILE=machine.config
 
 ./lfs-conf "${@}"
 
+XLAPP_CONTINUE=
+OPTERR=0 # Disables getopts errors (when called by domU).
+while getopts "c" OPT ; do
+        case "${OPT}" in
+                c) XLAPP_CONTINUE=true;;
+                #*) if [ -z ${FOR_DOMU} ] ; then zed option $OPT." ; fi;;
+        esac
+done
+shift $(($OPTIND - 1))
+
+# We're done.  Caller is saying there's already a machine.config.
+if [ -n "$XLAPP_CONTINUE" ] ; then
+        export XLAPP_CONTINUE=true
+        echo "Continuing build; using existing config file."
+fi
+
 if [ ! -e $XLAPP_CONFIG_FILE ] ; then
 	echo "XLAPP config file could not be produced; aborting"
 	false
@@ -37,6 +53,13 @@ else
 fi
 export __SOURCE_DIR="${LFS}/lfs"
 
+if [ ! -z $SKIP_TESTS ] ; then
+	_EXTRA_BUILD_MESG=" Quick Build (no test)"
+else
+	_EXTRA_BUILD_MESG=" Verified Build (with ALL tests)"
+fi
+
+if [ -z $XLAPP_CONTINUE ] ; then # If XLAPP_CONTINUE isn't set, do prep/init.
 echo "  Creating .bashrc for LFS-user, and lfs-05-buid-as-lfs..."
 LFS_DOT_BASHRC="dot.bashrc-lfs"
 cat ${LFS_DOT_BASHRC}.in | sed "s,^LFS=.*,LFS=$LFS," > $LFS_DOT_BASHRC
@@ -172,17 +195,6 @@ chown -Rv lfs:lfs $__SOURCE_DIR/src
 # Add password for lfs in /etc/shadow
 sed -i "s%^lfs:[^:]*:\(.*\)%lfs:$XLAPP_ROOT_PASSWD_HASH:\1%" /etc/shadow
 
-if [ ! -z $SKIP_TESTS ] ; then
-	_EXTRA_BUILD_MESG=" Quick Build (no test)"
-else
-	_EXTRA_BUILD_MESG=" Verified Build (with ALL tests)"
-fi
-
-# Purge GUARD files if CLEAN build.
-if [ -n "$XLAPP_CLEAN" ] ; then
-	/bin/rm -vf $LFS/lfs/.guard-*
-fi
-
 echo "########################################################################"
 echo "#"
 echo "# Building XLAPP (Phase 1) - ${_EXTRA_BUILD_MESG}..."
@@ -202,10 +214,22 @@ ln -sfv $__SOURCE_DIR/lfs.out ./lfs.out
 rm -rf $__SOURCE_DIR/tests
 mkdir -pv $__SOURCE_DIR/tests
 ln -sfv $__SOURCE_DIR/tests ./tests
+else # XLAPP_CONTINUE is not set.
+	echo "########################################################################"
+	echo "#"
+	echo "# --==[ Continuing ]==--  XLAPP (Phase 1) - ${_EXTRA_BUILD_MESG}..."
+	echo "#"
+	echo "#   * Use tail -f lfs.out to see build outout."
+	echo "#"
+	echo "#   * This process will not produce more output until completion."
+	echo "#"
+	echo "########################################################################"
+fi
 
 cd $__SOURCE_DIR
 set +e
-time ./lfs-actual > $__SOURCE_DIR/lfs.out 2>&1
+touch $__SOURCE_DIR/lfs.out
+time ./lfs-actual >> $__SOURCE_DIR/lfs.out 2>&1
 
 if [ 0 -ne $? ] ; then
 	echo "########################################################################"

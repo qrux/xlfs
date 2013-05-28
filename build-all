@@ -56,6 +56,9 @@ for PHASE in $(seq $STARTING_CHAPTER 9) b0 b1 b2 ; do
 					if [ -f $SCRIPT_GUARD ] ; then
 						if [ 2 -le $(wc -l $SCRIPT_GUARD) ] ; then
 							continue
+						else
+							rm -f .guard-${SCRIPT}
+							touch .guard-${SCRIPT}
 						fi
 					fi
 
