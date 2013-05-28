@@ -178,6 +178,11 @@ else
 	_EXTRA_BUILD_MESG=" Verified Build (with ALL tests)"
 fi
 
+# Purge GUARD files if CLEAN build.
+if [ -n "$XLAPP_CLEAN" ] ; then
+	/bin/rm -vf $LFS/lfs/.guard-*
+fi
+
 echo "########################################################################"
 echo "#"
 echo "# Building XLAPP (Phase 1) - ${_EXTRA_BUILD_MESG}..."

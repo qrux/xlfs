@@ -51,7 +51,18 @@ for PHASE in $(seq $STARTING_CHAPTER 9) b0 b1 b2 ; do
 		if [ -e $SCRIPT ] ; then
 			echo "  Building $SCRIPT (with ${MAKEFLAGS})..."
 			if [ 1 -ne $JUST_TESTING ] ; then
-				if [ 1 -eq $HAS_STARTED ] ; then time ./build $SCRIPT ; fi
+				if [ 1 -eq $HAS_STARTED ] ; then
+					SCRIPT_GUARD=".guard-${SCRIPT}"
+					if [ -f $SCRIPT_GUARD ] ; then
+						if [ 2 -le $(wc -l $SCRIPT_GUARD) ] ; then
+							continue
+						fi
+					fi
+
+					  date '+%s' > $SCRIPT_GUARD  # Write to file.
+					time ./build $SCRIPT
+					  date '+%s' >> $SCRIPT_GUARD # Append to file.
+				fi
 			fi
 		fi
 

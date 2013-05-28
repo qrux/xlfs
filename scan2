@@ -1,0 +1,69 @@
+#! /bin/bash
+
+LFS_TIME="-1"
+LFS_LOCATION=$1
+SLEEP=$2
+FILE=$3
+
+if [ -z $LFS_LOCATION ] ; then
+	LFS_LOCATION=/mnt/lfs/lfs
+else
+	LFS_LOCATION="$LFS_LOCATION/lfs"
+fi
+
+if [ -z $FILE ] ; then
+	FILE="./lfs.out"
+fi
+
+test ! -z $SLEEP || SLEEP=5
+
+while true ; do
+	GLOBAL_START=0
+	GLOBAL_END=0
+
+	clear
+	date
+
+	GUARD_LIST=$(ls -1 ${LFS_LOCATION}/.guard-* 2> /dev/null)
+	if [ 0 -ne $? ] ; then
+		echo "XLAPP has not been started yet."
+		sleep $SLEEP
+		continue
+	fi
+
+	for GUARD in $GUARD_LIST ; do
+		TIMES=$(echo $(cat $GUARD))
+		BEGIN=$(echo $TIMES | awk '{print $1}')
+		END=$(echo $TIMES | awk '{print $2}')
+
+		if [ -z $END ] ; then	
+			END=$(date '+%s')
+			STATE="-->"
+		else
+			STATE=""
+		fi
+
+		if [ 0 -eq $GLOBAL_START ] ; then
+			GLOBAL_START=$BEGIN
+			GLOBAL_END=$GLOBAL_START
+		fi
+
+		if [ $END   -gt $GLOBAL_END ] ; then GLOBAL_END=$END ; fi
+		if [ $BEGIN -lt $GLOBAL_START ] ; then GLOBAL_START=$BEGIN ; fi
+
+		DURATION=$(($END - $BEGIN))
+
+		THING=$(basename $GUARD | sed 's/^.guard-//')
+		MESG="${STATE}${THING}"
+		printf "%4s %-32s %5d sec\n" "$STATE" "$THING" $DURATION
+		#echo "    Time $STATE $THING: $DURATION sec"
+	done
+
+	DURATION=$(($GLOBAL_END - $GLOBAL_START))
+	MINUTES=$(($DURATION / 60))
+	SECS=$(($DURATION - $((60 * $MINUTES))))
+	echo
+	echo "  Total time building XLAPP: ${MINUTES}m:${SECS}s"
+
+	sleep $SLEEP
+done

@@ -23,6 +23,7 @@ Creates an LFS-like config file using the following parameters:
   -j concurrency  MAKEFLAGS
   -n              NO-TESTS (build Chap6 without tests)
   -r              Use RAMFS to build the system
+  -c              Clean build (restart whole process)
   -o file         Write output to 'file'
   -h              Usage (this information)
 
@@ -40,6 +41,7 @@ echo "lfs-conf args: [ ${@} ]"
 FOR_DOMU=
 SKIP_TESTS=
 XLAPP_USE_RAMFS=
+XLAPP_CLEAN=
 OPTERR=0 # Disables getopts errors (when called by domU).
 while getopts "l:p:b:v:fs:m:c:w:enruk:i:g:d:t:a:z:j:o:h" OPT ; do
 	case "${OPT}" in
@@ -56,8 +58,9 @@ while getopts "l:p:b:v:fs:m:c:w:enruk:i:g:d:t:a:z:j:o:h" OPT ; do
 		z) XLAPP_TARGET_TZ="${OPTARG}";;
 		j) MAKEFLAGS="-j ${OPTARG}";;
 		n) SKIP_TESTS=true;;
-		o) OUTPUT_FILE="${OPTARG}";;
 		r) XLAPP_USE_RAMFS=true;;
+		c) XLAPP_CLEAN=true;;
+		o) OUTPUT_FILE="${OPTARG}";;
 		h) usage;;
 		*) if [ -z ${FOR_DOMU} ] ; then echo "Unrecognized option $OPT." ; fi;;
 	esac
@@ -267,6 +270,7 @@ cat >> $BUILD_CONF <<EOF
 export MAKEFLAGS="${MAKEFLAGS}"
 export SKIP_TESTS="${SKIP_TESTS}"
 export XLAPP_USE_RAMFS="${XLAPP_USE_RAMFS}"
+export XLAPP_CLEAN="${XLAPP_CLEAN}"
 
 export XLAPP_DNS_FQDN="${XLAPP_DNS_FQDN}"
 export XLAPP_HOST_HOSTNAME="${XLAPP_HOST_HOSTNAME}"
@@ -297,8 +301,9 @@ echo
 cat <<EOF
          Installing LFS to: ${XLAPP_LFS}
                  MAKEFLAGS: ${MAKEFLAGS}
-                SKIP_TESTS: ${SKIP_TESTS} (empty string implies 'no')
+                SKIP_TESTS: ${SKIP_TESTS}      (empty string implies 'no')
            XLAPP_USE_RAMFS: ${XLAPP_USE_RAMFS} (empty string implies 'no')
+               XLAPP_CLEAN: ${XLAPP_CLEAN}     (empty string implies 'no')
 
             HOST partition: ${XLAPP_HOST_PART}
              LFS partition: ${XLAPP_LFS_PART}
