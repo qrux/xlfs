@@ -1,8 +1,10 @@
 #! /bin/bash
 
-make PREFIX=/usr
+#make PREFIX=/usr
+make user
 
-make PREFIX=/usr install
+#make PREFIX=/usr install
+make user_install
 
 ldconfig
 
