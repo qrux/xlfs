@@ -10,7 +10,8 @@ echo "########################################################################"
 echo
 echo "  Looking for config file..."
 
-XLAPP_CONFIG_FILE=machine.config
+XLAPP_VERSION="7.0.4"
+XLAPP_CONFIG_FILE="machine.config"
 
 ./lfs-conf "${@}"
 
@@ -143,7 +144,7 @@ cp -a * $__SOURCE_DIR
 echo "  Checking MD5 sums on packages..."
 pushd $__SOURCE_DIR/src
 
-for download in $(cat _wget-7.0.1) ; do
+for download in $(cat _wget-${XLAPP_VERSION}) ; do
 	download_file=$(basename $download)
 	if [ ! -f $download_file ] ; then
 		wget $download
