@@ -37,7 +37,7 @@ if [ -z $SKIP_TESTS ] ; then
 	# handling off...
 	#
 	set +e
-	make -k check 2>&1 | tee ${__TEST_OUTPUT}
+	TIMEOUTFACTOR=16 make -k check 2>&1 | tee ${__TEST_OUTPUT}
 	set -e
 	#
 	# Now, turn bash error-handling back on, and check for
