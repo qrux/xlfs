@@ -3,12 +3,19 @@ What is XLAPP?
 
 XLAPP is a set of scripts that creates a virtualization-capable Linux system using Xen.
 
-It's not a distro, per se, in that the goal is to minimize bloat.  Most bloat comes from X11 and the huge array of packages and services envisioned for huge enterprises (Gnome, KDE, LDAP, Kerberos/OpenDirectory, etc).
+It's goal is to minimize bloat.  Most bloat comes from X11 and the huge array of packages and services envisioned for eithe desktop (Gnome, KDE) or for enterprises (LDAP, Kerberos, OpenDirectory).
 
-It stands for "Xen LFS APP".  The "APP" can mean anything you want.  Maybe "application".  Or "appliance".  It was, at the start, meant to be a take on "LAPP", but since XLAPP now supports multiple server types that have nothing to do with a traditional web stack, it just didn't make sense to tie it to any particular use.
+It stands for "Xen LFS APP".  The "APP" can mean anything you want.  Maybe "application".  Or "appliance".  At the start of the project, "APP" meant "Apache, PostgresSQL, PHP".  Now, since XLAPP now supports multiple server types (e.g., mail servers, DNS servers) that have nothing to do with a traditional web stack, it just didn't make sense to tie it to any particular use.
 
-Well, LFS itself stands for "Linux From Scratch".  It's a project intended to teach people how Linux works, and is a book intended to guide a user through the entire process of compiling Linux from source.  XLAPP, then, is a way to compile the entire OS, the virtualization stack (hypervisor, kernel, and tools), plus a
-few application stacks entirely from source code.
+"LFS" itself stands for "Linux From Scratch".  It's a project intended to teach people how Linux works, and is a book intended to guide a user through the entire process of compiling Linux from source.  You can find it here:
+
+	http://linuxfromscratch.org
+
+and the version I used was 7.0, which you can get to directly here:
+
+	http://www.linuxfromscratch.org/lfs/view/7.0
+
+This project, XLAPP, then, is a way to compile the entire OS, the virtualization stack (hypervisor, kernel, and tools), plus a few application stacks entirely from source code.
 
 How does it work?
 --
@@ -27,15 +34,18 @@ Install the host system (e.g., openSUSE-11.4).  Create 3 partitions: /boot, /, a
 	cd /
 	tar xf xlapp-984985.tar.gz # (or whatever version your tarball is)
 	cd ~
-	ln -s /lfs lfs
-	cd lfs/src
-	wget -nc -i wget-list
-	cd ..
+	cd <whatever the tarball unpacks to>
 	./lfs
 
-Then, just answer the questions (paying particular attention to the root password and the SSH key; that's how you'll gain access to the new system).
+This will display a usage note.  For your first build, I would suggest running with the '-n' option but without the '-r' or '-c' options.
 
-About 3 hours later, (on an 1st-gen i5), you'll have a bootable XLAPP-Phase-1 system (with SSH access).  When it's finished (assuming it finishes without error), it will have modified the entries in /boot/grub/menu.lst to boot your new XLAPP system by default.
+	./lfs -l /dev/sda6 -p /dev/sda3 -b /dev/sda2 -k "your-public-SSH-key" -i 192.168.1.250/24 -g 192.168.1.1 -d 192.168.1.1 -t YOUR.NTP.SERVER.COM -j 6 -n -o lfs.out xlapp.YOUR.DOMAIN.COM /mnt/lfs
+
+This assumes that my target-partition is /dev/sda6, my host-partition (where I'm running the command from) is /dev/sda3, and my boot-partition (which contains my custom kernels) is /dev/sda2.  Then, I give it a static IP assignment with a gateway, a DNS server, an NTP server, a make-parallelism of 6 (I happen to have a 6-core AMD dev machine).  Finally, the name of the new machine (FQDN) is xlapp.YOUR.DOMAIN.COM (change this to whatever makes sense for you) and the XLAPP target-partition is mounted at /mnt/lfs.
+
+Run this command in the foreground (do not run in the background with an ampersand), as it needs to ask for a password on stdin.  Pay especial attention to the SSH key (-k option) and the password you enter when prompted; if you use bad values here, you don't be able to login to the new system.
+
+About 30 minutes later (on a 6-core AMD FX-6350 @ 4400 MHz), you'll have a bootable XLAPP-Phase-1 system (with SSH access).  When it's finished (assuming it finishes without error), it will have modified the entries in /boot/grub/menu.lst to boot your new XLAPP system by default.
 
 Before rebooting, make sure you're ready to do these new few steps.  Having 2 windows open helps.  Right after rebooting, you'll have 30 seconds to log in and stop the watchdog timer.  During the development process, sometimes mistakes would creep into the bootscripts (or other touchy initialization steps).  Allows the system to reboot itself back into the host was a nice feature that prevented having to log in at the console of the target computer.
 
@@ -58,9 +68,9 @@ Now you can move on to stage 2:
 	cd /lfs
 	./lfs2
 
-When this finishes, you'll have built the a dom0-capable kernel.  The system adds the GRUB entries you'll need (again)--though this time without a watchdog (if you uninstalled it).  Then, go ahead and reboot.  When this happens, you'll have a finished XLAPP system, running on top of the Xen hypervisor.
+When this finishes, you'll have built the Xen Type-1 Hypervisor (dom0) kernel.  The system adds the GRUB entries you'll need (again)--though this time without a watchdog (if you uninstalled it).  Then, go ahead and reboot.  When this happens, you'll have a finished XLAPP system, running on top of the Xen hypervisor.
 
-*You're ready to make domU guest systems!*
+*You're ready to make Xen guest systems (domUs)!*
 
 
 Why?
@@ -68,9 +78,9 @@ Why?
 
 Prior to this, I've run RedHat and SuSE in production systems. It's frustrating to see more and more bloat go into these distributions, especially when it was always my intention to run them as servers.
 
-For example, in the last two versions of openSUSE, in order to install the Xen system, you had to install the X11 libraries.  That's a ridiculous amount of bloat to accommodate a hypervisor.  In addition, you had to install Python (which, itself, required X11).  It seemed like there was no easy way to get rid of X11.
+For example, in the last two versions of openSUSE, in order to install the Xen system, you had to install the X11 libraries.  That's a ridiculous amount of bloat to accommodate a hypervisor.  In addition, you had to install Python (which was the dependency that required X11).  It seemed like there was no easy way to get rid of X11.
 
-Running a Xen cluster should place as few dependencies on Domain 0 (the priviledged Host OS in Xen) as possible; that way, the machine runs leaner and is easier to secure.  Requiring Dom0 to install X11 libraries, sound libraries, OpenGL libraries, and dozens of userland packages that never get used makes for a bloated system.
+Running a Xen cluster should place as few dependencies on Domain 0 (the priviledged Host OS in Xen) as possible; that way, the machine runs leaner, uses less disks space, and has a smaller attackable footprint.  Requiring Dom0 to install X11 libraries, sound libraries, OpenGL libraries, and dozens of userland packages that never get used makes for a bloated system.
 
 In production systems, bloat makes backups take up more space and take longer to complete.  Bloat can also be a source of security issues (the more code running, the more code exposed).  It can also mean more bugs.  Plus, if this bloat comes through a commercial packaging system, it can also mean more dependencies in the future, and difficulty separating updating specific packages (e.g., OpenSSL) if the vendor has not updated them through their online-update system.
 
@@ -79,14 +89,16 @@ LFS meets the criteria for the "smallest usable" toolchain.  In addition, its me
 Goals
 -----
 
-I want to run a Xen cluster using an LFS-based Dom0 and LFS-based paravirtualized DomU's.  In fact, I plan to just clone the Dom0 system and use file-based disk images for Dom0.  I want to have a pure 64-bit system (i.e., no multilib gcc/glibc, no 32-bit toolchains, no 32-bit libs in /lib vs 64-bit libs in /lib64).  I want to install as little as possible in Dom0 and each of the DomU's.  That's roughly the same goal, since the DomU's will just be clones of Dom0.
+I want to run a Xen cluster using an LFS-based Dom0 and LFS-based paravirtualized DomU's.  In fact, I plan to just clone the Dom0 system and use file-based disk images for Dom0 (this would eventually not work out, and I would have to resort to LVM2 for domU filesystems, but that's a small matter).  I want to have a pure 64-bit system (i.e., no multilib gcc/glibc, no 32-bit toolchains, no 32-bit libs in /lib vs 64-bit libs in /lib64).  I want to install as little as reasonable in Dom0 and each of the DomU's.
 
-Originally, I narrowed my focus to just being able to install the web-stack on the DomU's.  It turns out, a variety of things could be done with the DomU stack, including serving as a testbed for new LFS builds.  A significant amount of effort was expended trying to keep the hardware abstracted away from the build scripts.  This was done by having a configuration script at the beginning which prompted for good values.  It turns out that with a bit more scripting, the entire XLAPP build could be bootstrapped this way, and set to be easily deployable against a DomU once the Dom0 is built.  This would go a long way toward verification-testing of the DomU--especially running test-heavy packages like BerkeleyDB (not to mention the web-stack itself).
+Originally, I narrowed my focus to just being able to install the web-stack on the DomU's.  It turns out, a variety of server types could be created with the DomU stack.  A significant amount of effort was expended trying to keep the hardware setup, particularly the disk partitioning, abstracted away from the build scripts.  This was done by having a configuration script at the beginning which prompted for good values.  It turns out that with a bit more scripting, the entire XLAPP build could be bootstrapped this way, and set to be easily deployable against a DomU once the Dom0 is built.  This would go a long way toward verification-testing of the DomU--especially running test-heavy packages like BerkeleyDB (not to mention the web-stack itself).
 
-In addition, I want to be able to deploy stripped-down DomU's that only run a DNS server or SMTP/IMAP server; this makes new domains easy to deploy in a colo server.
+In addition, I want to be able to deploy stripped-down DomU's that only run a DNS server or SMTP/IMAP server; this makes new domains easy to deploy.
 
 On with it!  (Or, "Installation")
 =================================
+
+[Caveat--this is a bit old, and needs updating for the 2013 changes...Stay tuned.]
 
 Part 1: Choosing an LFS-host
 ----------------------------
@@ -131,9 +143,8 @@ One note…I don't use swap on this kind of build, because my test machine has 16 
 
 Moving on...Get to where you choose your software packages.  Select "Other" (as opposed to KDE or GNOME or all that other crap), and then choose Minimal Text.  Once there, use the "Pattern" filter, and choose the following meta-packages:
 
+* Base Dev
 * Kernel Dev
-* C/C++ Dev
-* Xen
 
 Then, change to "Search" mode (i.e. no longer "Pattern"), and search for these packages to make your life possible/easier.  Replace 'vim' with whatever editor you're comfortable with.  But, I install 'vim' again for XLAPP.  If you'd rather have something else, do your own investigations.
 
