@@ -1,0 +1,7 @@
+sed -i 's/Wall -Werror/Wall/' Makefile
+
+make everything
+
+make test
+
+sudo make install

@@ -4,7 +4,8 @@ sa_lib_dir=/usr/lib/sa    \
 sa_dir=/var/log/sa        \
 conf_dir=/etc/sysconfig   \
 ./configure --prefix=/usr \
-            --disable-man-group
+            --disable-file-attr
+            #--disable-man-group
 
 make
 

@@ -1,0 +1,60 @@
+export XLAPP_LFS="/mnt/lfs"
+
+export XLAPP_HOST_PART="/dev/sdf2"
+export XLAPP_LFS_PART="/dev/sdf5"
+export XLAPP_BOOT_PART="/dev/sdb1"
+
+export XLAPP_HOST_FSTYPE="ext4"
+export XLAPP_LFS_FSTYPE="ext4"
+export XLAPP_BOOT_FSTYPE="ext4"
+export MAKEFLAGS="-j 4"
+export SKIP_TESTS=""
+
+export XLAPP_DNS_FQDN="ntp2.xlapp.org"
+export XLAPP_HOST_HOSTNAME="ntp2"
+export XLAPP_DNS_DOMAIN_NAME="xlapp.org"
+export XLAPP_HOST_IP="216.218.158.109"
+export XLAPP_HOST_PREFIX="29"
+export XLAPP_HOST_NETMASK="/29"
+export XLAPP_HOST_GW="216.218.158.105"
+export XLAPP_DNS_SERVERS=" 65.19.175.2 65.19.176.2"
+export XLAPP_NTP_SERVERS=" clock.fmt.he.net clock.sjc.he.net"
+
+export XLAPP_TARGET_LANG="en_US.UTF-8"
+export XLAPP_TARGET_TZ="America/Los_Angeles"
+
+export XLAPP_CONF_DISTRO="Xen/LFS Apache Postgres PHP"
+export XLAPP_CONF_DISTRO_CONTACT="qrux@xlapp.org"
+export XLAPP_CONF_DISTRO_MINI="XLAPP"
+export XLAPP_SSH_PUBKEY="ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAtmAL5OxrYoKgnwKXUUJR6wrRY/hfCICQqYYPQ48P5l9c0P3Keyy1gyJUMagNOumTg5jeDU/ZdLDR4hEAtuaBW59DxQeLQuDpi5MT3FGgvmQw/KrJYJPvPkhOY71MfZBKnEfKBeHFUZcmtNDcm6LMKMJnizfT3zmYlgg3HCT2zKTKiuhiPxA74wCUzO4/OPhCmQZRTuaH4nkJ7hPTXmQXi4Hmlx0FzWrbIoEfWkPvABzvTbPb9wCke+ihA2UGqdgRdu2sd4PEQuO7yUBXJ+wpdjat44Dxg8PNx99/COiqGiaVyGlgFnUB23urE56I39AF9SX+0JinYwA0ZUkZsqFO8w== troy@troy"
+export XLAPP_ROOT_PASSWD_HASH='$6$35a116d27668e05a$/Ci5/bnXPoFv4UU2Ftp3gJ5PXXUtuL36.xgLgUTFTQLN0BD8.QIdyxBZQvvTdfs3xU4l89y7Mc79ekHZ5jfSe0'
+export XLAPP_LFS="/mnt/lfs"
+
+export XLAPP_HOST_PART="/dev/sdf2"
+export XLAPP_LFS_PART="/dev/sdf5"
+export XLAPP_BOOT_PART="/dev/sdb1"
+
+export XLAPP_HOST_FSTYPE="ext4"
+export XLAPP_LFS_FSTYPE="ext4"
+export XLAPP_BOOT_FSTYPE="ext4"
+export MAKEFLAGS="-j 4"
+export SKIP_TESTS=""
+
+export XLAPP_DNS_FQDN="ntp2.xlapp.org"
+export XLAPP_HOST_HOSTNAME="ntp2"
+export XLAPP_DNS_DOMAIN_NAME="xlapp.org"
+export XLAPP_HOST_IP="216.218.158.109"
+export XLAPP_HOST_PREFIX="29"
+export XLAPP_HOST_NETMASK="/29"
+export XLAPP_HOST_GW="216.218.158.105"
+export XLAPP_DNS_SERVERS=" 65.19.175.2 65.19.176.2"
+export XLAPP_NTP_SERVERS=" clock.fmt.he.net clock.sjc.he.net"
+
+export XLAPP_TARGET_LANG="en_US.UTF-8"
+export XLAPP_TARGET_TZ="America/Los_Angeles"
+
+export XLAPP_CONF_DISTRO="Xen/LFS Apache Postgres PHP"
+export XLAPP_CONF_DISTRO_CONTACT="qrux@xlapp.org"
+export XLAPP_CONF_DISTRO_MINI="XLAPP"
+export XLAPP_SSH_PUBKEY="ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAtmAL5OxrYoKgnwKXUUJR6wrRY/hfCICQqYYPQ48P5l9c0P3Keyy1gyJUMagNOumTg5jeDU/ZdLDR4hEAtuaBW59DxQeLQuDpi5MT3FGgvmQw/KrJYJPvPkhOY71MfZBKnEfKBeHFUZcmtNDcm6LMKMJnizfT3zmYlgg3HCT2zKTKiuhiPxA74wCUzO4/OPhCmQZRTuaH4nkJ7hPTXmQXi4Hmlx0FzWrbIoEfWkPvABzvTbPb9wCke+ihA2UGqdgRdu2sd4PEQuO7yUBXJ+wpdjat44Dxg8PNx99/COiqGiaVyGlgFnUB23urE56I39AF9SX+0JinYwA0ZUkZsqFO8w== troy@troy"
+export XLAPP_ROOT_PASSWD_HASH='$6$7eff9c6995cae4dc$.wTNEdjmnLm1ng/We1Pg/OTDKWn.6jNf8iUzBB8Yv18to31vlFZHHhv90OdvCYzDyNteIDHLKh6kMu34aHWGA/'

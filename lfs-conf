@@ -9,6 +9,8 @@ Usage: $0 [OPTION]... target-FQDN [lfs-mount-point]
 
 Creates an LFS-like config file using the following parameters:
 
+  -c              Continue build (don't do any init/prep)
+  -s path         Location to look-for/download sources.
   -u              Create domU config file (skip LFS params)
   -l part:type    LFS partition:fstype
   -p part:type    Host partition:fstype
@@ -23,7 +25,6 @@ Creates an LFS-like config file using the following parameters:
   -j concurrency  MAKEFLAGS
   -n              NO-TESTS (build Chap6 without tests)
   -r              Use RAMFS to build the system
-  -c              Continue build (don't do any init/prep)
   -o file         Write output to 'file'
   -h              Usage (this information)
 
@@ -31,6 +32,11 @@ If this script is called with '-u', then the <lfs-mount-point>
 argument, if given, is ignored.  If this script is called
 without '-u'--i.e., for a XLAPP dom0 build--then lfs-mount-point
 must be given.
+
+If this script is called with '-c', then ALL OTHER ARGUMENTS
+are ignored.  The machine.config from the previous run will be
+used.  As always, if a package is already built, it will be
+ignored (see 'SCRIPT_GUARD' in 'build-all').
 
 EOF
 	exit 1
@@ -43,8 +49,10 @@ SKIP_TESTS=
 XLAPP_USE_RAMFS=
 XLAPP_CONTINUE=
 OPTERR=0 # Disables getopts errors (when called by domU).
-while getopts "l:p:b:v:fs:m:cw:enruk:i:g:d:t:a:z:j:o:h" OPT ; do
+while getopts "cs:l:p:b:v:f:m:w:enruk:i:g:d:t:a:z:j:o:h" OPT ; do
 	case "${OPT}" in
+		c) XLAPP_CONTINUE=true;;
+		s) XLAPP_FILES_SOURCE="${OPTARG}";;
 		u) FOR_DOMU=true;;
 		l) XLAPP_LFS_PART="${OPTARG}";;
 		p) XLAPP_HOST_PART="${OPTARG}";;
@@ -59,13 +67,14 @@ while getopts "l:p:b:v:fs:m:cw:enruk:i:g:d:t:a:z:j:o:h" OPT ; do
 		j) MAKEFLAGS="-j ${OPTARG}";;
 		n) SKIP_TESTS=true;;
 		r) XLAPP_USE_RAMFS=true;;
-		c) XLAPP_CONTINUE=true;;
 		o) OUTPUT_FILE="${OPTARG}";;
 		h) usage;;
 		*) if [ -z ${FOR_DOMU} ] ; then echo "Unrecognized option $OPT." ; fi;;
 	esac
 done
 shift $(($OPTIND - 1))
+
+XLAPP_TOTIME=$(date '+%Y%m%d_%H%M%S')
 
 # We're done.  Caller is saying there's already a machine.config.
 if [ -n "$XLAPP_CONTINUE" ] ; then
@@ -158,6 +167,14 @@ else
 		echo "Installing XLAPP into BOOT partition."
 		INSTALL_INTO_BOOT=true
 	fi
+fi
+
+if [ -n "$XLAPP_FILES_SOURCE" ] ; then
+	if [ ! -d $XLAPP_FILES_SOURCE ] ; then
+		echo "Downloads cache must be a directory."
+		usage
+	fi
+	echo "Using cached downloads."
 fi
 
 # Make sure that IP was given in IP/prefix mode
@@ -259,7 +276,9 @@ rm -f $BUILD_CONF
 
 if [ -z "$FOR_DOMU" ] ; then
 	cat >> $BUILD_CONF <<EOF
+export XLAPP_TOTIME="${XLAPP_TOTIME}"
 export XLAPP_LFS="${XLAPP_LFS}"
+export XLAPP_FILES_SOURCE="${XLAPP_FILES_SOURCE}"
 
 export XLAPP_HOST_PART="${XLAPP_HOST_PART}"
 export XLAPP_LFS_PART="${XLAPP_LFS_PART}"
@@ -314,6 +333,8 @@ cat <<EOF
             HOST partition: ${XLAPP_HOST_PART}
              LFS partition: ${XLAPP_LFS_PART}
             BOOT partition: ${XLAPP_BOOT_PART}
+
+          LFS source files: ${XLAPP_FILES_SOURCE}
 
       HOST filesystem type: ${XLAPP_HOST_FSTYPE}
        LFS filesystem type: ${XLAPP_LFS_FSTYPE}

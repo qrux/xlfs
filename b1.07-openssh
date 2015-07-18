@@ -8,16 +8,26 @@ sudo /usr/sbin/groupadd -g 50 sshd
 sudo /usr/sbin/useradd -c 'sshd PrivSep' -d /var/lib/sshd -g sshd \
     -s /bin/false -u 50 sshd
 
-sed -i 's@-lcrypto@/usr/lib/libcrypto.a -ldl@' configure
+# -> http://www.linuxfromscratch.org/blfs/view/7.7/postlfs/openssh.html
+#
+# These sed command are no longer needed, and the configure command now
+# uses fewer options.
+#
+#sed -i 's@-lcrypto@/usr/lib/libcrypto.a -ldl@' configure
+#sed -i.bak '/K5LIBS=/s/ -ldes//' configure
+#
+#./configure --prefix=/usr \
+            #--sysconfdir=/etc/ssh \
+            #--datadir=/usr/share/sshd \
+            #--libexecdir=/usr/lib/openssh \
+            #--with-md5-passwords \
+            #--with-privsep-path=/var/lib/sshd \
+            #--with-tcp-wrappers
 
-sed -i.bak '/K5LIBS=/s/ -ldes//' configure
 ./configure --prefix=/usr \
             --sysconfdir=/etc/ssh \
-            --datadir=/usr/share/sshd \
-            --libexecdir=/usr/lib/openssh \
             --with-md5-passwords \
-            --with-privsep-path=/var/lib/sshd \
-            --with-tcp-wrappers
+            --with-privsep-path=/var/lib/sshd
 
 make
 
@@ -43,6 +53,12 @@ if [ 0 -lt $__SSH_FATAL_ERROR_COUNT ] ; then
 fi
 
 sudo /usr/bin/make install
-sudo /usr/bin/install -v -m755 -d /usr/share/doc/openssh-5.9p1
-sudo /usr/bin/install -v -m644 INSTALL LICENCE OVERVIEW README* \
-    /usr/share/doc/openssh-5.9p1
+# These install commands are now old.
+#sudo /usr/bin/install -v -m755 -d /usr/share/doc/openssh-5.9p1
+#sudo /usr/bin/install -v -m644 INSTALL LICENCE OVERVIEW README* \
+    #/usr/share/doc/openssh-5.9p1
+sudo /usr/bin/install -v -m755 contrib/ssh-copy-id   /usr/bin
+sudo /usr/bin/install -v -m644 contrib/ssh-copy-id.1 /usr/share/man/man1
+sudo /usr/bin/install -v -m755 -d /usr/share/doc/openssh-6.7p1
+sudo /usr/bin/install -v -m644 INSTALL LICENCE OVERVIEW README* /usr/share/doc/openssh-6.7p1
+

@@ -24,13 +24,13 @@ timeout 2
 # X/LAPP - Not Xen
 title X/LAPP - Bare (LFS-7.0, Linux-3.1)
 	root(hd0,0)
-	kernel /boot/vmlinuz-3.1-lfs-7.0 root=/dev/sda5 raid=noautodetect
+	kernel /boot/vmlinuz-3.1-lfs-7.0 root=/dev/sda5 raid=noautodetect nomodeset vga=normal nofb video=vesafb:off
 
 # X/LAPP - Xen dom0
 title X/LAPP - Xen Hypervisor/dom0 (LFS-7.0, Linux-3.1, Xen-4.1.2)
 	root(hd0,0)
 	kernel /boot/xen-4.1.2.gz dom0_mem=1024M loglvl=all guest_loglvl=all console_to_ring
-	module /boot/vmlinuz-3.1-lfs-7.0 root=/dev/sda5 raid=noautodetect console=tty0 earlyprintk=xen nomodeset initcall_debug debug loglevel=10
+	module /boot/vmlinuz-3.1-lfs-7.0 root=/dev/sda5 raid=noautodetect console=tty0 earlyprintk=xen nomodeset vga=normal nofb video=vesafb:off initcall_debug debug loglevel=10
 
 ###Don't change this comment - YaST2 identifier: Original name: failsafe###
 title Failsafe -- openSUSE 11.4 - 2.6.37.1-1.2

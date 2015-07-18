@@ -54,11 +54,12 @@ for PHASE in $(seq $STARTING_CHAPTER 9) b0 b1 b2 ; do
 				if [ 1 -eq $HAS_STARTED ] ; then
 					SCRIPT_GUARD=".guard-${SCRIPT}"
 					if [ -f $SCRIPT_GUARD ] ; then
-						if [ 2 -le $(wc -l $SCRIPT_GUARD) ] ; then
+						SCRIPT_GUARD_LINE_COUNT=$(wc -l $SCRIPT_GUARD | cut -d ' ' -f 1)
+						if [ 2 -le $SCRIPT_GUARD_LINE_COUNT ] ; then
 							continue
 						else
-							rm -f .guard-${SCRIPT}
-							touch .guard-${SCRIPT}
+							rm -f $SCRIPT_GUARD
+							touch $SCRIPT_GUARD
 						fi
 					fi
 
