@@ -1,23 +1,5 @@
 #! /bin/bash
 
-#export MAKEFLAGS="-j 1"
-
-#patch -Np1 -i ../openssl-1.0.0e-fix_manpages-1.patch
-
-#./config --prefix=/usr         \
-         #--openssldir=/etc/ssl \
-         #shared                \
-         #zlib-dynamic
-
-#make
-
-#make test
-
-#sudo make MANDIR=/usr/share/man install
-#sudo install -v -d -m755 /usr/share/doc/openssl-1.0.0e
-#sudo cp      -v -r       doc/{HOWTO,README,*.{txt,html,gif}} \
-                    #/usr/share/doc/openssl-1.0.0e
-
 export MAKEFLAGS="-j 1"
 
 # -> http://www.linuxfromscratch.org/blfs/view/7.7/postlfs/openssl.html
@@ -39,5 +21,5 @@ make
 make test
 
 sudo make MANDIR=/usr/share/man MANSUFFIX=ssl install
-sudo install -dv -m755   /usr/share/doc/openssl-1.0.2c
-sudo cp      -v -r doc/* /usr/share/doc/openssl-1.0.2c
+sudo install -dv -m755   /usr/share/doc/openssl-1.0.2d
+sudo cp      -v -r doc/* /usr/share/doc/openssl-1.0.2d
