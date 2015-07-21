@@ -1,10 +1,12 @@
 #! /bin/bash
 
-#make PREFIX=/usr
-make user
+make PREFIX=/usr \
+     BUILD_STATIC_LIB=0 \
+     MANDIR=/usr/share/man
 
-#make PREFIX=/usr install
-make user_install
+sudo make PREFIX=/usr \
+     BUILD_STATIC_LIB=0 \
+     MANDIR=/usr/share/man install
 
-ldconfig
-
+sudo install -v -m755 -d /usr/share/doc/lm_sensors-3.3.4
+sudo cp -rv README INSTALL doc/* /usr/share/doc/lm_sensors-3.3.4

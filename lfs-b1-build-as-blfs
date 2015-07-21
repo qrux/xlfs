@@ -18,7 +18,7 @@ su -c "./build-all -s b1.01 -e b1.07" blfs
 
 ./build-all -s b1.08 -e b1.30
 
-su -c "./build-all -s b1.31 -e b1.45" blfs
+su -c "./build-all -s b1.31 -e b1.69" blfs
 
 ./build-all -s b1.70 -e b1.99
 
