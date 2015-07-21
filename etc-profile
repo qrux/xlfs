@@ -1,13 +1,27 @@
 ##################################################
 #
-# Personal aliases
+# Global Aliases
 #
 ##################################################
 
-LANG=
-export LANG
-LC_COLLATE="C"
-export LC_COLLATE
+if [ "xterm-256color" = $TERM ] ; then
+        if [ "Darwin" = $(uname -s) ] ; then
+                if [ "10" = $(uname -r | cut -d \. -f 1) ] ; then
+                        echo "  Changing terminal-type to xterm-color."
+                        TERM="xterm-color"
+                        export TERM
+                fi
+        fi
+fi
+
+if [ "Darwin" = $(uname -s) ] ; then
+	LANG="en_US.UTF-8"
+	export LANG
+elif uname -r | grep -q xlapp ; then
+	LANG=C
+	LC_COLLATE=C
+	export LANG LC_COLLATE
+fi
 
 path () 
 { 
@@ -25,15 +39,32 @@ _byel="$(path tput bold 2> /dev/null; path tput setaf 3 2> /dev/null)"
 _bgrn="$(path tput bold 2> /dev/null; path tput setaf 2 2> /dev/null)"
 _sgr0="$(path tput sgr0 2> /dev/null)"
 
+function timer_start {
+  timer=${timer:-$SECONDS}
+}
+
+function timer_stop {
+  timer_show=$(($SECONDS - $timer))
+  unset timer
+}
+
+trap 'timer_start' DEBUG
+PROMPT_COMMAND=timer_stop
+
+PS1_TIMER_PREFIX='{${timer_show}s}'
+
+#PS1_PREFIX="(\D{%d %b}, \t) \h"
+PS1_PREFIX="$PS1_TIMER_PREFIX \h"
+
 if [ $UID = 0 ] ; then
-	PS1="\h [\w] # "
-	PS1="\[$_bred\]$PS1\[$_sgr0\]"
+        PS1="${PS1_PREFIX} [\w] # "
+        PS1="\[$_bred\]$PS1\[$_sgr0\]"
 elif [ $UID -lt 100 ] ; then
-	PS1="\h ($USER) [\w] > "
-	PS1="\[$_byel\]$PS1\[$_sgr0\]"
+        PS1="${PS1_PREFIX} [\w] > "
+        PS1="\[$_byel\]$PS1\[$_sgr0\]"
 else
-	PS1="\h [\w] $ "
-	PS1="\[$_bgrn\]$PS1\[$_sgr0\]"
+        PS1="${PS1_PREFIX} [\w] $ "
+        PS1="\[$_bgrn\]$PS1\[$_sgr0\]"
 fi
 export PS1
 
@@ -46,11 +77,18 @@ unset _bred _bgrn _sgr0
 OS_NAME=`uname`
 if [ $OS_NAME = "Darwin" ] ; then
 	LS="/bin/ls -G -F" ; export LS
+	export LSCOLORS="DxGxcxdxCxegedabagacad"
 elif [ $OS_NAME = "Linux" ] ; then
 	LS="/bin/ls --color -F -N -T 0" ; export LS
+	if [ -z $LS_COLORS ] ; then
+		export LS_COLORS="di=93"
+	else
+		export LS_COLORS="$LS_COLORS:di=93"
+	fi
 else
 	LS="/bin/ls -F"
 fi
+
 
 alias ls="${LS} -C"
 alias la="${LS} -aC"
