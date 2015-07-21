@@ -4,4 +4,4 @@
 
 make
 
-sudo make install
+make install
