@@ -73,64 +73,64 @@ written to it.  The xl-compatible configuration file will be written to
 /etc/xen/vm (this dir will be created if it doesn't already exist).  The file
 will be named by the domU-FQDN (first non-option argument).
 
-  -v VOL_GROUP:type	Use the specified volume group (this VG must exist,
-			and this option is mutually exclusive from -f)
-  -f			Force the creation of the LVM disk (or loopback image)
-  -s FSSIZE		Create a filesystem this large (in megabytes)
-  -m VM_MEM		Allocate this much memory for the VM (in megabytes)
-  -c VM_CPUS		[OPT] Allocate this many CPUs for the VM
-  -w SWAP_MUL		[OPT] Use this amount of swap (multiplier to VM_MEM)
-  -e			[OPT] Add an additional eth<N>
-			Can be used multiple times (e.g., -e -e)
-  -n			Don't do any writing; just create the xl-conf file.
-  -h                    Usage (this information)
+  -v vg:type	Use volume group 'vg' (must exist) with FS type 'type'
+                  (this option is mutually exclusive from -f)
+  -f            Force the creation of the logical volume
+  -2 FSSIZE     Create a filesystem this large (in MiB)
+  -m VM_MEM     Allocate this much memory for the VM (in MiB)
+  -c VM_CPUS    [OPT] Allocate this many CPUs for the VM
+  -w SWAP_MUL	[OPT] Use this amount of swap (multiplier to VM_MEM)
+  -n		Don't do any writing; just create the xl-conf file.
+  -h            Usage (this information)
+  -i            Usage: lfs-conf
 
 EOF
 	exit 1
 }
 
-# Run config file
-./lfs-conf "${@}"
-# Source output
-. $BUILD_CONF
+# Clean up last invocation
+test -e lfs-conf || ln -s ../lfs-conf .
+test -e passhash.c || ln -s ../passhash.c .
 
 FSTYPE=ext3
-unset FILE_DEV FSSIZE
+unset FSSIZE
 unset SWAP_MUL VIRT_MEM VIRT_SWAP VOL_GROUP FORCE_INIT
 unset SKIP_ACTUAL
 VIRT_ETH_COUNT=0
-while getopts "v:fs:m:c:w:enuk:i:g:d:t:a:z:j:o:h" OPT ; do
+unset DOMU_HOST_IPS
+while getopts "2:4:a:b:d:g:j:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
 	case "$OPT" in
-		v) VOL_GROUP="$OPTARG";;
-		f) FORCE_INIT=1;;
-		s) FSSIZE="$OPTARG";;
-		m) VIRT_MEM="$OPTARG";;
 		c) VIRT_CPUS="$OPTARG";;
-		w) SWAP_MUL="$OPTARG";;
-		e) VIRT_ETH_COUNT=$((1 + $VIRT_ETH_COUNT));;
+		f) FORCE_INIT=1;;
+		h) usage;;
+		i) ./lfs-conf -u -h;;
+		m) VIRT_MEM="$OPTARG";;
 		n) SKIP_ACTUAL=1;;
-                h) usage;;
+		2) FSSIZE="$OPTARG";;
+		v) VOL_GROUP="$OPTARG";;
+		w) SWAP_MUL="$OPTARG";;
 		*) true;;
 	esac
 done
+
+# Run config file (without changing parameters).
+./lfs-conf -u "${@}"
+
+# Shift off parameters.
 shift $(($OPTIND - 1))
 DOMU_HOST=$1
-TARBALL=$2
-DOMU_CONF_DIR="$DOMU_HOST"
+
 BUILD_CONF="${DOMU_HOST}-config"
+DOMU_CONF_DIR="${DOMU_HOST}"
 
-echo " DOMU_HOST: ${DOMU_HOST}"
-echo "   TARBALL: ${TARBALL}"
-echo "BUILD_CONF: ${BUILD_CONF}"
+if [ -z $DOMU_CONF_DIR ] ; then
+	echo "No domU config dir specified; aborting!"
+	exit 2
+fi
 
-if [ -z $TARBALL ] ; then usage ; fi
-
-#
-# Pass config (and CL args) to lfs-conf.
-#
-rm -fv lfs-conf passhash.c
-ln -s ../lfs-conf .
-ln -s ../passhash.c .
+# Source output
+echo "build config: $BUILD_CONF"
+. $BUILD_CONF
 
 # Test if we're on Linux and are a dom0
 test ! -e /proc/cpuinfo && usage
@@ -150,10 +150,6 @@ if [ -z $FSSIZE ] ; then
 	echo "FSSIZE must be specified for the PV domU; exiting."
 	exit 1
 fi
-if [ ! -f $TARBALL ] ; then
-	echo "Tarball [ $TARBALL ] doesn't exist; exiting."
-	exit 1
-fi
 
 # Set the amount of virtual memory for VM.
 if [ -n "$SWAP_MUL" ] ; then
@@ -163,7 +159,7 @@ else
 fi
 
 # Get the volume group and the fstype (if given).
-FSTYPE=$(echo $VOL_GROUP | cut -d \: -f 2)
+FSTYPE=$(echo $VOL_GROUP | awk -F\: '{print $2}')
 if [ -z $FSTYPE ] ; then
 	FSTYPE=ext3
 else
@@ -180,17 +176,17 @@ fi
 DOMU_HOSTNAME=$(echo $DOMU_HOST | cut -d \. -f 1)
 DOMAIN_NAME=$(echo $DOMU_HOST | cut -d \. -f 2-)
 
-echo "               New domU host: $DOMU_HOST"
-echo "           New domU hostname: $DOMU_HOSTNAME"
-echo "        New domU domain name: $DOMAIN_NAME"
-echo "Master domU filesystem image: $TARBALL"
-echo "  Using LVM2-backed phy disk? $VOL_GROUP"
-echo "             Filesystem type: $FSTYPE"
-echo "                      [Size]: $FSSIZE"
-echo "                    TSC mode: $TSC_MODE"
-echo "          VM memory (in MiB): $VIRT_MEM"
-echo "                VM CPU count: $VIRT_CPUS"
-echo "                Swap amount?: $VIRT_SWAP"
+echo "           domU FQDN: $DOMU_HOST"
+echo "           domU host: $DOMU_HOSTNAME"
+echo "         domU domain: $DOMAIN_NAME"
+echo "   domU source image: $SNAPSHOT"
+echo "         domU LVM vg: $VOL_GROUP"
+echo "domU disk size (MiB): $FSSIZE"
+echo "        domU FS type: $FSTYPE"
+echo "       domU TSC mode: $TSC_MODE"
+echo "   domU memory (MiB): $VIRT_MEM"
+echo "      domU CPU count: $VIRT_CPUS"
+echo "    domU Swap amount: $VIRT_SWAP"
 
 ########################################################################
 #
@@ -198,13 +194,13 @@ echo "                Swap amount?: $VIRT_SWAP"
 #
 ########################################################################
 
-VIRT_ETH_IDX=0
-VIRT_MACADDRS=""
-while [ $VIRT_ETH_IDX -le $VIRT_ETH_COUNT ] ; do
-	VIRT_MACADDR="$(echo $XLAPP_HOST_IP | awk -v eth=$VIRT_ETH_IDX -F \. '{printf("00:16:3e:%02x:%02x:%02x", eth, $3, $4);}')"
-	VIRT_MACADDRS="$VIRT_MACADDRS $VIRT_MACADDR"
-	VIRT_ETH_IDX=$((1 + $VIRT_ETH_IDX))
-done
+#VIRT_ETH_IDX=0
+#VIRT_MACADDRS=""
+#while [ $VIRT_ETH_IDX -le $VIRT_ETH_COUNT ] ; do
+	#VIRT_MACADDR="$(echo $XLAPP_HOST_IP | awk -v eth=$VIRT_ETH_IDX -F \. '{printf("00:16:3e:%02x:%02x:%02x", eth, $3, $4);}')"
+	#VIRT_MACADDRS="$VIRT_MACADDRS $VIRT_MACADDR"
+	#VIRT_ETH_IDX=$((1 + $VIRT_ETH_IDX))
+#done
 
 #echo "    DomU -    Hostname? $DOMU_HOST"
 #echo "    DomU -  DNS Domain? $DOMAIN_NAME"
@@ -213,39 +209,43 @@ done
 #echo "    DomU -          GW? $XLAPP_DOMU_HOST_GW"
 #echo "    DomU -      Prefix? $XLAPP_DOMU_HOST_PREFIX"
 #echo "    DomU -   Broadcast? $XLAPP_DOMU_HOST_BCAST"
-#echo "    DomU -   MAC addrs? $VIRT_MACADDRS"
+#echo "                Swap amount?: $VIRT_SWAP"
+#echo "    domU Swap amount: $VIRT_SWAP"
+#echo "                    :"
+echo "      domU MAC addrs: $DOMU_MACADDRS"
+echo "     domU config dir: $DOMU_CONF_DIR"
 
 IMAGE=/dev/${VOL_GROUP}/$DOMU_HOST
 
+#if [ -n "$SKIP_ACTUAL" ] ; then exit ; fi
+
 if [ -z "$SKIP_ACTUAL" ] ; then # This block is only run if '-n' IS NOT GIVEN.
+	/bin/mkdir -pv ${DOMU_CONF_DIR}/etc/sysconfig
 
-/bin/mkdir -pv ${DOMU_CONF_DIR}/etc/sysconfig
+	if [ ! -d ${DOMU_CONF_DIR} ] ; then
+		echo "Cannot create directory structure for DomU configuration files; exiting."
+		exit
+	fi
 
-if [ ! -d ${DOMU_CONF_DIR} ] ; then
-	echo "Cannot create directory structure for DomU configuration files; exiting."
-	exit
-fi
-
-echo "  Creating /etc/fstab..."
-cat > ${DOMU_CONF_DIR}/etc/fstab <<EOF
+	echo "  Creating /etc/fstab..."
+	cat > ${DOMU_CONF_DIR}/etc/fstab <<EOF
 # Begin /etc/fstab
-
 # file system  mount-point  type   options           dump  fsck
 #                                                          order
 /dev/xvda1     /            ${FSTYPE}   defaults,noatime   1     1
 EOF
 
-# FIXME -- this is now wrong...The correct var is something other
-# than XLAPP_DOMU_SWAP
-if [ "yes" = "${XLAPP_DOMU_SWAP}" ] ; then
-	echo "    Adding swap in /etc/fstab..."
-	cat >> ${DOMU_CONF_DIR}/etc/fstab <<EOF
+	# FIXME -- this is now wrong...The correct var is something other
+	# than XLAPP_DOMU_SWAP
+	if [ -n "${SWAP_MUL}" ] ; then
+		echo "    Adding swap in /etc/fstab..."
+		cat >> ${DOMU_CONF_DIR}/etc/fstab <<EOF
 /dev/xvda2     none         swap   sw                 0     0
 EOF
-fi
+	fi
 
-echo "    Finishing /etc/fstab..."
-cat >> ${DOMU_CONF_DIR}/etc/fstab <<EOF
+	echo "    Finishing /etc/fstab..."
+	cat >> ${DOMU_CONF_DIR}/etc/fstab <<EOF
 none           /proc        proc   defaults           0     0
 none           /sys         sysfs  defaults           0     0
 none           /dev/pts     devpts gid=4,mode=620     0     0
@@ -253,13 +253,13 @@ none           /run         tmpfs  defaults           0     0
 # End /etc/fstab
 EOF
 
-echo "  Creating /etc/inittab..."
-cat /etc/inittab | \
-  sed 's/^[2-9].*respawn:.*getty.*/#\0/' > ${DOMU_CONF_DIR}/etc/inittab
-sed -i 's/tty1/hvc0/' ${DOMU_CONF_DIR}/etc/inittab
+	echo "  Creating /etc/inittab..."
+	cat /etc/inittab | \
+	  sed 's/^[2-9].*respawn:.*getty.*/#\0/' > ${DOMU_CONF_DIR}/etc/inittab
+	sed -i 's/tty1/hvc0/' ${DOMU_CONF_DIR}/etc/inittab
 
-echo "  Creating /etc/hosts..."
-cat > ${DOMU_CONF_DIR}/etc/hosts <<EOF
+	echo "  Creating /etc/hosts..."
+	cat > ${DOMU_CONF_DIR}/etc/hosts <<EOF
 # Begin /etc/hosts (network card version)
 
 127.0.0.1 localhost
@@ -270,8 +270,8 @@ ${XLAPP_HOST_IP}	${XLAPP_DNS_FQDN}	${XLAPP_HOST_HOSTNAME}
 # End /etc/hosts (network card version)
 EOF
 
-echo "  Creating /etc/passwd..."
-cat > ${DOMU_CONF_DIR}/etc/passwd <<EOF
+	echo "  Creating /etc/passwd..."
+	cat > ${DOMU_CONF_DIR}/etc/passwd <<EOF
 root:x:0:0:root:/root:/bin/bash
 bin:x:1:1:bin:/dev/null:/bin/false
 nobody:x:99:99:Unprivileged User:/dev/null:/bin/false
@@ -280,8 +280,8 @@ blfs:x:202:202:BLFS User:/home/blfs:/bin/bash
 sshd:x:50:50:sshd PrivSep:/var/lib/sshd:/bin/false
 EOF
 
-echo "  Creating /etc/shadow..."
-cat > ${DOMU_CONF_DIR}/etc/shadow <<EOF
+	echo "  Creating /etc/shadow..."
+	cat > ${DOMU_CONF_DIR}/etc/shadow <<EOF
 root:x:15370:0:99999:7:::
 bin:x:15370:0:99999:7:::
 nobody:x:15370:0:99999:7:::
@@ -290,116 +290,151 @@ blfs:x:15370:0:99999:7:::
 sshd:!:15370:0:99999:7:::
 EOF
 
-echo "  Creating /etc/sysconfig/ifconfig.eth0..."
-cat > ${DOMU_CONF_DIR}/etc/sysconfig/ifconfig.eth0 <<EOF
-ONBOOT=yes
-PHYS=eth0
-SERVICE="ipv4-static"
-IP=$XLAPP_HOST_IP
-GATEWAY=$XLAPP_HOST_GW
-PREFIX=$XLAPP_HOST_PREFIX
-EOF
+	#
+	# Loop through eth[n] interfaces
+	#
+	XLAPP_ETH_IDX=0
 
-echo "  Creating /etc/sysconfig/network..."
-cat > ${DOMU_CONF_DIR}/etc/sysconfig/network <<EOF
+	while [ $XLAPP_ETH_IDX -lt $XLAPP_ETH_COUNT ] ; do
+        	_CUT_POS=$((1 + $XLAPP_ETH_IDX))
+        	_SPEC=$(echo $XLAPP_HOST_IPS | cut -d ' ' -f $_CUT_POS)
+        	_IP=$(echo $_SPEC | cut -d / -f 1)
+        	_PREFIX=$(echo $_SPEC | cut -d / -f 2)
+		_IFACE="eth${XLAPP_ETH_IDX}"
+		_ETH_FILE="/etc/sysconfig/ifconfig.${_IFACE}"
+
+		echo "  Creating ${_ETH_FILE}..."
+		cat > ${DOMU_CONF_DIR}${_ETH_FILE} <<EOF
+ONBOOT=yes
+PHYS=${_IFACE}
+SERVICE="ipv4-static"
+IP=$_IP
+PREFIX=$_PREFIX
+EOF
+		if [ 0 -eq $XLAPP_ETH_IDX ] ; then
+			echo "GATEWAY=${XLAPP_HOST_GW}" >> ${DOMU_CONF_DIR}${_ETH_FILE}
+		fi
+		XLAPP_ETH_IDX=$((1 + ${XLAPP_ETH_IDX}))
+	done
+
+	echo "  Creating /etc/sysconfig/network..."
+	cat > ${DOMU_CONF_DIR}/etc/sysconfig/network <<EOF
 HOSTNAME=$XLAPP_HOST_HOSTNAME
 EOF
 
-echo "  Creating /etc/resolv.conf..."
-cat > ${DOMU_CONF_DIR}/etc/resolv.conf <<EOF
+	echo "  Creating /etc/resolv.conf..."
+	cat > ${DOMU_CONF_DIR}/etc/resolv.conf <<EOF
 # Begin /etc/resolv.conf
 
 domain $XLAPP_DNS_DOMAIN_NAME
 EOF
 
-for NAMESERVER in ${XLAPP_DNS_SERVERS} ; do
-	NS=$(echo $NAMESERVER)
-	echo "nameserver ${NS}" >> ${DOMU_CONF_DIR}/etc/resolv.conf
-done
+	for NAMESERVER in ${XLAPP_DNS_SERVERS} ; do
+		NS=$(echo $NAMESERVER)
+		echo "nameserver ${NS}" >> ${DOMU_CONF_DIR}/etc/resolv.conf
+	done
 
-cat >> ${DOMU_CONF_DIR}/etc/resolv.conf <<EOF
+	cat >> ${DOMU_CONF_DIR}/etc/resolv.conf <<EOF
 
 # End /etc/resolv.conf
 EOF
 
-echo "domU [ $DOMU_HOST ] configuration complete."
+	echo "domU [ $DOMU_HOST ] configuration complete."
 
-########################################################################
-#
-# Creating image (LVM2)
-#
-########################################################################
-IMAGE_EXISTS=$(lvdisplay | grep -E "LV Name\s*${DOMU_HOST}" | wc -l)
-if [ 0 -lt $IMAGE_EXISTS -a -z "$FORCE_INIT" ] ; then
-	echo "LVM2 disk phy [ $IMAGE ] exists; aborting."
-	echo "Use -f to force lvremove/lvcreate."
-	exit 1
-elif [ 0 -lt $IMAGE_EXISTS ] ; then
-	echo "Removing LVM2 disk phy..."
-	lvremove -fv $IMAGE
-fi
-echo "Creating LVM2-backed disk phy $IMAGE ($FSSIZE MB, $FSTYPE)..."
-lvcreate -L ${FSSIZE}M -n $DOMU_HOST $VOL_GROUP
+	####
+	#
+	# Config complete
+	#
+	####
+	#exit
 
-########################################################################
-#
-# Creating file-system
-#
-########################################################################
-mkfs -F -t $FSTYPE $IMAGE
+	########################################################################
+	#
+	# Creating image (LVM2)
+	#
+	########################################################################
+	IMAGE_EXISTS=$(lvdisplay | grep -E "LV Name\s*${DOMU_HOST}" | wc -l)
+	if [ 0 -lt $IMAGE_EXISTS -a -z "$FORCE_INIT" ] ; then
+		echo "LVM2 disk phy [ $IMAGE ] exists; aborting."
+		echo "Use -f to force lvremove/lvcreate."
+		exit 1
+	elif [ 0 -lt $IMAGE_EXISTS ] ; then
+		echo "Removing LVM2 disk phy..."
+		lvremove -fv $IMAGE
+	fi
+	echo "Creating LVM2-backed disk phy $IMAGE ($FSSIZE MB, $FSTYPE)..."
+	lvcreate -L ${FSSIZE}M -n $DOMU_HOST $VOL_GROUP
 
-########################################################################
-#
-# Mount image
-#
-########################################################################
-IMAGE_NAME=$(basename $IMAGE)
-MOUNT="mount-$IMAGE_NAME"
-echo "About to mount $IMAGE..."
-mkdir -vp ./$MOUNT
+	########################################################################
+	#
+	# Creating file-system
+	#
+	########################################################################
+	mkfs -F -t $FSTYPE $IMAGE
 
-if [ -n "$FILE_DEV" ] ; then
-	mount -o loop $IMAGE ./$MOUNT
-else
-	mount $IMAGE ./$MOUNT
-fi
+	########################################################################
+	#
+	# Mount image
+	#
+	########################################################################
+	IMAGE_NAME=$(basename $IMAGE)
+	MOUNT="fs-$IMAGE_NAME"
+	echo "About to mount $IMAGE..."
+	mkdir -vp ./$MOUNT
 
-########################################################################
-#
-# Unpack TARBALL
-#
-########################################################################
-TARBALL_PATH=$(readlink -f $TARBALL)
-pushd ./$MOUNT
-	echo "  About to untar $TARBALL_PATH..."
-	time tar --strip-components 1 -xf $TARBALL_PATH
+	mount -o noatime $IMAGE ./$MOUNT
+	mount | grep $IMAGE_NAME
 
-	echo "  Adding other directories..."
-	mkdir {dev,home,proc,opt,sys,tmp}
+	########################################################################
+	#
+	# Copy snapshot.
+	#
+	########################################################################
 
-	echo "  Changing perms on /tmp..."
-	chmod 0777 tmp
+	SNAPSHOT="${XLAPP_FILES_SOURCE}"
+	echo "SNAPSHOT: $SNAPSHOT"
 
-	echo "  Adding devices..."
-	cp -ax /dev/{console,null,random,urandom} dev
+	if [ -f $SNAPSHOT ] ; then
+		SNAPSHOT_PATH=$(readlink -f $SNAPSHOT)
+		pushd ./$MOUNT
+		echo "  About to untar $SNAPSHOT_PATH..."
+		time tar --strip-components 1 -xf $SNAPSHOT_PATH
+		popd
+	elif [ -d $SNAPSHOT ] ; then
+		echo "rsync'ing snapshot to ./$MOUNT/..."
+		time rsync -a $SNAPSHOT/ ./$MOUNT/
+	else
+		echo "Source is neither dir or file; does $SNAPSHOT exist? Exiting."
+		exit 1
+	fi
 
-	rm -vf etc/rc.d/rc{0,6}.d/K46setclock
-	rm -vf etc/rc.d/rc3.d/S99xlapp-boot-watchdog
-	cp -av /lib/modules/3.1.0-xlapp-domU* lib/modules
-popd
+	pushd ./$MOUNT
+		echo "  Adding other directories..."
+		mkdir {dev,home,proc,opt,sys,tmp}
 
-########################################################################
-#
-# Installing domU-specific config files
-#
-########################################################################
-pushd $DOMU_CONF_DIR
-	find . -depth -print | cpio -pdmv ../$MOUNT
-popd
+		echo "  Changing perms on /tmp..."
+		chmod 0777 tmp
 
-echo "Unmounting $IMAGE and deleting mount point..."
-umount $MOUNT
-rmdir $MOUNT
+		echo "  Adding devices..."
+		cp -ax /dev/{console,null,random,urandom} dev
+
+		rm -vf etc/rc.d/rc{0,6}.d/K46setclock
+		rm -vf etc/rc.d/rc3.d/S99xlapp-boot-watchdog
+		cp -a /lib/modules/3.1.0-xlapp-domU* lib/modules
+	popd
+
+	########################################################################
+	#
+	# Installing domU-specific config files
+	#
+	########################################################################
+	pushd $DOMU_CONF_DIR
+		find . -depth -print | cpio -pdm ../$MOUNT
+	popd
+
+	echo "Unmounting $IMAGE and deleting mount point..."
+	umount $MOUNT
+	rmdir $MOUNT
 
 fi # The block in here only gets run if '-n' IS NOT GIVEN
 
@@ -418,7 +453,7 @@ fi
 
 DOMU_VIFS=""
 VIRT_ETH_IDX=0
-for VIRT_MACADDR in $VIRT_MACADDRS ; do
+for VIRT_MACADDR in $DOMU_MACADDRS ; do
 	DOMU_VIF="'mac=${VIRT_MACADDR},bridge=br${VIRT_ETH_IDX}',"
 	DOMU_VIFS="${DOMU_VIFS}${DOMU_VIF}"
 	VIRT_ETH_IDX=$((1 + $VIRT_ETH_IDX))
@@ -433,6 +468,7 @@ name = "${DOMU_HOST}"
 vif = [ ${DOMU_VIFS} ]
 disk = [ 'phy:${IMAGE},xvda1,w' ]
 root = "/dev/xvda1"
+no_migrate = 1
 tsc_mode = ${TSC_MODE}
 EOF
 

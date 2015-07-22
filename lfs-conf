@@ -9,14 +9,14 @@ Usage: $0 [OPTION]... target-FQDN [lfs-mount-point]
 
 Creates an LFS-like config file using the following parameters:
 
-  -c              Continue build (don't do any init/prep)
-  -s path         Location to look-for/download sources.
   -u              Create domU config file (skip LFS params)
+  -y              Continue build (don't do any init/prep)
+  -s path         Location to look-for/download sources.
   -l part:type    LFS partition:fstype
   -p part:type    Host partition:fstype
   -b part:type    Boot partition:fstype
   -k "key"        SSH key
-  -i a.b.c.d/p    IP address/prefix
+  -4 a.b.c.d/p    IP address/prefix (can be given multiple times)
   -g e.f.g.h"     Gateway
   -d fqdn         DNS server (can be given multiple times)
   -t fqdn         NTP server (can be given multiple times)
@@ -25,7 +25,6 @@ Creates an LFS-like config file using the following parameters:
   -j concurrency  MAKEFLAGS
   -n              NO-TESTS (build Chap6 without tests)
   -r              Use RAMFS to build the system
-  -o file         Write output to 'file'
   -h              Usage (this information)
 
 If this script is called with '-u', then the <lfs-mount-point>
@@ -42,33 +41,39 @@ EOF
 	exit 1
 }
 
+TRIM_CMD="sed -e s/^[[:space:]]*// -e s/[[:space:]]*$//"
+
 echo "lfs-conf args: [ ${@} ]"
 
 FOR_DOMU=
 SKIP_TESTS=
 XLAPP_USE_RAMFS=
 XLAPP_CONTINUE=
+XLAPP_ETH_COUNT=0
 OPTERR=0 # Disables getopts errors (when called by domU).
-while getopts "cs:l:p:b:v:f:m:w:enruk:i:g:d:t:a:z:j:o:h" OPT ; do
+while getopts "2:4:a:b:d:g:hj:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
 	case "${OPT}" in
-		c) XLAPP_CONTINUE=true;;
-		s) XLAPP_FILES_SOURCE="${OPTARG}";;
-		u) FOR_DOMU=true;;
-		l) XLAPP_LFS_PART="${OPTARG}";;
-		p) XLAPP_HOST_PART="${OPTARG}";;
-		b) XLAPP_BOOT_PART="${OPTARG}";;
-		k) XLAPP_SSH_PUBKEY="${OPTARG}";;
-		i) XLAPP_HOST_IP="${OPTARG}";;
-		g) XLAPP_HOST_GW="${OPTARG}";;
-		d) XLAPP_DNS_SERVERS="${XLAPP_DNS_SERVERS} ${OPTARG}";;
-		t) XLAPP_NTP_SERVERS="${XLAPP_NTP_SERVERS} ${OPTARG}";;
+		4)
+			XLAPP_ETH_COUNT=$((1 + $XLAPP_ETH_COUNT))
+			XLAPP_HOST_IPS="${XLAPP_HOST_IPS} ${OPTARG}"
+			;;
 		a) XLAPP_TARGET_LANG="${OPTARG}";;
-		z) XLAPP_TARGET_TZ="${OPTARG}";;
-		j) MAKEFLAGS="-j ${OPTARG}";;
-		n) SKIP_TESTS=true;;
-		r) XLAPP_USE_RAMFS=true;;
-		o) OUTPUT_FILE="${OPTARG}";;
+		b) XLAPP_BOOT_PART="${OPTARG}";;
+		d) XLAPP_DNS_SERVERS="${XLAPP_DNS_SERVERS} ${OPTARG}";;
+		g) XLAPP_HOST_GW="${OPTARG}";;
 		h) usage;;
+		j) MAKEFLAGS="-j ${OPTARG}";;
+		k) XLAPP_SSH_PUBKEY="${OPTARG}";;
+		l) XLAPP_LFS_PART="${OPTARG}";;
+		n) SKIP_TESTS=true;;
+		#o) OUTPUT_FILE="${OPTARG}";;
+		p) XLAPP_HOST_PART="${OPTARG}";;
+		r) XLAPP_USE_RAMFS=true;;
+		s) XLAPP_FILES_SOURCE="${OPTARG}";;
+		t) XLAPP_NTP_SERVERS="${XLAPP_NTP_SERVERS} ${OPTARG}";;
+		u) FOR_DOMU=true;;
+		y) XLAPP_CONTINUE=true;;
+		z) XLAPP_TARGET_TZ="${OPTARG}";;
 		*) if [ -z ${FOR_DOMU} ] ; then echo "Unrecognized option $OPT." ; fi;;
 	esac
 done
@@ -178,31 +183,48 @@ if [ -n "$XLAPP_FILES_SOURCE" ] ; then
 fi
 
 # Make sure that IP was given in IP/prefix mode
-if [ -z $XLAPP_HOST_IP ] ; then
-	echo "Please specify the target IP address."
+if [ -z "$XLAPP_HOST_IPS" ] ; then
+	echo "Please specify the target IP address(es)."
 	usage
 fi
-set +e
-echo $XLAPP_HOST_IP | grep -c / > /dev/null 2>&1
-set -e
-if [ 0 -ne $? ] ; then
-	echo "Please enter the IP address in prefix notation (e.g., a.b.c.d/pre)."
-	usage
-fi
+XLAPP_HOST_IPS=$(echo $XLAPP_HOST_IPS | $TRIM_CMD)
 
-XLAPP_HOST_PREFIX=$(echo $XLAPP_HOST_IP | cut -d \/ -f 2)
-set +e
-test 0 -le $XLAPP_HOST_PREFIX -a 32 -ge $XLAPP_HOST_PREFIX > /dev/null 2>&1
-if [ 0 -ne $? ] ; then
-	echo "Please enter a valid prefix [0,32] as the netmask ($XLAPP_HOST_PREFIX)."
-	usage
-fi
-set -e
-XLAPP_HOST_IP=$(echo $XLAPP_HOST_IP | cut -d \/ -f 1)
-if [ -z $XLAPP_HOST_IP ] ; then
-	echo "Please specify the target IP address."
-	usage
-fi
+XLAPP_ETH_IDX=0
+DOMU_MACADDRS=""
+XLAPP_HOST_IP=""
+while [ $XLAPP_ETH_IDX -lt $XLAPP_ETH_COUNT ] ; do
+	_CUT_POS=$((1 + $XLAPP_ETH_IDX))
+	_IP=$(echo $XLAPP_HOST_IPS | cut -d ' ' -f $_CUT_POS)
+        DOMU_MACADDR="$(echo $_IP | awk -v eth=$XLAPP_ETH_IDX -F \. '{printf("00:16:3e:%02x:%02x:%02x", eth, $3, $4);}')"
+        DOMU_MACADDRS="$DOMU_MACADDRS $DOMU_MACADDR"
+        XLAPP_ETH_IDX=$((1 + $XLAPP_ETH_IDX))
+
+	set +e
+	echo $_IP | grep -c / > /dev/null 2>&1
+	set -e
+	if [ 0 -ne $? ] ; then
+		echo "Please enter prefix-notation IP (e.g., a.b.c.d/pre)."
+		usage
+	fi
+
+	_PREFIX=$(echo $_IP | cut -d \/ -f 2)
+	set +e
+	test 0 -le $_PREFIX -a 32 -ge $_PREFIX > /dev/null 2>&1
+	if [ 0 -ne $? ] ; then
+		echo "Please enter valid netmask prefix [0,32] ($_PREFIX)."
+		usage
+	fi
+	set -e
+
+	if [ -z $XLAPP_HOST_IP ] ; then
+		XLAPP_HOST_IP=$(echo $_IP | cut -d \/ -f 1)
+		XLAPP_HOST_PREFIX=$_PREFIX
+		if [ -z $XLAPP_HOST_IP ] ; then
+			echo "Please specify the target IP address."
+			usage
+		fi
+	fi
+done
 
 if [ -z $XLAPP_HOST_GW ] ; then
 	echo "Please specify the Default Gateway IP address."
@@ -273,6 +295,7 @@ fi
 
 # Should we remove the BUILD_CONF (machine.config or <machine>-config) file?
 rm -f $BUILD_CONF
+touch $BUILD_CONF
 
 if [ -z "$FOR_DOMU" ] ; then
 	cat >> $BUILD_CONF <<EOF
@@ -288,11 +311,24 @@ export XLAPP_HOST_FSTYPE="${XLAPP_HOST_FSTYPE}"
 export XLAPP_LFS_FSTYPE="${XLAPP_LFS_FSTYPE}"
 export XLAPP_BOOT_FSTYPE="${XLAPP_BOOT_FSTYPE}"
 EOF
+	XLAPP_CONF_DISTRO="xenfromscratch/host"
 else
-	touch $BUILD_CONF
+	DOMU_MACADDRS=$(echo $DOMU_MACADDRS | $TRIM_CMD)
+	cat >> $BUILD_CONF <<EOF
+export DOMU_MACADDRS="${DOMU_MACADDRS}"
+EOF
+	XLAPP_CONF_DISTRO="xenfromscratch/guest"
 fi
 
+# Trim some values
+XLAPP_DNS_SERVERS=$(echo $XLAPP_DNS_SERVERS | $TRIM_CMD)
+XLAPP_NTP_SERVERS=$(echo $XLAPP_NTP_SERVERS | $TRIM_CMD)
+
 cat >> $BUILD_CONF <<EOF
+export BUILD_CONF="${BUILD_CONF}"
+export XLAPP_FILES_SOURCE="${XLAPP_FILES_SOURCE}"
+export XLAPP_ETH_COUNT="${XLAPP_ETH_COUNT}"
+
 export MAKEFLAGS="${MAKEFLAGS}"
 export SKIP_TESTS="${SKIP_TESTS}"
 export XLAPP_USE_RAMFS="${XLAPP_USE_RAMFS}"
@@ -307,12 +343,16 @@ export XLAPP_HOST_GW="${XLAPP_HOST_GW}"
 export XLAPP_DNS_SERVERS="${XLAPP_DNS_SERVERS}"
 export XLAPP_NTP_SERVERS="${XLAPP_NTP_SERVERS}"
 
+export XLAPP_HOST_IPS="${XLAPP_HOST_IPS}"
+export XLAPP_ETH_COUNT="${XLAPP_ETH_COUNT}"
+export DOMU_MACADDRS="${DOMU_MACADDRS}"
+
 export XLAPP_TARGET_LANG="${XLAPP_TARGET_LANG}"
 export XLAPP_TARGET_TZ="${XLAPP_TARGET_TZ}"
 
-export XLAPP_CONF_DISTRO="Xen/LFS Apache Postgres PHP"
-export XLAPP_CONF_DISTRO_CONTACT="qrux@xlapp.org"
-export XLAPP_CONF_DISTRO_MINI="XLAPP"
+export XLAPP_CONF_DISTRO="${XLAPP_CONF_DISTRO}"
+export XLAPP_CONF_DISTRO_CONTACT="qrux@xenfromscratch.org"
+export XLAPP_CONF_DISTRO_MINI="xfs"
 export XLAPP_SSH_PUBKEY="${XLAPP_SSH_PUBKEY}"
 export XLAPP_ROOT_PASSWD_HASH='${XLAPP_ROOT_PASSWD_HASH}'
 EOF
@@ -324,21 +364,25 @@ echo "These are the settings..."
 echo
 
 cat <<EOF
+	 Build Config File: ${BUILD_CONF}
+        Build files source: ${XLAPP_FILES_SOURCE}
+	          For domU? ${FOR_DOMU}
+          
+              source files: ${XLAPP_FILES_SOURCE}
+
          Installing LFS to: ${XLAPP_LFS}
                  MAKEFLAGS: ${MAKEFLAGS}
-                SKIP_TESTS: ${SKIP_TESTS}      (empty string implies 'no')
+                SKIP_TESTS: ${SKIP_TESTS} (empty string implies 'no')
            XLAPP_USE_RAMFS: ${XLAPP_USE_RAMFS} (empty string implies 'no')
-            XLAPP_CONTINUE: ${XLAPP_CONTINUE}     (empty string implies 'no')
+            XLAPP_CONTINUE: ${XLAPP_CONTINUE} (empty string implies 'no')
 
-            HOST partition: ${XLAPP_HOST_PART}
-             LFS partition: ${XLAPP_LFS_PART}
-            BOOT partition: ${XLAPP_BOOT_PART}
+            HOST partition: ${XLAPP_HOST_PART} (empty string implies domU)
+             LFS partition: ${XLAPP_LFS_PART} (empty string implies domU)
+            BOOT partition: ${XLAPP_BOOT_PART} (empty string implies domU)
 
-          LFS source files: ${XLAPP_FILES_SOURCE}
-
-      HOST filesystem type: ${XLAPP_HOST_FSTYPE}
-       LFS filesystem type: ${XLAPP_LFS_FSTYPE}
-      BOOT filesystem type: ${XLAPP_BOOT_FSTYPE}
+      HOST filesystem type: ${XLAPP_HOST_FSTYPE} (empty string implies domU)
+       LFS filesystem type: ${XLAPP_LFS_FSTYPE} (empty string implies domU)
+      BOOT filesystem type: ${XLAPP_BOOT_FSTYPE} (empty string implies domU)
 
                   New FQDN: ${XLAPP_DNS_FQDN}
              New host name: ${XLAPP_HOST_HOSTNAME}
@@ -349,6 +393,10 @@ cat <<EOF
                DNS servers: ${XLAPP_DNS_SERVERS}
                NTP servers: ${XLAPP_NTP_SERVERS}
            Default Gateway: ${XLAPP_HOST_GW}
+
+                   All IPs: ${XLAPP_HOST_IPS}
+  Ethernet Interface Count: ${XLAPP_ETH_COUNT}
+            domU MAC addrs: ${DOMU_MACADDRS}
 
                   Language: ${XLAPP_TARGET_LANG}
                   Timezone: ${XLAPP_TARGET_TZ}
