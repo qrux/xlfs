@@ -144,6 +144,7 @@ if [ -z $XLAPP_CONTINUE ] ; then # If XLAPP_CONTINUE isn't set, do prep/init.
     # Assume that $LFS might be a boot partition.  So, don't remove /boot files.
     #
     find $LFS/ -mindepth 1 -maxdepth 1 -type d \( -not -name "grub*" -a -not -name "lost+found" \) -exec rm -rf {} \;
+    find $LFS/ -maxdepth 1 -type l \( -not -name "grub*" \) -exec rm -rf {} \;
     /bin/rm -f $LFS/tools
 
     echo "  Creating LFS work directory [ ${__SOURCE_DIR} ]..."
