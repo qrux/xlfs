@@ -62,13 +62,13 @@ cat >> $NEW_GRUB_FILE <<EOF
 title [${BOOT_INDEX_NEW}] X/LAPP Xen                  (LFS-7.0, Linux-3.1, Xen-4.1.2)
         root(hd0,0)
         kernel /xen-4.1.2.gz dom0_mem=1024M
-        module /vmlinuz-3.1-lfs-7.0 root=${XLAPP_LFS_PART} raid=noautodetect console=tty0 earlyprintk=xen nomodeset vga=normal nofb video=vesafb:off
+        module /vmlinuz-3.1-lfs-7.0 root=${XLAPP_LFS_PART} raid=noautodetect console=tty0 earlyprintk=xen nomodeset vga=normal nofb video=vesafb:off pcie_aspm=off
 
 # [${BOOT_INDEX_DEBUG}] X/LAPP Xen (with DEBUG)
 title [${BOOT_INDEX_DEBUG}] X/LAPP Xen (with DEBUG)     (LFS-7.0, Linux-3.1, Xen-4.1.2)
         root(hd0,0)
         kernel /xen-4.1.2.gz dom0_mem=1024M loglvl=all guest_loglvl=all console_to_ring sync_console
-        module /vmlinuz-3.1-lfs-7.0-dom0-DEBUG root=${XLAPP_LFS_PART} raid=noautodetect console=tty0 earlyprintk=xen nomodeset vga=normal nofb video=vesafb:off initcall_debug debug loglevel=10
+        module /vmlinuz-3.1-lfs-7.0-dom0-DEBUG root=${XLAPP_LFS_PART} raid=noautodetect console=tty0 earlyprintk=xen nomodeset vga=normal nofb video=vesafb:off initcall_debug debug loglevel=10 pcie_aspm=off
 EOF
 
 sed -i "s/^[[:space:]]*default.*/default ${BOOT_INDEX_NEW}/" $NEW_GRUB_FILE
