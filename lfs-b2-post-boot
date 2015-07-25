@@ -3,7 +3,7 @@
 set +h
 set -e
 umask 022
-PATH=/bin:/usr/bin:/sbin:/usr/sbin
+PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/sbin:/usr/local/bin
 export PATH
 
 export LFS="/"
@@ -12,7 +12,7 @@ cd /lfs
 find src -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
 chmod a+rw src
 pwd
-su -c "./build-all -s b2.01 -e b2.20" blfs
+su -c "./build-all -s b2.01 -e b2.25" blfs
 
 ./build-all -s b2.30 -e b2.80
 

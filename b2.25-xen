@@ -1,0 +1,91 @@
+#! /bin/bash
+
+# http://wiki.xenproject.org/wiki/Compiling_Xen_From_Source
+#
+# Xen Project 4.2 onwards defaults to installing libraries
+# into /usr/lib by default and from 4.3 onwards defaults to
+# installing to /usr/local/lib by default.
+#
+# Users on systems which use /usr/local/lib64 for 64-bit
+# libraries should use the --libdir option. e.g: 
+#
+#  $ ./configure --libdir=/usr/local/lib64
+#
+# _NB_: If you are using `--prefix=/usr` you should use `--libdir=/usr/lib64` too. 
+
+./configure --prefix=/usr/local --libdir=/usr/local/lib64 \
+	--disable-ocamltools \
+	--disable-rombios \
+	--disable-seabios
+
+# http://old-list-archives.xenproject.org/xen-users/2008-08/msg00497.html
+#
+# "Re: [Xen-users] xen tools compile failed - missing gnu/stubs-32.h"
+#
+# > what is this stubs-32.h, why don't I have it and where can I get it :-)
+#
+# Just:
+#
+#   ln -s /usr/include/gnu/stubs-64.h /usr/include/gnu/stubs-32.h
+#
+# The stubs just load arch specific headers, which do their own sanity.
+# This is a bug, however the work-around is quite safe.
+
+cd /usr/include/gnu
+if [ ! -e stubs-32.h ] ; then
+	sudo ln -sfv stubs-64.h stubs-32.h
+fi
+cd -
+
+sudo /sbin/ldconfig
+
+make world
+
+sudo make install
+
+sudo /sbin/ldconfig
+
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+#
+# Everything after this is Xen-4.1.2--and should be IGNORED.
+#
+exit
+#
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+
+sed -i 's/^SUBDIRS-.*firmware$/#\0/' tools/Makefile
+
+pushd tools/check
+	mkdir NOUSE
+	mv check_x11_devel NOUSE
+popd
+
+# This is necessary, because otherwise, we can't
+# find some of the shared libs (like openssl's libcrypto).
+sudo /sbin/ldconfig -v
+
+export MAKEFLAGS="-j 1"
+make xen
+make tools
+
+sudo make install-xen
+sudo make install-tools
+
+sudo sed -i -E -e 's/\(dom0-min-mem ([[:digit:]]+)\)/\(dom0-min-mem 1024\)/' \
+  -e 's/\(enable-dom0-ballooning [a-z]+\)/\(enable-dom0-ballooning no\)/' \
+  /etc/xen/xend-config.sxp
+
