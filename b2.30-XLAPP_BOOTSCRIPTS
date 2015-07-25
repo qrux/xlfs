@@ -1,6 +1,8 @@
 #! /bin/bash
 
-cp -vf xlapp-bootscripts/xlapp-domains /etc/init.d/
+if [ -f /etc/init.d/xlapp-domains ] ; then rm -f /etc/init.d/xlapp-domains ; fi
+
+/bin/cp -vf xlapp-bootscripts/xlapp-domains /etc/init.d/
 
 chmod 0754 /etc/init.d/xlapp-domains
 
