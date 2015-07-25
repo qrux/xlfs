@@ -51,6 +51,15 @@ export __SECTION
 export __CHAPTER
 export __TEST_OUTPUT
 
+if [ "b2" = "$__CHAPTER" ] ; then
+	if [ -d /usr/sbin ] ; then PATH=/usr/sbin:$PATH ; fi
+	if [ -d /sbin ] ; then PATH=/sbin:$PATH ; fi
+	if [ -d /usr/local/sbin ] ; then PATH=$PATH:/usr/local/sbin ; fi
+	if [ -d /usr/local/bin ] ; then PATH=$PATH:/usr/local/bin ; fi
+	echo "Chapter [b2] - PATH: $PATH"
+	echo "Chapter [b2] - USER: $USER"
+fi
+
 PROG_DIR=$(pwd)
 __SCRIPT="${PROG_DIR}/${__PROG_NAME}"
 
