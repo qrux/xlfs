@@ -1,0 +1,9 @@
+#! /bin/bash
+
+./configure -p /usr/local
+
+export MAKEFLAGS="-j 1"
+
+make
+
+sudo make install

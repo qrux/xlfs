@@ -1,0 +1,7 @@
+#! /bin/bash
+
+export MAKEFLAGS="-j 1"
+
+DIST=linux make PREFIX=/usr/local
+
+sudo make PREFIX=/usr/local install

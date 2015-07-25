@@ -1,0 +1,10 @@
+#! /bin/bash
+
+./configure --prefix=/usr/local \
+	--with-internal-glib \
+	--disable-host-tool \
+	--docdir=/usr/local/share/doc/pkg-config-0.28
+
+make
+
+sudo make install

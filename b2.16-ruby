@@ -1,0 +1,7 @@
+#! /bin/bash
+
+./configure --prefix=/usr/local --enable-shared --docdir=/usr/local/share/doc/ruby-2.2.2
+
+make
+
+sudo make install

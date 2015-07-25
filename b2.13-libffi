@@ -1,0 +1,12 @@
+#! /bin/bash
+
+sed -e '/^includesdir/ s/$(libdir).*$/$(includedir)/'     -i include/Makefile.in
+sed -e '/^includedir/ s/=.*$/=@includedir@/'     -e 's/^Cflags: -I${includedir}/Cflags:/'     -i libffi.pc.in
+
+./configure --prefix=/usr/local --disable-static
+
+make -j 6
+
+sudo make install
+
+sudo /sbin/ldconfig
