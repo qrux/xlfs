@@ -1,5 +1,8 @@
 #! /bin/bash
 
+JUST_TESTING=$1
+if [ -z "$JUST_TESTING" ] ; then JUST_TESTING=0 ; fi
+
 set +h
 set -e
 umask 022
@@ -11,4 +14,9 @@ export LFS LC_ALL LFS_TGT PATH
 
 cd $LFS/lfs
 pwd
-./build-all -s 5.02 -e 5.34
+
+if [ 1 -ne $JUST_TESTING ] ; then
+	./build-all -s 5.02 -e 5.34
+else
+	./build-all -n -s 5.02 -e 5.34
+fi

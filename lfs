@@ -17,13 +17,16 @@ XLAPP_CONFIG_FILE="machine.config"
 
 XLAPP_CONTINUE=
 OPTERR=0 # Disables getopts errors (when called by domU).
-while getopts "c" OPT ; do
+while getopts "0c" OPT ; do
         case "${OPT}" in
+		0) JUST_TESTING=1;;
                 c) XLAPP_CONTINUE=true;;
                 #*) if [ -z ${FOR_DOMU} ] ; then zed option $OPT." ; fi;;
         esac
 done
 shift $(($OPTIND - 1))
+
+export JUST_TESTING
 
 # We're done.  Caller is saying there's already a machine.config.
 if [ -n "$XLAPP_CONTINUE" ] ; then
@@ -280,7 +283,8 @@ fi
 cd $__SOURCE_DIR
 set +e
 touch $XLAPP_BUILD_OUTPUT
-time ./lfs-actual >> $XLAPP_BUILD_OUTPUT 2>&1
+
+time ./lfs-actual $JUST_TESTING >> $XLAPP_BUILD_OUTPUT 2>&1
 
 if [ 0 -ne $? ] ; then
 	echo "########################################################################"

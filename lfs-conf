@@ -51,7 +51,7 @@ XLAPP_USE_RAMFS=
 XLAPP_CONTINUE=
 XLAPP_ETH_COUNT=0
 OPTERR=0 # Disables getopts errors (when called by domU).
-while getopts "2:4:a:b:d:g:hj:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
+while getopts "02:4:a:b:d:g:hj:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
 	case "${OPT}" in
 		4)
 			XLAPP_ETH_COUNT=$((1 + $XLAPP_ETH_COUNT))

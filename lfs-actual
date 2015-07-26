@@ -1,4 +1,8 @@
 #! /bin/bash
+
+JUST_TESTING=$1
+if [ -z "$JUST_TESTING" ] ; then JUST_TESTING=0 ; fi
+
 set -e
 set +h
 
@@ -9,7 +13,7 @@ echo "#"
 echo "################################################################"
 
 pushd /home/lfs
-su lfs -c "./lfs-05-build-as-lfs"
+su lfs -c "./lfs-05-build-as-lfs $JUST_TESTING"
 popd
 
 echo "################################################################"
@@ -20,7 +24,9 @@ echo "################################################################"
 
 chown -R root:root $LFS/tools
 
-./6.02-PREP_VIRT_KERNEL_FS
+if [ 0 -eq "$JUST_TESTING" ] ; then
+	./6.02-PREP_VIRT_KERNEL_FS
+fi
 echo "################################################################"
 echo "#"
 echo "#  [ 6.02 - PREP_VIRT_KERNEL_FS ] run successfully; continuing"
@@ -29,19 +35,20 @@ echo "################################################################"
 time
 
 cd $LFS/lfs
+if [ 0 -eq "$JUST_TESTING" ] ; then
+	sed "s,#! /bin/bash,#! /tools/bin/bash," build-all | \
+		sed 's,./build ,./build-jail ,' > build-all-jail
+	sed "s,#! /bin/bash,#! /tools/bin/bash," build > build-jail
+	chmod 0755 *-jail
 
-sed "s,#! /bin/bash,#! /tools/bin/bash," build-all | \
-	sed 's,./build ,./build-jail ,' > build-all-jail
-sed "s,#! /bin/bash,#! /tools/bin/bash," build > build-jail
-chmod 0755 *-jail
-
-# Unpack the BLFS bootscripts for later
-tar xf src/blfs-bootscripts-*.tar.*
+	# Unpack the BLFS bootscripts for later
+	tar xf src/blfs-bootscripts-*.tar.*
+fi
 
 chroot "$LFS" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
-	/tools/bin/bash +h /lfs/lfs-06.05-build
+	/tools/bin/bash +h /lfs/lfs-06.05-build $JUST_TESTING
 
 echo "################################################################"
 echo "#"
@@ -52,7 +59,7 @@ echo "################################################################"
 chroot "$LFS" /tools/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
-        /bin/bash +h /lfs/lfs-06.31-restart-bash
+        /bin/bash +h /lfs/lfs-06.31-restart-bash $JUST_TESTING
 
 echo "################################################################"
 echo "#"
@@ -63,7 +70,11 @@ echo "################################################################"
 chroot "$LFS" /usr/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin \
-        /bin/bash +h /lfs/lfs-07.02-notools-jail3
+        /bin/bash +h /lfs/lfs-07.02-notools-jail3 $JUST_TESTING
+
+####
+exit
+####
 
 echo "################################################################"
 echo "#"

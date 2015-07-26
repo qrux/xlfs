@@ -1,4 +1,8 @@
 #! /tools/bin/bash
+
+JUST_TESTING=$1
+if [ -z "$JUST_TESTING" ] ; then JUST_TESTING=0 ; fi
+
 set +h
 set -e
 
@@ -6,4 +10,9 @@ export LFS="/"
 
 cd /lfs
 pwd
-./build-all-jail -s 6.05 -e 6.30
+
+if [ 1 -ne $JUST_TESTING ] ; then
+	./build-all-jail -s 6.05 -e 6.30
+else
+	./build-all-jail -n -s 6.05 -e 6.30
+fi
