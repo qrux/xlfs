@@ -36,6 +36,8 @@ START_NUM=$(  echo $START | cut -d '.' -f 2)
 END_PHASE=$(  echo   $END | cut -d '.' -f 1)
 END_NUM=$(    echo   $END | cut -d '.' -f 2)
 
+IN_END_PHASE=0
+
 #echo "  start-phase: $START_PHASE"
 #echo "    start-num: $START_NUM"
 #echo "    end-phase: $END_PHASE"
@@ -49,6 +51,12 @@ for PHASE in $(seq $STARTING_CHAPTER 9) b0 b1 b2 ; do
 			continue
 		fi
 	fi
+
+	# Terminate properly.
+	if [ 1 -eq $IN_END_PHASE ] ; then
+		if [ $PHASE != $END_PHASE ] ; then exit ; fi
+	fi
+	if [ $PHASE = $END_PHASE ] ; then IN_END_PHASE=1 ; fi
 
 	# At this point, the phase matches (e.g., 6.xy or 7.nm).
 	for SCRIPT_INDEX in $(seq 0 99) ; do
