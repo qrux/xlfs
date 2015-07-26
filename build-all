@@ -26,19 +26,31 @@ if [ -z $END ] ; then
 	END=$START
 fi
 
-echo "Building [$START, $END] (inclusive)..."
+echo "Building [$START, $END] (inclusive; testing? $JUST_TESTING)..."
 HAS_STARTED=0
 
 STARTING_CHAPTER=5
 
 START_PHASE=$(echo $START | cut -d '.' -f 1)
-START_NUM=$(echo $END | cut -d '.' -f 2)
-END_PHASE=$(echo $START | cut -d '.' -f 1)
-END_NUM=$(echo $END | cut -d '.' -f 2)
+START_NUM=$(  echo $START | cut -d '.' -f 2)
+END_PHASE=$(  echo   $END | cut -d '.' -f 1)
+END_NUM=$(    echo   $END | cut -d '.' -f 2)
+
+#echo "  start-phase: $START_PHASE"
+#echo "    start-num: $START_NUM"
+#echo "    end-phase: $END_PHASE"
+#echo "      end-num: $END_NUM"
 
 for PHASE in $(seq $STARTING_CHAPTER 9) b0 b1 b2 ; do
-	#echo "    (Current phase: $PHASE)"
+	echo "    (Current phase: $PHASE)"
+	if [ 0 -eq $HAS_STARTED ] ; then
+		if [ $PHASE != $START_PHASE ] ; then
+			echo "(skipping phase $PHASE)"
+			continue
+		fi
+	fi
 
+	# At this point, the phase matches (e.g., 6.xy or 7.nm).
 	for SCRIPT_INDEX in $(seq 0 99) ; do
 		# Doing the check isolates the check; otherwise, has to be done in multiple places.
 		#echo "==== SCRIPT_NUM: $SCRIPT_NUM ===="
@@ -57,46 +69,59 @@ for PHASE in $(seq $STARTING_CHAPTER 9) b0 b1 b2 ; do
 		CURRENT="${PHASE}.${SCRIPT_NUM}"
 
 		if [ 0 -eq $HAS_STARTED ] ; then
-			if [ $PHASE != $START_PHASE ] ; then
-				continue
-			elif [ $CURRENT = $START ] ; then
+			#echo "At start? Current: $CURRENT, Start: $START"
+			if [ $CURRENT = $START ] ; then
+				#echo "  (starting at $CURRENT)"
 				HAS_STARTED=1
+			else
+				continue
+				#echo "  (skipping current $CURRENT)"
 			fi
+
+			echo ">>> Started."
 		fi
 
 		if [ 1 -eq $HAS_STARTED ] ; then
+			#echo "  (    phase: $PHASE)"
+			#echo "  (end-phase: $END_PHASE)"
 			if [ $PHASE = $END_PHASE ] ; then
-				if [ "$SCRIPT_INDEX" -gt "$END_NUM" ] ; then exit ; fi
+				if [ "$SCRIPT_INDEX" -gt "$END_NUM" ] ; then
+					#echo "Reached END."
+					exit
+				fi
 			fi
 		fi
 
 		SCRIPT=$(echo ${CURRENT}*)
-		if [ -e $SCRIPT ] ; then
-			if [ 1 -ne $JUST_TESTING ] ; then
-				if [ 1 -eq $HAS_STARTED ] ; then
-					SCRIPT_GUARD=".guard-${SCRIPT}"
-					if [ -f $SCRIPT_GUARD ] ; then
-						SCRIPT_GUARD_LINE_COUNT=$(wc -l $SCRIPT_GUARD | cut -d ' ' -f 1)
-						if [ 2 -le $SCRIPT_GUARD_LINE_COUNT ] ; then
-							echo "  Skipping $SCRIPT (already built)."
-							continue
-						else
-							rm -f $SCRIPT_GUARD
-							touch $SCRIPT_GUARD
-						fi
-					fi
+		SCRIPT_GUARD=".guard-${SCRIPT}"
+		if [ ! -e $SCRIPT ] ; then continue ; fi
 
-					if [ -z ${MAKEFLAGS} ] ; then
-						echo "  Building $SCRIPT (no MAKEFLAGS)..."
-					else
-						echo "  Building $SCRIPT (with ${MAKEFLAGS})..."
-					fi
-
-					  date '+%s' > $SCRIPT_GUARD  # Write to file.
-					time ./build $SCRIPT
-					  date '+%s' >> $SCRIPT_GUARD # Append to file.
+		if [ 1 -eq $JUST_TESTING ] ; then
+			rm -f $SCRIPT_GUARD
+			touch $SCRIPT_GUARD
+			  date '+%s' >  $SCRIPT_GUARD  # Write  to file.
+			  date '+%s' >> $SCRIPT_GUARD  # Append to file.
+		else
+			if [ -f $SCRIPT_GUARD ] ; then
+				SCRIPT_GUARD_LINE_COUNT=$(wc -l $SCRIPT_GUARD | cut -d ' ' -f 1)
+				if [ 2 -le $SCRIPT_GUARD_LINE_COUNT ] ; then
+					echo "  Skipping $SCRIPT (already built)."
+					continue
+				else
+					rm -f $SCRIPT_GUARD
+					touch $SCRIPT_GUARD
 				fi
 			fi
+
+			#if [ -z "${MAKEFLAGS}" ] ; then
+				#echo "  Building $SCRIPT (no MAKEFLAGS)..."
+			#else
+				#echo "  Building $SCRIPT (MAKEFLAGS: ${MAKEFLAGS})..."
+			#fi
+
+			  date '+%s' >  $SCRIPT_GUARD #  Write to file.
+			time ./build $SCRIPT
+			  date '+%s' >> $SCRIPT_GUARD # Append to file.
 		fi
 	done
 done
