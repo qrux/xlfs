@@ -21,7 +21,7 @@ PROG_NAME=$(basename $PROG_PATH)
 CONF_FILE="${PROG_DIR}/machine.config"
 
 if [ -z $SKIP_MACHINE_CONFIG ] ; then
-	echo "  Using machine template: $CONF_FILE..."
+	#echo "  Using machine template: $CONF_FILE..."
 	. $CONF_FILE
 fi
 

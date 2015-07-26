@@ -8,12 +8,13 @@ if [ -z $FILE ] ; then
 	FILE="./lfs.out"
 fi
 
-test ! -z $SLEEP || SLEEP=5
+test ! -z $SLEEP || SLEEP=2
 
 while true ; do
 	_LFS_TIME=$(./scan-time $FILE)
 	if [ $LFS_TIME != $_LFS_TIME ] ; then
 		clear
+		date
 		cat $FILE | grep "successfully;" | cut -d ";" -f 1 | sed 's/\(.*\)/    \1/'
 		LFS_TIME=$_LFS_TIME
 		SHORT_TIME=$(echo $LFS_TIME | sed 's/\([0-9]*\)\.\([0-9]\)[0-9]*/\1\.\2/')
