@@ -6,6 +6,9 @@ ln -vsf /etc/init.d /root/init
 echo "Creating root's link to lfs..."
 ln -vsf /lfs /root/lfs
 
+echo "Creating root's link to menu.lst (grub boot file)..."
+ln -vsf /boot/grub/menu.lst /root/menu.lst
+
 #echo "Creating push-link to lfs..."
 #mkdir -pv /home/software
 #ln -vsf /lfs /home/software/lfs
