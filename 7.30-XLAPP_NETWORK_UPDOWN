@@ -2,6 +2,8 @@
 
 cp -vf xlapp-bootscripts/{bridge,ipv4-static} /lib/services/
 cp -vf xlapp-bootscripts/{ifup,ifdown} /sbin/
+cp -vf xlapp-bootscripts/boot-links-create /sbin/
 
 chmod 0754 /lib/services/{bridge,ipv4-static}
 chmod 0754 /sbin/{ifup,ifdown}
+chmod 0754 /sbin/boot-links-create
