@@ -44,7 +44,6 @@ IN_END_PHASE=0
 #echo "      end-num: $END_NUM"
 
 for PHASE in $(seq $STARTING_CHAPTER 9) b0 b1 b2 ; do
-	echo "    (Current phase: $PHASE)"
 	if [ 0 -eq $HAS_STARTED ] ; then
 		if [ $PHASE != $START_PHASE ] ; then
 			echo "(skipping phase $PHASE)"
