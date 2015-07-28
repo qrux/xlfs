@@ -57,7 +57,7 @@ disk-image for a PV domU is STRONGLY DISCOURAGED.
 
 The 'type' sub-argument of -v must be one of ext2, ext3, ext4.  Others may
 work, but are used entirely at your caution.  FSTYPE must support creation via
-'mkfs -t FSTYPE'.  FSSIZE is expressed as MiB: multiples of 1048576-bytes.
+'mkfs -t FSTYPE'.  FSSIZE is expressed as GiB: multiples of 10^30 bytes.
 
 VM_MEM is expressed as MiB: multiples of 1048576-bytes.  VM_CPUS
 is expressed an integer number of VCPUS allocated for use by the VM.  Using a
@@ -76,7 +76,7 @@ will be named by the domU-FQDN (first non-option argument).
   -v vg:type	Use volume group 'vg' (must exist) with FS type 'type'
                   (this option is mutually exclusive from -f)
   -f            Force the creation of the logical volume
-  -2 FSSIZE     Create a filesystem this large (in MiB)
+  -2 FSSIZE     Create a filesystem this large (in GiB)
   -m VM_MEM     Allocate this much memory for the VM (in MiB)
   -c VM_CPUS    [OPT] Allocate this many CPUs for the VM
   -w SWAP_MUL	[OPT] Use this amount of swap (multiplier to VM_MEM)
@@ -181,7 +181,7 @@ echo "           domU host: $DOMU_HOSTNAME"
 echo "         domU domain: $DOMAIN_NAME"
 echo "   domU source image: $SNAPSHOT"
 echo "         domU LVM vg: $VOL_GROUP"
-echo "domU disk size (MiB): $FSSIZE"
+echo "domU disk size (GiB): $FSSIZE"
 echo "        domU FS type: $FSTYPE"
 echo "       domU TSC mode: $TSC_MODE"
 echo "   domU memory (MiB): $VIRT_MEM"
@@ -362,8 +362,10 @@ EOF
 		echo "Removing LVM2 disk phy..."
 		lvremove -fv $IMAGE
 	fi
-	echo "Creating LVM2-backed disk phy $IMAGE ($FSSIZE MB, $FSTYPE)..."
-	lvcreate -L ${FSSIZE}M -n $DOMU_HOST $VOL_GROUP
+	echo "Creating LVM2-backed disk phy $IMAGE ($FSSIZE GB, $FSTYPE)..."
+
+	FSSIZE_IN_MB=$((1024 * $FSSIZE))
+	lvcreate -L ${FSSIZE_IN_MB}M -n $DOMU_HOST $VOL_GROUP
 
 	########################################################################
 	#
