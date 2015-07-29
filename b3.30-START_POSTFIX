@@ -1,5 +1,8 @@
 #! /bin/bash
 
+cd src
+if [ ! -d blfs-bootscripts-20120206 ] ; then tar xf blfs-bootscripts-20120206.tar.bz2 ; fi
+
 cd blfs-bootscripts-*
 
 sudo make install-postfix

@@ -3,3 +3,5 @@ dot.bashrc-lfs
 lfs-05-build-as-lfs
 *.swp
 .idea
+
+lapp/Makefile
