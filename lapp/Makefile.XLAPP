@@ -1,0 +1,646 @@
+INSTALL_ROOT :=				/usr/local
+PHP_ROOT :=				$(INSTALL_ROOT)/php
+APACHE_ROOT :=				$(INSTALL_ROOT)/a2
+PG_ROOT :=				$(INSTALL_ROOT)/pgsql
+
+PREFIX :=				--prefix=$(INSTALL_ROOT)
+PHP_PREFIX :=				--prefix=$(PHP_ROOT)
+APACHE_PREFIX :=			--prefix=$(APACHE_ROOT)
+PG_PREFIX :=				--prefix=$(PG_ROOT)
+
+PHP_INI_FILEPATH :=			$(PHP_ROOT)/lib/php.init
+HTDOCS_DIRPATH :=			$(APACHE_ROOT)/htdocs
+
+SUB :=					/usr/share/libtool/config/config.sub
+GUESS :=				/usr/share/libtool/config/config.guess
+PHP_BINARY :=				/usr/local/php/bin/php
+PHP_GUESS :=				/usr/local/php/bin/php.dSYM
+PECL_BINARY :=				/usr/local/php/bin/pecl
+PLATFORM :=				$(shell uname -s)
+
+IMAP_PATCH :=				patch-imap-Makefile-fPIC-xfs-mac
+
+SUDO :=					$(shell which sudo)
+MAKE_INSTALL :=				$(SUDO) make install
+MAKE_CMD_1 :=				make -j1
+MAKE_CMD_4 :=				make -j4
+MAKE_CMD_6 :=				make -j6
+MAKE_CMD_8 :=				make -j8
+MAKE_CMD :=				$(MAKE_CMD_6)
+INSTALL :=				$(SUDO) install
+
+ifeq (Linux, $(PLATFORM))
+	DOWNLOAD_CMD = wget
+	SED_INPLACE = sed
+
+	LDCONFIG = $(SUDO)
+	LDCONFIG += /sbin/ldconfig
+	LDCONFIG += >/dev/null
+	LDCONFIG += 2>&1
+
+	APACHE_CONF_OPTS_OS  = --with-ssl=/usr
+	#APACHE_CONF_OPTS_OS = --with-ssl=/usr/local
+	APACHE_CONF_OPTS_OS += --with-z=/usr
+	APACHE_CONF_OPTS_OS += --with-included-apr
+
+	PHP_CONF_OPTS_OS  = --with-zlib=/usr
+	PHP_CONF_OPTS_OS += --with-pcre-dir=/usr
+	PHP_CONF_OPTS_OS += --with-bz2=/usr
+	PHP_CONF_OPTS_OS += --with-curl=/usr
+	#PHP_CONF_OPTS_OS += --with-openssl=/usr/local
+	#PHP_CONF_OPTS_OS += --with-imap-ssl=/usr/local
+	PHP_CONF_OPTS_OS += --with-openssl=/usr
+	PHP_CONF_OPTS_OS += --with-imap-ssl=/usr
+
+	IMAP_BUILD_TARGET = xfs
+
+	BASE_LIBS_DEPS = baselibs-tls
+else
+	DOWNLOAD_CMD = ftp
+	SED_INPLACE=sed -i ''
+
+	MAC_64=$(shell /usr/sbin/sysctl -n hw.optional.x86_64)
+	LDCONFIG=$(shell which true)
+	APACHE_CONF_CFLAGS  = "-isysroot /Developer/SDKs/MacOSX10.6.sdk"
+
+	APACHE_CONF_OPTS_OS  = --with-ssl=$(INSTALL_ROOT)
+	APACHE_CONF_OPTS_OS += --with-z=$(INSTALL_ROOT)
+
+	PHP_CONF_OPTS_OS  = --with-zlib=$(INSTALL_ROOT)
+	PHP_CONF_OPTS_OS += --with-pcre-dir=$(INSTALL_ROOT)
+	PHP_CONF_OPTS_OS += --with-bz2=$(INSTALL_ROOT)
+	PHP_CONF_OPTS_OS += --with-curl=$(INSTALL_ROOT)
+	PHP_CONF_OPTS_OS += --with-openssl=$(INSTALL_ROOT)
+	PHP_CONF_OPTS_OS += --with-imap-ssl=$(INSTALL_ROOT)
+
+	IMAP_BUILD_TARGET = mac
+
+	BASE_LIBS_DEPS = .baselibs-mac
+endif
+
+LDCONFIG += &&echo&&echo
+LDCONFIG += "  Target [ $@ ] is finished."
+LDCONFIG += &&echo
+
+ifndef MAC_64
+	ZLIB_OPTS = --64
+	OPENSSL_CONFIG = ./Configure
+	OPENSSL_OPTS = linux-x86_64
+	MEMCACHED_OPTS = --enable-64bit
+else ifeq (1, $(MAC_64))
+	ZLIB_OPTS = --64
+	OPENSSL_CONFIG = ./Configure
+	OPENSSL_OPTS = darwin64-x86_64-cc
+	MEMCACHED_OPTS = --enable-64bit
+else ifeq (0, $(MAC_64))
+	ZLIB_OPTS =
+	OPENSSL_CONFIG = ./config
+	MEMCACHED_OPTS =
+endif
+
+
+PGSQL_CONF_OPTS :=			$(PG_PREFIX) \
+	--enable-locale \
+	--enable-multibyte \
+	--with-openssl \
+	--enable-integer-datetimes
+
+APACHE_CONF_OPTS :=			$(APACHE_PREFIX) \
+	--enable-authn-dbm \
+	--enable-ssl \
+	--enable-dav \
+	--enable-info \
+	--enable-speling \
+	--enable-userdir \
+	--enable-rewrite \
+	--enable-so \
+	--enable-dav-fs \
+	--enable-deflate \
+	--enable-unique-id \
+	--enable-usertrack \
+	--enable-vhost-alias \
+	$(APACHE_CONF_OPTS_OS)
+
+XCACHE_CONF_OPTS :=			$(PHP_PREFIX) \
+	--enable-xcache \
+	--enable-xcache-constant \
+	--enable-xcache-coverage \
+	--disable-shared \
+	--with-pic \
+	--with-php-config=$(PHP_ROOT)/bin/php-config
+
+PHP_CONF_OPTS :=			$(PHP_PREFIX) \
+	--with-apxs2=$(APACHE_ROOT)/bin/apxs \
+	--with-pgsql=$(PG_ROOT) \
+	--with-curlwrappers \
+	--with-gd \
+	--enable-mbstring \
+	--with-xmlrpc \
+	--enable-exif \
+	--enable-calendar \
+	--enable-debug \
+	--enable-ftp \
+	--enable-zip \
+	--enable-soap \
+	--enable-inline-optimization \
+	--disable-debug \
+	--with-iconv-dir=/usr \
+	--with-jpeg-dir=$(INSTALL_ROOT) \
+	--with-png-dir=$(INSTALL_ROOT) \
+	--with-freetype-dir=$(INSTALL_ROOT) \
+	--with-pdo-pgsql=$(PG_ROOT) \
+	--with-libxml-dir=$(INSTALL_ROOT) \
+	--with-xsl=$(INSTALL_ROOT)/bin \
+	--with-imap=$(INSTALL_ROOT) \
+	$(PHP_CONF_OPTS_OS)
+
+################################################################
+#
+# LAPP/MAPP
+#
+################################################################
+
+.PHONY:					info
+info:
+	@echo
+	@echo "  Please choose either 'make xlapp' or 'make mac'; exiting."
+	@echo
+	@echo "	               LDCONFIG: $(LDCONFIG)"
+	@echo "	                 MAC_64: $(MAC_64)"
+	@echo "          OPENSSL_CONFIG: $(OPENSSL_CONFIG)"
+	@echo "            OPENSSL_OPTS: $(OPENSSL_OPTS)"
+	@echo "          BASE_LIBS_DEPS: $(BASE_LIBS_DEPS)"
+	@echo
+	@echo "       IMAP_BUILD_TARGET: $(IMAP_BUILD_TARGET)"
+	@echo "              IMAP_PATCH: $(IMAP_PATCH)"
+	@echo
+	@echo "     APACHE_CONF_OPTS_OS: $(APACHE_CONF_OPTS_OS)"
+	@echo "        PHP_CONF_OPTS_OS: $(PHP_CONF_OPTS_OS)"
+	@echo
+	@echo "        APACHE_CONF_OPTS: $(APACHE_CONF_OPTS)"
+	@echo
+	@echo "           PHP_CONF_OPTS: $(PHP_CONF_OPTS)"
+	@echo
+
+.PHONY:			mac
+mac:			.php-xl
+	@echo
+	@echo "  Epic MAPP Bundle installation is complete."
+	@echo
+
+.PHONY:			mac-patches
+mac-patches:
+	cd /System/Library/LaunchDaemons ; if [ ! -f .vanilla/org.apache.httpd.plist ] ; then mkdir -p .vanilla && cp org.apache.httpd.plist .vanilla ; fi
+	@grep /usr/local/a2 /System/Library/LaunchDaemons/org.apache.httpd.plist > /dev/null 2>&1 ; if [ $${?} -ne 0 ] ; then patch /System/Library/LaunchDaemons/org.apache.httpd.plist < patch-MacOSX-LDoahp ; else echo "  org.apache.httpd.plist is already patched; skipping." ; fi
+	@grep "User[[:space:]]*www" /usr/local/a2/conf/httpd.conf > /dev/null 2>&1 ; if [ $${?} -ne 0 ] ; then patch /usr/local/a2/conf/httpd.conf < patch-a2-httpd.conf ; else echo "  httpd.conf is already patched; skipping." ; fi
+	@grep "UserDir[[:space:]]*Sites" /usr/local/a2/conf/extra/httpd-userdir.conf > /dev/null 2>&1 ; if [ $${?} -ne 0 ] ; then patch /usr/local/a2/conf/extra/httpd-userdir.conf < patch-a2-httpd-userdir.conf ; else echo "  httpd-userdir.conf is already patched; skipping." ; fi
+
+.PHONY:			xlapp
+xlapp:			.php-xl
+	@$(LDCONFIG)
+	@echo
+	@echo "  Epic XLAPP Bundle installation is complete."
+	@echo
+
+# This has been deprecated, in favor of XLAPP builds
+.PHONY:			linux
+linux:			xlapp
+
+
+################################################################
+#
+# XLAPP build deps
+#
+################################################################
+
+# XCache is now deprecated; PHP-5.5 has it's own built-in opcode cache.
+# http://massivescale.blogspot.com/2013/06/php-55-zend-optimiser-opcache-vs-xcache.html
+.xcache-xl:		xcache-src php-xl
+	cd $< && $(PHP_ROOT)/bin/phpize --clean && $(PHP_ROOT)/bin/phpize && ./configure $(PHP_PREFIX) $(XCACHE_CONF_OPTS) && $(MAKE_CMD) && make -j1 test && $(MAKE_INSTALL) && $(SUDO) cp xcache*.ini $(PHP_ROOT)/lib
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			php-xl
+php-xl:			.php-xl
+.php-xl:		php-src .postgres-xl .apache-xl .gd-xl .libs-xl
+	cd $< && LIBS="-lresolv" ./configure $(PHP_CONF_OPTS) --with-pic && $(MAKE_CMD) && $(MAKE_INSTALL) && $(SUDO) cp php.ini-* $(PHP_ROOT)/lib
+	#cd $(PHP_ROOT)/lib && $(SUDO) cp -f php.ini-production php.ini
+	@$(LDCONFIG)
+	if [ ! -f $(PHP_BINARY) ] ; then if [ -f $(PHP_GUESS) ] ; then $(SUDO) cp $(PHP_GUESS) $(PHP_BINARY) ; fi ; fi
+	if [ ! -f /usr/bin/php ] ; then ln -sv $(PHP_ROOT)/bin/php /usr/bin/php ; fi
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			postgres-xl
+postgres-xl:		.postgres-xl
+.postgres-xl:		postgres-src $(BASE_LIBS_DEPS)
+	cd $< && ./configure $(PGSQL_CONF_OPTS) && $(MAKE_CMD) && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			apache-xl
+apache-xl:		.apache-xl
+.apache-xl:		apache-src $(BASE_LIBS_DEPS)
+	cd $< && CFLAGS=$(APACHE_CONF_CFLAGS) ./configure $(APACHE_CONF_OPTS) && $(MAKE_CMD) && $(MAKE_INSTALL)
+	cd /usr/sbin && if [ -f apachectl ] ; then if [ ! -f .vanilla/apachectl ] ; then $(SUDO) mkdir -p .vanilla && $(SUDO) cp apachectl .vanilla ; fi ; fi
+	$(SUDO) cp -f $(APACHE_ROOT)/bin/apachectl /usr/sbin
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			apr-xl
+.apr-xl:		apr-src $(BASE_LIBS_DEPS)
+
+
+.PHONY:			gd-xl
+gd-xl:			.gd-xl
+.gd-xl:			gd-src .png-xl .tiff-xl .freetype-xl $(BASE_LIBS_DEPS)
+	cd $< && ./configure $(PREFIX) --with-pic --with-png=$(INSTALL_ROOT) --with-freetype=$(INSTALL_ROOT) --with-jpeg=$(INSTALL_ROOT) && $(MAKE_CMD) && make test && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.png-xl:		png-src
+	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && make test && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.tiff-xl:		tiff-src .jpeg-xl
+	cd $< && ./configure $(PREFIX) --with-pic --with-jpeg-lib-dir=$(INSTALL_ROOT)/lib && $(MAKE_CMD) && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.jpeg-xl:		jpeg-src
+	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && $(MAKE_INSTALL)
+	$(SUDO) ranlib $(INSTALL_ROOT)/lib/libjpeg.a
+	@touch $@ && $(LDCONFIG)
+
+.freetype-xl:		freetype-src
+	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && $(MAKE_INSTALL)
+	$(SUDO) ln -sf /usr/X11R6/include/fontconfig $(INSTALL_ROOT)/include
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			libs-xl
+libs-xl:		.libs-xl
+.libs-xl:		.xslt-xl .mem-xl .imap-xl
+	@touch $@ && $(LDCONFIG)
+
+.xslt-xl:		xslt-src .xml2-xl
+	cd $< && ./configure $(PREFIX) --with-pic --with-libxml-prefix=$(INSTALL_ROOT) && $(MAKE_CMD) && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.xml2-xl:		xml-src $(BASE_LIBS_DEPS)
+	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.mem-xl:		memcached-src .event-xl $(BASE_LIBS_DEPS)
+	cd $< && $(SED_INPLACE) 's/\ -Werror//' configure && ./configure $(PREFIX) $(MEMCACHED_OPTS) && $(MAKE_CMD) && make test && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.event-xl:		event-src $(BASE_LIBS_DEPS)
+	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && make verify && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.imap-xl:		imap-src $(BASE_LIBS_DEPS)
+	cd $< && /bin/cp -f Makefile Makefile.ORIG && patch < ../$(IMAP_PATCH) && make $(IMAP_BUILD_TARGET)
+	$(INSTALL) -m 0644 $</c-client/c-client.a $(INSTALL_ROOT)/lib/libc-client.a
+	$(INSTALL) -m 0644 $</c-client/c-client.h $(INSTALL_ROOT)/include
+	$(INSTALL) -d $(INSTALL_ROOT)/include/c-client
+	$(INSTALL) -m 0644 $</c-client/*.h $(INSTALL_ROOT)/include/c-client
+	@touch $@ && $(LDCONFIG)
+
+
+################################################################
+#
+# Mac OS X build deps
+#
+################################################################
+
+#.xcache-mac:		xcache-src php-mac
+#	cd $< && $(PHP_ROOT)/bin/phpize --clean && $(PHP_ROOT)/bin/phpize && ./configure $(PHP_PREFIX) $(XCACHE_CONF_OPTS) && $(MAKE_CMD_4) && make -j1 test && $(MAKE_INSTALL) && $(SUDO) cp xcache*.ini $(PHP_ROOT)/lib
+#	@touch $@ && $(LDCONFIG)
+
+#.PHONY:			php-mac
+#php-mac:		.php-mac
+#.php-mac:		php-src .postgres-mac .apache-mac .gd-mac .libs-mac
+#	cd $< && LIBS="-lresolv" ./configure $(PHP_CONF_OPTS) --with-pic && $(MAKE_CMD_4) && $(MAKE_INSTALL) && $(SUDO) cp php.ini-* $(PHP_ROOT)/lib
+	#cd $(PHP_ROOT)/lib && $(SUDO) cp -f php.ini-production php.ini
+#	@$(LDCONFIG)
+#	if [ ! -f $(PHP_BINARY) ] ; then if [ -f $(PHP_GUESS) ] ; then $(SUDO) cp $(PHP_GUESS) $(PHP_BINARY) ; fi ; fi
+#	@touch $@ && $(LDCONFIG)
+
+#.PHONY:			postgres-mac
+#postgres-mac:		.postgres-mac
+#.postgres-mac:		postgres-src .baselibs-mac
+#	cd $< && ./configure $(PGSQL_CONF_OPTS) && $(MAKE_CMD) && $(MAKE_INSTALL)
+#	@touch $@ && $(LDCONFIG)
+
+#.PHONY:			apache-mac
+#apache-mac:		.apache-mac
+#.apache-mac:		apache-src .baselibs-mac
+#	cd $< && CFLAGS=$(APACHE_CONF_CFLAGS) ./configure $(APACHE_CONF_OPTS) && $(MAKE_CMD) && $(MAKE_INSTALL)
+#	cd /usr/sbin && if [ -f apachectl ] ; then if [ ! -f .vanilla/apachectl ] ; then $(SUDO) mkdir -p .vanilla && $(SUDO) cp apachectl .vanilla ; fi ; fi
+#	$(SUDO) cp -f $(APACHE_ROOT)/bin/apachectl /usr/sbin
+#	@touch $@ && $(LDCONFIG)
+
+#.PHONY:			gd-mac
+#gd-mac:			.gd-mac
+#.gd-mac:		gd-src .png-mac .tiff-mac .freetype-mac .baselibs-mac
+#	cd $< && ./configure $(PREFIX) --with-pic --with-png=$(INSTALL_ROOT) --with-freetype=$(INSTALL_ROOT) --with-jpeg=$(INSTALL_ROOT) && $(MAKE_CMD) && make test && $(MAKE_INSTALL)
+#	@touch $@ && $(LDCONFIG)
+
+#.png-mac:		png-src
+#	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && make test && $(MAKE_INSTALL)
+#	@touch $@ && $(LDCONFIG)
+#
+#.tiff-mac:		tiff-src .jpeg-mac
+#	cd $< && ./configure $(PREFIX) --with-pic --with-jpeg-lib-dir=$(INSTALL_ROOT)/lib && $(MAKE_CMD) && $(MAKE_INSTALL)
+#	@touch $@ && $(LDCONFIG)
+#
+#.jpeg-mac:		jpeg-src
+#	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && $(MAKE_INSTALL)
+#	$(SUDO) ranlib $(INSTALL_ROOT)/lib/libjpeg.a
+#	@touch $@ && $(LDCONFIG)
+#
+#.freetype-mac:		freetype-src
+#	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && $(MAKE_INSTALL)
+#	$(SUDO) ln -sf /usr/X11R6/include/fontconfig $(INSTALL_ROOT)/include
+#	@touch $@ && $(LDCONFIG)
+#
+#.PHONY:			libs-mac
+#libs-mac:		.libs-mac
+#.libs-mac:		.xslt-mac .mem-mac .imap-mac
+#	@touch $@ && $(LDCONFIG)
+#
+#.xslt-mac:		xslt-src .xml2-mac $(BASE_LIBS_DEPS)
+#	cd $< && ./configure $(PREFIX) --with-pic --with-libxml-prefix=$(INSTALL_ROOT) && $(MAKE_CMD) && $(MAKE_INSTALL)
+#	@touch $@ && $(LDCONFIG)
+#
+#.xml2-mac:		xml-src $(BASE_LIBS_DEPS)
+#	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && $(MAKE_INSTALL)
+#	@touch $@ && $(LDCONFIG)
+#
+#.mem-mac:		memcached-src .event-mac .baselibs-mac
+#	cd $< && $(SED_INPLACE) 's/\ -Werror//' configure && ./configure $(PREFIX) $(MEMCACHED_OPTS) && $(MAKE_CMD) && make test && $(MAKE_INSTALL)
+#	@touch $@ && $(LDCONFIG)
+#
+#.event-mac:		event-src $(BASE_LIBS_DEPS).baselibs-mac
+#	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && make verify && $(MAKE_INSTALL)
+#	@touch $@ && $(LDCONFIG)
+#
+#.imap-mac:		imap-src $(BASE_LIBS_DEPS)
+#	cd $< && /bin/cp -f Makefile Makefile.ORIG && patch < ../patch-imap-Makefile-fPIC-xfs-mac && make mac
+#	$(INSTALL) -m 0644 $</c-client/c-client.a $(INSTALL_ROOT)/lib/libc-client.a
+#	$(INSTALL) -m 0644 $</c-client/c-client.h $(INSTALL_ROOT)/include
+#	$(INSTALL) -d $(INSTALL_ROOT)/include/c-client
+#	$(INSTALL) -m 0644 $</c-client/*.h $(INSTALL_ROOT)/include/c-client
+#	@touch $@ && $(LDCONFIG)
+
+################################################################
+# Mac OS X - Snow Leopard - specific missing libraries
+################################################################
+
+.PHONY:			baselibs-mac
+baselibs-mac:		.baselibs-mac
+.baselibs-mac:		.curl-mac
+	@touch $@ && $(LDCONFIG)
+
+.curl-mac:		curl-src .readline-mac
+	cd $< && ./configure $(PREFIX) --with-pic --with-ssl=$(INSTALL_ROOT) --with-zlib=$(INSTALL_ROOT) --with-ca-path=$(INSTALL_ROOT)/ssl/certs && $(MAKE_CMD) && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.readline-mac:		readline-src .openssl-mac
+	cd $< && ./configure $(PREFIX) --with-pic && $(MAKE_CMD) && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.openssl-mac:		openssl-src .zlib-mac .bzip-mac
+	cd $< && $(OPENSSL_CONFIG) $(PREFIX) zlib threads shared -fPIC -pie $(OPENSSL_OPTS) && $(MAKE_CMD_1) && make test && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.zlib-mac:		zlib-src
+	cp patch-zlib-Makefile.in $< && cd $< && patch < patch-zlib-Makefile.in
+	cd $< && ./configure $(PREFIX) $(ZLIB_OPTS) && $(MAKE_CMD) && make test && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.bzip-mac:		bzip-src
+	cp patch-bzip-Makefile-fPIC $< && cd $< && patch < patch-bzip-Makefile-fPIC
+	cd $< && patch < ../bzip2-1.0.6-install_docs-1.patch && $(MAKE_CMD) && make test && $(MAKE_INSTALL) PREFIX=$(INSTALL_ROOT)
+	@touch $@ && $(LDCONFIG)
+
+################################################################
+# Linux - TLS-update specific missing libraries
+################################################################
+
+.PHONY:			baselibs-tls
+baselibs-tls:		.baselibs-tls
+#.baselibs-tls:		.openssl-tls
+.baselibs-tls:
+	@touch $@ && $(LDCONFIG)
+
+.openssl-tls:		openssl-src
+	cd $< && $(OPENSSL_CONFIG) $(PREFIX) zlib threads shared -fPIC -pie $(OPENSSL_OPTS) && $(MAKE_CMD_1) && make test && $(MAKE_INSTALL)
+	@touch $@ && $(LDCONFIG)
+
+.PHONY:			ssl-tls
+ssl-tls:		.baselibs-tls
+
+# Linux/Mac - OpenSSH with TLS1.2 and ChaCha20/Poly1305...
+.PHONY:			ssh-tls
+ssh-tls:		.openssh-tls
+	@touch $@ && $(LDCONFIG)
+
+.openssh-tls:		openssh-src
+	cd $< && $(OPENSS_CONFIG) $(PREFIX) z
+
+################################################################
+#
+# MacOS X Patches
+#
+################################################################
+
+.PHONY:					pear
+pear:					go-pear.php
+	patch go-pear.php < patch-pear
+	php -q go-pear.php
+
+go-pear.php:
+	curl http://pear.php.net/go-pear > go-pear.php
+
+.PHONY:					patches
+patches:
+	cd /System/Library/LaunchDaemons ; if [ ! -f .vanilla/org.apache.httpd.plist ] ; then mkdir -p .vanilla && cp org.apache.httpd.plist .vanilla ; fi
+	@grep /usr/local/a2 /System/Library/LaunchDaemons/org.apache.httpd.plist > /dev/null 2>&1 ; if [ $${?} -ne 0 ] ; then patch /System/Library/LaunchDaemons/org.apache.httpd.plist < patch-MacOSX-LDoahp ; else echo "  org.apache.httpd.plist is already patched; skipping." ; fi
+	@grep "User[[:space:]]*www" /usr/local/a2/conf/httpd.conf > /dev/null 2>&1 ; if [ $${?} -ne 0 ] ; then patch /usr/local/a2/conf/httpd.conf < patch-a2-httpd.conf ; else echo "  httpd.conf is already patched; skipping." ; fi
+	@grep "UserDir[[:space:]]*Sites" /usr/local/a2/conf/extra/httpd-userdir.conf > /dev/null 2>&1 ; if [ $${?} -ne 0 ] ; then patch /usr/local/a2/conf/extra/httpd-userdir.conf < patch-a2-httpd-userdir.conf ; else echo "  httpd-userdir.conf is already patched; skipping." ; fi
+
+################################################################
+#
+# This ensures that the targets are deleted on error.
+#
+################################################################
+
+.PHONY:			clean
+clean:
+	rm -f *.out
+	rm -f *.sha1*
+	rm -f .[a-z]*
+	rm -rf *-src
+
+.PHONY:			distclean
+distclean:		clean
+	rm -rf *.gz *.bz2
+
+.DELETE_ON_ERROR:
+
+################################################################
+#
+# Actual XLAPP-7.0.5 (TLS-update) base sources.
+#
+################################################################
+
+openssl-src:				openssl-1.0.2.tar.gz
+	tar xf $<
+	mv openssl-1.0.2 $@
+openssl-1.0.2.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/xlapp-src-7.0.5/openssl-1.0.2.tar.gz
+
+openssh-src:				openssh-6.7p1.tar.gz
+	tar xf $<
+	mv open openssh-6.7p1 $@
+openssh-6.7p1.tar.gz:
+	$(DOWNLOAD_CMD) http://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-6.7p1.tar.gz
+
+apache-src:				httpd-2.4.10.tar.bz2
+	tar xf $<
+	mv httpd-2.4.10 $@
+httpd-2.4.10.tar.bz2:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/xlapp-src-7.0.5/httpd-2.4.10.tar.bz2
+	#cat $@.sha1 | cut -f 1 -d ' ' > .sha1-orig
+	#shasum -p $@ | cut -f 1 -d ' ' > .sha1 && diff -w .sha1-orig .sha1 > /dev/null 2>&1
+
+################################################################
+#
+# Actual XLAPP-7.0.3 base sources.
+#
+################################################################
+
+#openssl-src:				openssl-1.0.0e.tar.gz
+	#tar xf $<
+	#mv openssl-1.0.0e $@
+openssl-1.0.0e.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/xlapp-src-7.0.1/openssl-1.0.0e.tar.gz
+
+zlib-src:				zlib-1.2.5.tar.bz2
+	tar xf $<
+	mv zlib-1.2.5 $@
+zlib-1.2.5.tar.bz2:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/xlapp-src-7.0.1/zlib-1.2.5.tar.bz2
+
+readline-src:				readline-6.2.tar.gz
+	tar xf $<
+	mv readline-6.2 $@
+readline-6.2.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/xlapp-src-7.0.1/readline-6.2.tar.gz
+
+bzip-src:				bzip2-1.0.6.tar.gz
+	tar xf $<
+	mv bzip2-1.0.6 $@
+bzip2-1.0.6.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/xlapp-src-7.0.1/bzip2-1.0.6.tar.gz
+
+curl-src:				curl-7.24.0.tar.gz
+	tar xf $<
+	mv curl-7.24.0 $@
+curl-7.24.0.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/xlapp-src-7.0.1/curl-7.24.0.tar.gz
+
+
+################################################################
+#
+# Actual XLAPP-7.0.3 LAPP sources.
+#
+################################################################
+
+freetype-src:				freetype-2.4.4.tar.gz
+	tar xf $<
+	mv freetype-2.4.4 $@
+freetype-2.4.4.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/freetype-2.4.4.tar.gz
+
+png-src:				libpng-1.5.1.tar.gz
+	tar xf $<
+	mv libpng-1.5.1 $@
+libpng-1.5.1.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/libpng-1.5.1.tar.gz
+
+jpeg-src:				jpegsrc.v8c.tar.gz
+	tar xf $<
+	mv jpeg-8c $@
+jpegsrc.v8c.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/jpegsrc.v8c.tar.gz
+
+tiff-src:				tiff-3.9.2.tar.gz
+	tar xf $<
+	mv tiff-3.9.2 $@
+tiff-3.9.2.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/tiff-3.9.2.tar.gz
+
+gd-src:					gd-2.0.35.tar.gz
+	tar xf $<
+	mv gd-2.0.35 $@
+gd-2.0.35.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/gd-2.0.35.tar.gz
+
+postgres-src:				postgresql-9.0.5.tar.bz2
+	tar xf $<
+	mv postgresql-9.0.5 $@
+postgresql-9.0.5.tar.bz2:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/postgresql-9.0.5.tar.bz2
+
+php-src:                                php-5.5.27.tar.xz
+	tar xf $<
+	mv php-5.5.27 $@
+php-5.5.27.tar.xz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.6/php-5.5.27.tar.xz
+
+#php-src:				php-5.3.5.tar.bz2
+	#tar xf $<
+	#mv php-5.3.5 $@
+php-5.3.5.tar.bz2:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/php-5.3.5.tar.bz2
+
+#apache-src:				httpd-2.2.17.tar.gz
+	#tar xf $<
+	#mv httpd-2.2.17 $@
+httpd-2.2.17.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/httpd-2.2.17.tar.gz
+	#cat $@.sha1 | cut -f 1 -d ' ' > .sha1-orig
+	#shasum -p $@ | cut -f 1 -d ' ' > .sha1 && diff -w .sha1-orig .sha1 > /dev/null 2>&1
+
+memcached-src:				memcached-1.4.13.tar.gz
+	tar xf $<
+	mv memcached-1.4.13 $@
+memcached-1.4.13.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/memcached-1.4.13.tar.gz
+
+xcache-src:				xcache-1.3.1.tar.gz
+	tar xf $<
+	mv xcache-1.3.1 $@
+xcache-1.3.1.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/xcache-1.3.1.tar.gz
+
+event-src:					libevent-1.4.13-stable.tar.gz
+	tar xf $<
+	mv libevent-1.4.13-stable $@
+libevent-1.4.13-stable.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/libevent-1.4.13-stable.tar.gz
+
+xml-src:				libxml2-2.7.1.tar.gz
+	tar xf $<
+	mv libxml2-2.7.1 $@
+libxml2-2.7.1.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/libxml2-2.7.1.tar.gz
+
+xslt-src:				libxslt-1.1.19.tar.gz
+	tar xf $<
+	mv libxslt-1.1.19 $@
+libxslt-1.1.19.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/libxslt-1.1.19.tar.gz
+
+imap-src:				imap.tar.gz
+	tar xf $<
+	mv imap-2007f $@
+imap.tar.gz:
+	$(DOWNLOAD_CMD) http://xlapp.org/software/lapp-src-7.0.3/imap.tar.gz
+
