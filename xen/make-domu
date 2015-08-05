@@ -172,6 +172,8 @@ if [ "ext4" = "${FSTYPE}" ] ; then
 else
 	TSC_MODE=1
 fi
+# Xen 4.2.5 (on AMD) uses 'default' mode.
+TSC_MODE="default"
 
 DOMU_HOSTNAME=$(echo $DOMU_HOST | cut -d \. -f 1)
 DOMAIN_NAME=$(echo $DOMU_HOST | cut -d \. -f 2-)
@@ -412,7 +414,7 @@ EOF
 
 	pushd ./$MOUNT
 		echo "  Adding other directories..."
-		mkdir {dev,home,proc,opt,sys,tmp}
+		mkdir {dev,proc,opt,sys,tmp}
 
 		echo "  Changing perms on /tmp..."
 		chmod 0777 tmp
@@ -471,7 +473,7 @@ vif = [ ${DOMU_VIFS} ]
 disk = [ 'phy:${IMAGE},xvda1,w' ]
 root = "/dev/xvda1"
 no_migrate = 1
-tsc_mode = ${TSC_MODE}
+tsc_mode = "$TSC_MODE"
 EOF
 
 echo "Using this xl-compatible configuration for domU:"
