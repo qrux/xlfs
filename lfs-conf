@@ -247,7 +247,8 @@ fi
 test -z $XLAPP_TARGET_LANG && XLAPP_TARGET_LANG="en_US.UTF-8"
 test -z $XLAPP_TARGET_TZ && XLAPP_TARGET_TZ="America/Los_Angeles"
 
-# Grab root password
+# Grab root password (skip if domU)
+if [ -z "${FOR_DOMU}" ] ; then
 rm -f passhash
 gcc passhash.c -lcrypt -o passhash
 _PASSWD="1"
@@ -285,6 +286,7 @@ while [ "$_PASSWD" != "$_PASSWD2" ] ; do
 	fi
 done
 unset _PASSWD _PASSWD2
+fi
 
 echo "BUILD_CONF (config file): ${BUILD_CONF}"
 
@@ -310,6 +312,9 @@ export XLAPP_BOOT_PART="${XLAPP_BOOT_PART}"
 export XLAPP_HOST_FSTYPE="${XLAPP_HOST_FSTYPE}"
 export XLAPP_LFS_FSTYPE="${XLAPP_LFS_FSTYPE}"
 export XLAPP_BOOT_FSTYPE="${XLAPP_BOOT_FSTYPE}"
+
+export XLAPP_ROOT_PASSWD_HASH='${XLAPP_ROOT_PASSWD_HASH}'
+
 EOF
 	XLAPP_CONF_DISTRO="xenfromscratch/host"
 else
@@ -354,7 +359,6 @@ export XLAPP_CONF_DISTRO="${XLAPP_CONF_DISTRO}"
 export XLAPP_CONF_DISTRO_CONTACT="qrux@xenfromscratch.org"
 export XLAPP_CONF_DISTRO_MINI="xfs"
 export XLAPP_SSH_PUBKEY="${XLAPP_SSH_PUBKEY}"
-export XLAPP_ROOT_PASSWD_HASH='${XLAPP_ROOT_PASSWD_HASH}'
 EOF
 
 . $BUILD_CONF
