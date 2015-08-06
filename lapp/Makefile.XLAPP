@@ -226,7 +226,7 @@ php-xl:			.php-xl
 	#cd $(PHP_ROOT)/lib && $(SUDO) cp -f php.ini-production php.ini
 	@$(LDCONFIG)
 	if [ ! -f $(PHP_BINARY) ] ; then if [ -f $(PHP_GUESS) ] ; then $(SUDO) cp $(PHP_GUESS) $(PHP_BINARY) ; fi ; fi
-	if [ ! -f /usr/bin/php ] ; then ln -sv $(PHP_ROOT)/bin/php /usr/bin/php ; fi
+	if [ ! -f /usr/bin/php ] ; then $(SUDO) ln -sv $(PHP_ROOT)/bin/php /usr/bin/php ; fi
 	@touch $@ && $(LDCONFIG)
 
 .PHONY:			postgres-xl
