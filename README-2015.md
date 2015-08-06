@@ -219,6 +219,11 @@ broken and experimental.
 IMPORTANT: To create a VERIFIED build, use '-j 1' and OMIT the 'n' option.
 --------------------------------------------------------------------------
 
+    #  [ b1.90 - XLAPP_BOOT_WATCHDOG ] run successfully
+    #  [ b1.94 - SNAPSHOT ] run successfully
+Total time spent building LFS: 66.5m
+
+This is what the results look like for a quad-core Q6600 (OC to 2.89 GHz).
 
 
 
