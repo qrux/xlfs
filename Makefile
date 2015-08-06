@@ -3,6 +3,19 @@ B := MAKEFLAGS="-j 6" ./build-domu
 
 LDCONFIG := sudo /sbin/ldconfig
 
+.PHONY:	all
+all:
+	@echo
+	@echo "Available targets:"
+	@echo "  lapp"
+	@echo "  lapp-clean"
+	@echo
+
+.PHONY: lapp-clean
+lapp-clean:
+	rm -f .guard-b3.18-pcre .guard-b3.17-db .guard-b3.25-postfix .guard-b3.47-curl
+	$(MAKE) -C lapp clean
+
 .PHONY: lapp
 lapp:  pcre db postfix START_POSTFIX curl
 	cd lapp && ln -svf Makefile.XLAPP Makefile
