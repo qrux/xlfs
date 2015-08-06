@@ -374,7 +374,24 @@ EOF
 	# Creating file-system
 	#
 	########################################################################
-	mkfs -F -t $FSTYPE $IMAGE
+	case $FSTYPE in
+		ext2)
+			FSEXTRAS="-E lazy_itable_init=0 -O sparse_super"
+			;;
+		ext3)
+			FSEXTRAS="-E lazy_itable_init=0 -O sparse_super"
+			;;
+		ext4)
+			FSEXTRAS="-E lazy_itable_init=0 -O sparse_super"
+			;;
+		*)
+			FSEXTRAS=""
+			;;
+	esac
+
+	echo "  Creating $FSTYPE filesystem with extras: '$FSEXTRAS'"
+
+	mkfs -F -t $FSTYPE $FSEXTRAS $IMAGE
 
 	########################################################################
 	#
