@@ -1,0 +1,35 @@
+#! /bin/bash
+
+./configure \
+	--prefix=/usr/local/pgsql \
+	--enable-thread-safety \
+        --with-openssl \
+        --enable-integer-datetimes
+
+make
+
+make check
+
+sudo make install
+sudo make install-docs
+
+sudo install -v -dm700 /srv/pgsql/data
+sudo install -v -dm755 /run/postgresql
+sudo groupadd -g 41 postgres
+sudo useradd -c "PostgreSQL Server" -g postgres -d /srv/pgsql/data -u 41 postgres
+sudo chown -Rv postgres:postgres /srv/pgsql /run/postgresql
+
+# This adds the library in /usr/local/pgsql to ld.so, but it doesn't work...
+cat > etc-ld.so.conf.d-postgres <<EOF
+/usr/local/pgsql/lib
+EOF
+sudo mv -vf etc-ld.so.conf.d-postgres /etc/ld.so.conf.d/postgres
+
+# ...This does.  Why?
+cd /usr/lib64
+sudo ln -s /usr/local/pgsql/lib/libpq.so.5.3 libpq.so
+sudo ln -s /usr/local/pgsql/lib/libpq.so.5.3 libpq.so.5
+sudo ln -s /usr/local/pgsql/lib/libpq.so.5.3 libpq.so.5.3
+cd -
+
+sudo ldconfig

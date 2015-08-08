@@ -22,11 +22,9 @@ IMAP_PATCH :=				patch-imap-Makefile-fPIC-xfs-mac
 
 SUDO :=					$(shell which sudo)
 MAKE_INSTALL :=				$(SUDO) make install
+CPU_COUNT :=				$(shell cat /proc/cpuinfo | grep -w "^processor" | wc -l)
 MAKE_CMD_1 :=				make -j1
-MAKE_CMD_4 :=				make -j4
-MAKE_CMD_6 :=				make -j6
-MAKE_CMD_8 :=				make -j8
-MAKE_CMD :=				$(MAKE_CMD_6)
+MAKE_CMD :=				make -j $(CPU_COUNT)
 INSTALL :=				$(SUDO) install
 
 ifeq (Linux, $(PLATFORM))
@@ -232,7 +230,7 @@ php-xl:			.php-xl
 .PHONY:			postgres-xl
 postgres-xl:		.postgres-xl
 .postgres-xl:		postgres-src $(BASE_LIBS_DEPS)
-	cd $< && ./configure $(PGSQL_CONF_OPTS) && $(MAKE_CMD) && $(MAKE_INSTALL)
+	cd $< && ./configure $(PGSQL_CONF_OPTS) && $(MAKE_CMD) && make check && $(MAKE_INSTALL)
 	@touch $@ && $(LDCONFIG)
 
 .PHONY:			apache-xl

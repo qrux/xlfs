@@ -4,6 +4,7 @@
 
 make
 
+export MAKEFLAGS=""
 make test
 
 sudo make install

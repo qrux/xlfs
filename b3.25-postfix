@@ -11,9 +11,11 @@ test $? -ne 0 && sudo /usr/sbin/useradd -c "Postfix Daemon User" -d /dev/null -g
 set -e
 sudo chown -v postfix:postfix /var/mail
 
-PF_AUXLIBS="-lpcre -lssl -lcrypto"
+PF_AUXLIBS="-lpcre -lssl -lcrypto -L/usr/local/pgsql/lib -lpq -lz -lm"
 
-make makefiles CCARGS='-DUSE_SASL_AUTH -DUSE_TLS -DHAS_PCRE -I/usr/include/openssl -DDEF_DAEMON_DIR=\"/usr/lib/postfix\" -DDEF_MANPAGE_DIR=\"/usr/share/man\" -DDEF_README_DIR=\"/usr/share/doc/postfix-2.8.4/README\"' AUXLIBS="$PF_AUXLIBS"
+make makefiles CCARGS='-DHAS_PGSQL -I/usr/local/pgsql/include -DUSE_SASL_AUTH -DUSE_TLS -DHAS_PCRE -I/usr/include/openssl -DDEF_DAEMON_DIR=\"/usr/lib/postfix\" -DDEF_MANPAGE_DIR=\"/usr/share/man\" -DDEF_README_DIR=\"/usr/share/doc/postfix-2.8.4/README\"' AUXLIBS="$PF_AUXLIBS"
+
+echo "postfix - make makefiles finished; compiling.."
 
 make
 
