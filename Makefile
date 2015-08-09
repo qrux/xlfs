@@ -3,6 +3,7 @@ CPU_COUNT :=			$(shell cat /proc/cpuinfo | grep -w "^processor" | wc -l)
 B :=				MAKEFLAGS="-j $(CPU_COUNT)" ./build-domu
 SUDO :=				$(shell which sudo)
 LDCONFIG_BIN :=			$(shell which ldconfig)
+UID :=				$(shell id -u)
 
 LDCONFIG := /usr/bin/sudo /sbin/ldconfig
 
@@ -19,8 +20,12 @@ all:
 	#@echo "  mail         mail-clean"
 	@echo
 
+.PHONY: verify
+verify:
+	@if [ 0 = $(UID) ] ; then echo ; echo "  Cannot run as root; log in as BLFS user." ; echo ; exit 1 ; fi
+
 .PHONY: mail
-mail:	pcre db postgresql dovecot postfix alpine START_POSTFIX START_DOVECOT
+mail:	verify pcre db postgresql dovecot postfix alpine START_POSTFIX START_DOVECOT
 
 .PHONY: sqlite
 sqlite:	.sqlite
@@ -40,6 +45,12 @@ dovecot: .dovecot
 	$(B) b3*-dovecot
 	touch $@ && $(LDCONFIG)
 
+.PHONY:		START_DOVECOT
+START_DOVECOT:	.start_dovecot
+.start_dovecot:
+	$(B) b3*-START_DOVECOT
+	touch $@ && $(LDCONFIG)
+
 .PHONY:	alpine
 alpine: .alpine
 .alpine:
@@ -51,7 +62,7 @@ alpine: .alpine
 ########################################################################
 
 .PHONY:	nameserver
-nameserver: .guard-b3.05-PERL_NET_TOOLS .guard-b3.10-bind .guard-b3.11-START_BIND
+nameserver: verify .guard-b3.05-PERL_NET_TOOLS .guard-b3.10-bind .guard-b3.11-START_BIND
 
 .guard-b3.05-PERL_NET_TOOLS:
 	$(B) b3.05-PERL_NET_TOOLS
@@ -79,7 +90,7 @@ lapp-clean:
 	$(MAKE) -C lapp clean
 
 .PHONY: lapp
-lapp:  pcre db postfix START_POSTFIX apr apr-util curl
+lapp:  verify pcre db postfix START_POSTFIX apr apr-util curl
 	cd lapp && ln -svf Makefile.XLAPP Makefile
 	$(MAKE) -C lapp xlapp
 
