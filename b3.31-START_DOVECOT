@@ -1,9 +1,9 @@
 #! /bin/bash
 
 sudo cp -vf xlapp-bootscripts/dovecot /etc/init.d/
-chmod 0754 /etc/init.d/dovecot
+sudo chmod 0754 /etc/init.d/dovecot
 
-xlapp-bootscripts/boot-links-create -s 24 -k 49 dovecot
+sudo xlapp-bootscripts/boot-links-create -s 24 -k 49 dovecot
 
 #
 # At this point, dovecot still needs configuration...
