@@ -1,0 +1,24 @@
+#! /bin/bash
+
+./configure \
+	--prefix=/usr/local \
+	--sysconfdir=/etc \
+	--localstatedir=/var \
+	--with-db \
+	--with-libcurl \
+	--with-openssl \
+	--with-milter=/usr/local/milter
+
+make -j 4
+
+make -j 4 check
+
+sudo make install
+
+sudo cp ../etc-init.d-opendkim /etc/init.d/opendkim
+
+sudo /sbin/boot-links-create -s 32 -k 27 opendkim
+
+sudo /usr/sbin/groupadd -g 35 opendkim
+sudo /usr/sbin/useradd -u 35 -g 35 -c "OpenDKIM" -d /var/run/opendkim -s /bin/false opendkim
+sudo /usr/bin/touch /etc/opendkim.conf

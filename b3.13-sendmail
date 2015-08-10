@@ -1,0 +1,43 @@
+#! /bin/bash
+
+sh ./Build
+
+cd libmilter
+
+sh ./Build
+
+cd ..
+
+cd obj.*
+
+for dir in sm smutil milter ; do cd lib$dir ; make clean ; for file in *.c ; do gcc -c -fpic -O2 $file -I. -I ../../sendmail -I../../include ; done ; cd - ; done
+
+cd libsm
+
+ar crv libsm.a assert.o debug.o errstring.o exc.o heap.o match.o rpool.o strdup.o strerror.o strl.o clrerr.o fclose.o feof.o ferror.o fflush.o fget.o fpos.o findfp.o flags.o fopen.o fprintf.o fpurge.o fput.o fread.o fscanf.o fseek.o fvwrite.o fwalk.o fwrite.o get.o makebuf.o put.o refill.o rewind.o setvbuf.o smstdio.o snprintf.o sscanf.o stdio.o strio.o ungetc.o vasprintf.o vfprintf.o vfscanf.o vprintf.o vsnprintf.o wbuf.o wsetup.o string.o stringf.o xtrap.o strto.o test.o path.o strcasecmp.o strrevcmp.o signal.o clock.o config.o shm.o sem.o mbdb.o strexit.o cf.o ldap.o niprop.o mpeix.o memstat.o util.o inet6_ntop.o
+
+cd ../libsmutil
+
+ar crv libsmutil.a debug.o err.o lockfile.o safefile.o snprintf.o cf.o
+
+cd ../libmilter
+
+gcc -shared -pthread -o libmilter.so -fpic -O2 -Wl,-soname,libmilter.so *.o ../libsmutil/libsmutil.a ../libsm/libsm.a -lpthread
+
+file libmilter.so
+
+sudo mkdir -pv /usr/local/milter/{lib,include}
+
+sudo install libmilter.so /usr/local/milter/lib
+sudo ln -sfv /usr/local/milter/lib/libmilter.so /usr/lib64
+
+cat > etc-ld.so.conf.d-libmilter <<EOF
+/usr/local/milter/lib
+EOF
+sudo mv -vf etc-ld.so.conf.d-libmilter /etc/ld.so.conf.d/libmilter
+
+sudo /sbin/ldconfig
+
+cd ../..
+sudo cp -av include/* /usr/local/milter/include
+sudo cp -av libmilter/libmilter.h /usr/local/milter/include

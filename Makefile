@@ -25,7 +25,25 @@ verify:
 	@if [ 0 = $(UID) ] ; then echo ; echo "  Cannot run as root; log in as BLFS user." ; echo ; exit 1 ; fi
 
 .PHONY: mail
-mail:	verify pcre db postgresql dovecot postfix alpine START_POSTFIX START_DOVECOT
+mail:	verify pcre db postgresql dovecot postfix alpine START_POSTFIX START_DOVECOT libbsd sendmail opendkim
+
+.PHONY:	libbsd
+libbsd:	.libbsd
+.libbsd:
+	$(B) b3*-libbsd
+	touch $@ && $(LDCONFIG)
+
+.PHONY:	sendmail
+sendmail: .sendmail
+.sendmail:
+	$(B) b3*-sendmail
+	touch $@ && $(LDCONFIG)
+
+.PHONY: opendkim
+opendkim: .opendkim
+.opendkim:
+	$(B) b3*-opendkim
+	touch $@ && $(LDCONFIG)
 
 .PHONY: sqlite
 sqlite:	.sqlite
