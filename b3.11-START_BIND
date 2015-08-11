@@ -175,7 +175,7 @@ cat > root-hints << "EOF"
 A.ROOT-SERVERS.NET.     6D  IN      A       198.41.0.4
 B.ROOT-SERVERS.NET.     6D  IN      A       192.228.79.201
 C.ROOT-SERVERS.NET.     6D  IN      A       192.33.4.12
-D.ROOT-SERVERS.NET.     6D  IN      A       128.8.10.90
+D.ROOT-SERVERS.NET.     6D  IN      A       199.7.91.13
 E.ROOT-SERVERS.NET.     6D  IN      A       192.203.230.10
 F.ROOT-SERVERS.NET.     6D  IN      A       192.5.5.241
 G.ROOT-SERVERS.NET.     6D  IN      A       192.112.36.4
