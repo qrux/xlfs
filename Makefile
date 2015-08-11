@@ -108,7 +108,7 @@ lapp-clean:
 	$(MAKE) -C lapp clean
 
 .PHONY: lapp
-lapp:  verify pcre db postfix START_POSTFIX apr apr-util curl
+lapp:  verify pcre db postgresql postfix START_POSTFIX apr apr-util curl
 	cd lapp && ln -svf Makefile.XLAPP Makefile
 	$(MAKE) -C lapp xlapp
 

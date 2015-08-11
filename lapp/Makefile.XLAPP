@@ -217,9 +217,10 @@ linux:			xlapp
 	cd $< && $(PHP_ROOT)/bin/phpize --clean && $(PHP_ROOT)/bin/phpize && ./configure $(PHP_PREFIX) $(XCACHE_CONF_OPTS) && $(MAKE_CMD) && make -j1 test && $(MAKE_INSTALL) && $(SUDO) cp xcache*.ini $(PHP_ROOT)/lib
 	@touch $@ && $(LDCONFIG)
 
+# Since postgres is no longer built from here, should remove PHP dependency.
 .PHONY:			php-xl
 php-xl:			.php-xl
-.php-xl:		php-src .postgres-xl .apache-xl .gd-xl .libs-xl
+.php-xl:		php-src .apache-xl .gd-xl .libs-xl
 	cd $< && LIBS="-lresolv" ./configure $(PHP_CONF_OPTS) --with-pic && $(MAKE_CMD) && $(MAKE_INSTALL) && $(SUDO) cp php.ini-* $(PHP_ROOT)/lib
 	#cd $(PHP_ROOT)/lib && $(SUDO) cp -f php.ini-production php.ini
 	@$(LDCONFIG)
@@ -227,8 +228,9 @@ php-xl:			.php-xl
 	if [ ! -f /usr/bin/php ] ; then $(SUDO) ln -sv $(PHP_ROOT)/bin/php /usr/bin/php ; fi
 	@touch $@ && $(LDCONFIG)
 
+# This is no longer necessary on the linux build.
 .PHONY:			postgres-xl
-postgres-xl:		.postgres-xl
+postgres-xl:		.curl-mac .postgres-xl
 .postgres-xl:		postgres-src $(BASE_LIBS_DEPS)
 	cd $< && ./configure $(PGSQL_CONF_OPTS) && $(MAKE_CMD) && make check && $(MAKE_INSTALL)
 	@touch $@ && $(LDCONFIG)
@@ -391,7 +393,12 @@ libs-xl:		.libs-xl
 
 .PHONY:			baselibs-mac
 baselibs-mac:		.baselibs-mac
-.baselibs-mac:		.curl-mac
+.baselibs-mac:		.postgres-xl
+	@touch $@ && $(LDCONFIG)
+
+#.PHONY:			baselibs-mac
+#baselibs-mac:		.baselibs-mac
+#.baselibs-mac:		.curl-mac
 	@touch $@ && $(LDCONFIG)
 
 .curl-mac:		curl-src .readline-mac
