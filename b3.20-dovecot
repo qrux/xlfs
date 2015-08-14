@@ -1,6 +1,12 @@
 #! /bin/bash
 
-./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --with-pgsql
+./configure \
+	--prefix=/usr \
+	--sysconfdir=/etc \
+	--localstatedir=/var \
+	--docdir=/usr/share/doc/dovecot-2.2.18 \
+	--disable-static \
+	--with-pgsql
 
 make
 
@@ -8,7 +14,7 @@ make check
 
 sudo make install
 
-sudo cp -a /usr/share/doc/dovecot/example-config/{dovecot.conf,conf.d} /etc/dovecot
+sudo cp -a /usr/share/doc/dovecot-2.2.18/example-config/{dovecot.conf,conf.d} /etc/dovecot
 
 set +e
 grep -w "^dovenull" /etc/group > /dev/null 2>&1
