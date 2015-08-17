@@ -80,10 +80,16 @@ stop)
 	if [ 1 -ne $? ] ; then log_info_msg "No auto-start domains started; exiting.\n" ; exit ; fi
 
 	log_info_msg "Shutting down auto-started Xen Domains...\n"
-	_XDLIST="echo $(xl list | egrep -v "^Name[[:space:]]|^Domain-0[[:space:]]" | awk '{print $1}')"
-	for _XD in "$(${_XDLIST})" ; do
+	_XDLIST=$(xl list | egrep -v "^Name[[:space:]]|^Domain-0[[:space:]]" | awk '{print $1}')
+	log_info_msg "  domU list: $(echo ${_XDLIST})\n"
+	for _XD in $(echo ${_XDLIST}) ; do
 		log_info_msg "  Shutting down [ ${_XD} ] DomU..."
-		${XLAPP_COMMAND} shutdown -w ${_XD} > ${XLAPP_RUN_DIR}/stop-${_XD} 2>&1
+		# Uncomment this when working!
+		#${XLAPP_COMMAND} shutdown -w ${_XD} > ${XLAPP_RUN_DIR}/stop-${_XD} 2>&1
+		${XLAPP_COMMAND} shutdown ${_XD} > ${XLAPP_RUN_DIR}/stop-${_XD} 2>&1
+		${XLAPP_COMMAND} console ${_XD}
+
+
 		# Wait 10 seconds, and see if the VM actually stopped...
 		#_GOOD_SHUTDOWN=1
 		#for _WAIT in $(seq 1 $((${XLAPP_SHUTDOWN_TIMEOUT} / ${XLAPP_INTERVAL_BETWEEN_DOTS}))) ; do
