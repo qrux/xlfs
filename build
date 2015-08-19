@@ -124,8 +124,8 @@ if [ -z $TARBALL ] ; then
 fi
 
 echo "(Cleaning up files from previous builds...)"
-find . -mindepth 1 -maxdepth 1 -type d
-find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
+find . -mindepth 1 -maxdepth 1 -type d -name "[a-zA-z0-9]*"
+find . -mindepth 1 -maxdepth 1 -type d -name "[a-zA-Z0-9]*" -exec rm -rf {} \;
 
 echo    "################################################################"
 echo    "#"

@@ -1,10 +1,20 @@
 #! /bin/bash
 
-patch -Np1 -i ../bash-4.2-fixes-3.patch
+#patch -Np1 -i ../bash-4.2-fixes-3.patch
 
-./configure --prefix=/usr --bindir=/bin \
-    --htmldir=/usr/share/doc/bash-4.2 --without-bash-malloc \
-    --with-installed-readline
+set +e
+for patch in `ls ../_bash-patches/bash43*` ; do
+	patch -p0 < $patch
+done
+set -e
+
+./configure \
+	--prefix=/usr \
+	--bindir=/bin \
+	--htmldir=/usr/share/doc/bash-4.3.30 \
+	--without-bash-malloc
+#	--without-bash-malloc \
+#	--with-installed-readline
 
 make
 

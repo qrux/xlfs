@@ -1,4 +1,11 @@
-patch -Np1 -i ../bash-4.2-fixes-3.patch
+#! /bin/bash
+#patch -Np1 -i ../bash-4.2-fixes-3.patch
+
+set +e
+for patch in `ls ../_bash-patches/bash43*` ; do
+	patch -p0 < $patch
+done
+set -e
 
 ./configure --prefix=/tools --without-bash-malloc
 
