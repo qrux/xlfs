@@ -98,7 +98,7 @@ unset SWAP_MUL VIRT_MEM VIRT_SWAP VOL_GROUP FORCE_INIT
 unset SKIP_ACTUAL
 VIRT_ETH_COUNT=0
 unset DOMU_HOST_IPS
-while getopts "2:4:a:b:d:g:j:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
+while getopts "2:4:A:a:b:d:g:j:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
 	case "$OPT" in
 		c) VIRT_CPUS="$OPTARG";;
 		f) FORCE_INIT=1;;

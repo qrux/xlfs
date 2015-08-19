@@ -9,6 +9,7 @@ Usage: $0 [OPTION]... target-FQDN [lfs-mount-point]
 
 Creates an LFS-like config file using the following parameters:
 
+********************************************************************************
   -u              Create domU config file (skip LFS params)
   -y              Continue build (don't do any init/prep)
   -s path         Location to look-for/download sources.
@@ -25,7 +26,10 @@ Creates an LFS-like config file using the following parameters:
   -j concurrency  MAKEFLAGS
   -n              NO-TESTS (build Chap6 without tests)
   -r              Use RAMFS to build the system
+  -A              CPU arch: generic|core2|amd (gen x86_64, core2/xeon, k8,opt)
+                    Defaults to 'generic' if argument not given.
   -h              Usage (this information)
+********************************************************************************
 
 If this script is called with '-u', then the <lfs-mount-point>
 argument, if given, is ignored.  If this script is called
@@ -51,12 +55,13 @@ XLAPP_USE_RAMFS=
 XLAPP_CONTINUE=
 XLAPP_ETH_COUNT=0
 OPTERR=0 # Disables getopts errors (when called by domU).
-while getopts "02:4:a:b:d:g:hj:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
+while getopts "02:4:A:a:b:d:g:hj:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
 	case "${OPT}" in
 		4)
 			XLAPP_ETH_COUNT=$((1 + $XLAPP_ETH_COUNT))
 			XLAPP_HOST_IPS="${XLAPP_HOST_IPS} ${OPTARG}"
 			;;
+		A) XLAPP_ARCH="${OPTARG}";;
 		a) XLAPP_TARGET_LANG="${OPTARG}";;
 		b) XLAPP_BOOT_PART="${OPTARG}";;
 		d) XLAPP_DNS_SERVERS="${XLAPP_DNS_SERVERS} ${OPTARG}";;
@@ -171,6 +176,10 @@ else
 	if [ "${XLAPP_BOOT_PART}" = "${XLAPP_LFS_PART}" ] ; then
 		echo "Installing XLAPP into BOOT partition."
 		INSTALL_INTO_BOOT=true
+	fi
+
+	if [ -z $XLAPP_ARCH ] ; then
+		XLAPP_ARCH="generic"
 	fi
 fi
 
@@ -313,6 +322,8 @@ export XLAPP_HOST_FSTYPE="${XLAPP_HOST_FSTYPE}"
 export XLAPP_LFS_FSTYPE="${XLAPP_LFS_FSTYPE}"
 export XLAPP_BOOT_FSTYPE="${XLAPP_BOOT_FSTYPE}"
 
+export XLAPP_ARCH="${XLAPP_ARCH}"
+
 export XLAPP_ROOT_PASSWD_HASH='${XLAPP_ROOT_PASSWD_HASH}'
 
 EOF
@@ -387,6 +398,7 @@ cat <<EOF
       HOST filesystem type: ${XLAPP_HOST_FSTYPE} (empty string implies domU)
        LFS filesystem type: ${XLAPP_LFS_FSTYPE} (empty string implies domU)
       BOOT filesystem type: ${XLAPP_BOOT_FSTYPE} (empty string implies domU)
+    XLAPP CPU Architecture: ${XLAPP_ARCH}
 
                   New FQDN: ${XLAPP_DNS_FQDN}
              New host name: ${XLAPP_HOST_HOSTNAME}
