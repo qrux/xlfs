@@ -1,3 +1,5 @@
+#! /bin/bash
+
 patch -Np1 -i ../gcc-4.6.1-startfiles_fix-1.patch
 
 cp -v gcc/Makefile.in{,.orig}
