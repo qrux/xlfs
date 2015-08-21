@@ -11,7 +11,7 @@ set -e
 ./configure \
 	--prefix=/usr \
 	--bindir=/bin \
-	--htmldir=/usr/share/doc/bash-4.3.30 \
+	--htmldir=/usr/share/doc/bash-4.3-patched \
 	--without-bash-malloc
 #	--without-bash-malloc \
 #	--with-installed-readline
