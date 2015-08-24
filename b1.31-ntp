@@ -1,13 +1,22 @@
 #! /bin/bash
 
-./configure --prefix=/usr --sysconfdir=/etc \
-            --with-binsubdir=sbin
+groupadd -g 87 ntp
+useradd -c "Network Time Protocol" -d /var/lib/ntp -u 87 \
+	-g ntp -s /sbin/false ntp
+
+./configure --prefix=/usr \
+	--bindir=/usr/sbin \
+	--sysconfdir=/etc \
+	--enable-linuxcaps \
+	--with-lineeditlibs=readline \
+	--docdir=/usr/share/doc/ntp-4.2.8p3
 
 make
 
 make check
 
 sudo make install
+sudo install -v o ntp -g ntp -d /var/lib/ntp
 sudo install -v -m755 -d /usr/share/doc/ntp-4.2.6p4
 sudo cp -v -R html/* /usr/share/doc/ntp-4.2.6p4/
 
@@ -21,6 +30,8 @@ cat >> _etc_ntp.conf <<EOF
 
 driftfile /var/cache/ntp.drift
 pidfile   /var/run/ntpd.pid
+
+leapfile /etc/ntp.leapseconds
 EOF
 sudo mv _etc_ntp.conf /etc/ntp.conf
 
