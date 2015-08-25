@@ -71,7 +71,7 @@ fi
 # ========================================================================
 # ========================================================================
 #
-# (This is the start of the big "is-continuing?" 'if' block.)
+# (This is the start of the big "is-NOT-continuing?" 'if' block.)
 #
 # BEGIN_IF
 #
@@ -80,7 +80,7 @@ fi
 # ========================================================================
 # ========================================================================
 # ========================================================================
-if [ -z $XLAPP_CONTINUE ] ; then # If XLAPP_CONTINUE isn't set, do prep/init.
+if [ -z $XLAPP_CONTINUE ] ; then # If XLAPP_CONTINUE is-NOT set, do prep/init.
 
     echo "  Creating .bashrc for LFS-user, and lfs-05-buid-as-lfs..."
     LFS_DOT_BASHRC="dot.bashrc-lfs"
@@ -259,7 +259,7 @@ if [ -z $XLAPP_CONTINUE ] ; then # If XLAPP_CONTINUE isn't set, do prep/init.
 # ========================================================================
 # ========================================================================
 #
-# (This is the terminal of the 'if' block started way up high.)
+# (This is the terminal of the 'if-NOT' block started way up high.)
 #
 # END_IF
 #
@@ -268,7 +268,7 @@ if [ -z $XLAPP_CONTINUE ] ; then # If XLAPP_CONTINUE isn't set, do prep/init.
 # ========================================================================
 # ========================================================================
 # ========================================================================
-else # XLAPP_CONTINUE is not set.
+else # XLAPP_CONTINUE is set.
 	echo "########################################################################"
 	echo "#"
 	echo "# --==[ Continuing ]==--  XLAPP (Phase 1) - ${_EXTRA_BUILD_MESG}..."
