@@ -201,7 +201,7 @@ For tmem support:
         CONFIG_FRONTSWAP=y
         CONFIG_XEN_SELFBALLOONING=y
 
-See an example domU configuration at: [https://github.com/qrux/xlapp/blob/master/xlapp-linux-3.1-domU.config]
+See an example domU configuration at: [https://github.com/qrux/xlfs/blob/master/xlapp-linux-3.1-domU.config]
 
 Configure kernel for dom0 (host operating system)
 ----
@@ -233,7 +233,7 @@ And, for networking configuration support:
         CONFIG_BRIDGE=y
         CONFIG_STP=y
 
-See an example dom0 configuration at: [https://github.com/qrux/xlapp/blob/master/xlapp-linux-3.1-dom0.config]
+See an example dom0 configuration at: [https://github.com/qrux/xlfs/blob/master/xlapp-linux-3.1-dom0.config]
 
 
 
@@ -267,11 +267,11 @@ Estimated build time: 3 SBU<br />
 Additional Downloads
 ----
 
-Required patches: [https://github.com/qrux/xlapp/blob/master/src/xen-4.1.2-no_firmware-1.patch](https://github.com/qrux/xlapp/blob/master/src/xen-4.1.2-no_firmware-1.patch)
+Required patches: [https://github.com/qrux/xlfs/blob/master/src/xen-4.1.2-no_firmware-1.patch](https://github.com/qrux/xlfs/blob/master/src/xen-4.1.2-no_firmware-1.patch)
 
 *(Update 2015: This patch no longer exists.)*
 
-Additional Bootscripts: [https://github.com/qrux/xlapp/blob/master/xlapp-bootscripts/xlapp-domains](https://github.com/qrux/xlapp/blob/master/xlapp-bootscripts/xlapp-domains)
+Additional Bootscripts: [https://github.com/qrux/xlfs/blob/master/xlapp-bootscripts/xlapp-domains](https://github.com/qrux/xlfs/blob/master/xlapp-bootscripts/xlapp-domains)
 
 
 Xen Dependencies

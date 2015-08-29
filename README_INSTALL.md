@@ -372,7 +372,7 @@ Next Steps...
 
 You might have to experiment with kernel options.
 
-Look at [kernel info](?page=kernel) for some XLFS-related details.
+Look at [kernel info](http://xenfromscratch.org/?page=kernel) for some XLFS-related details.
 
 > I've compiled most (nearly all) of the drivers into the kernel.  This is good for
 > some and VERY BAD for others.
@@ -397,4 +397,4 @@ Xen guest VMs.  As root, look in `lfs/xen`.
 
 There's a script there called `make-domu`.
 
-Look at [Make Guest VMs](?page=guests) for info on making domUs.
+Look at [Make Guest VMs](http://xenfromscratch.org/?page=guests) for info on making domUs.

@@ -12,7 +12,7 @@ with Linux systems used as the virtualization Host OS and also the Guest VM OSes
 are based primarily on <a href="#attrib-lfs">LFS</a> and <a href="#attrib-blfs">BLFS</a>, and use a 3.1
 kernel with a typical GNU/Linux userspace.  XLFS source is hosted on GitHub:
 
-> [http://github.com/qrux/xlapp](http://github.com/qrux/xlapp/)
+> [http://github.com/qrux/xlfs](http://github.com/qrux/xlfs)
 
 "LFS" stands for "Linux from Scratch".  It's a good base on which to build Xen, because the system isn't large.
 It's also fully comprehensible, because it's relatively small and comes with a fantastically good blueprint.
@@ -123,4 +123,4 @@ After Phase 2, you can create VMs.
 Next
 ----
 
-Go on to [Build](?page=build).
+Go on to [Build](http://xenfromscratch.org/?page=build).
