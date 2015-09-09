@@ -82,14 +82,16 @@ will be named by the domU-FQDN (first non-option argument).
   -w SWAP_MUL	[OPT] Use this amount of swap (multiplier to VM_MEM)
   -n		Don't do any writing; just create the xl-conf file.
   -h            Usage (this information)
-  -i            Usage: lfs-conf
+  -i            Usage: xlfs-conf
 
 EOF
 	exit 1
 }
 
+XLFS_CONF=xlfs-conf
+
 # Clean up last invocation
-test -e lfs-conf || ln -s ../lfs-conf .
+test -e ${XLFS_CONF} || ln -s ../${XLFS_CONF} .
 test -e passhash.c || ln -s ../passhash.c .
 
 FSTYPE=ext3
@@ -103,7 +105,7 @@ while getopts "2:4:A:a:b:d:g:j:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
 		c) VIRT_CPUS="$OPTARG";;
 		f) FORCE_INIT=1;;
 		h) usage;;
-		i) ./lfs-conf -u -h;;
+		i) ./${XLFS_CONF} -u -h;;
 		m) VIRT_MEM="$OPTARG";;
 		n) SKIP_ACTUAL=1;;
 		2) FSSIZE="$OPTARG";;
@@ -114,7 +116,7 @@ while getopts "2:4:A:a:b:d:g:j:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
 done
 
 # Run config file (without changing parameters).
-./lfs-conf -u "${@}"
+./${XLFS_CONF} -u "${@}"
 
 # Shift off parameters.
 shift $(($OPTIND - 1))

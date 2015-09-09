@@ -13,7 +13,7 @@ echo "  Looking for config file..."
 XLAPP_VERSION="7.0.6"
 XLAPP_CONFIG_FILE="machine.config"
 
-./lfs-conf "${@}"
+./xlfs-conf "${@}"
 
 XLAPP_CONTINUE=
 OPTERR=0 # Disables getopts errors (when called by domU).

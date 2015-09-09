@@ -47,7 +47,7 @@ EOF
 
 TRIM_CMD="sed -e s/^[[:space:]]*// -e s/[[:space:]]*$//"
 
-echo "lfs-conf args: [ ${@} ]"
+echo "xlfs-conf args: [ ${@} ]"
 
 FOR_DOMU=
 SKIP_TESTS=

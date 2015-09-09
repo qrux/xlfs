@@ -1,1 +1,1 @@
-rm -vf lfs-conf passhash*
+rm -vf xlfs-conf passhash*
