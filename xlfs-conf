@@ -55,7 +55,7 @@ XLAPP_USE_RAMFS=
 XLAPP_CONTINUE=
 XLAPP_ETH_COUNT=0
 OPTERR=0 # Disables getopts errors (when called by domU).
-while getopts "02:4:A:a:b:d:g:hj:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
+while getopts "02:4:A:a:b:d:g:hj:k:l:np:rS:s:t:uyz:c:fhim:ns:v:w:" OPT ; do
 	case "${OPT}" in
 		4)
 			XLAPP_ETH_COUNT=$((1 + $XLAPP_ETH_COUNT))
@@ -74,6 +74,7 @@ while getopts "02:4:A:a:b:d:g:hj:k:l:np:rs:t:uyz:c:fhim:ns:v:w:" OPT ; do
 		#o) OUTPUT_FILE="${OPTARG}";;
 		p) XLAPP_HOST_PART="${OPTARG}";;
 		r) XLAPP_USE_RAMFS=true;;
+		S) XLAPP_URL_PREFIX="${OPTARG}";;
 		s) XLAPP_FILES_SOURCE="${OPTARG}";;
 		t) XLAPP_NTP_SERVERS="${XLAPP_NTP_SERVERS} ${OPTARG}";;
 		u) FOR_DOMU=true;;
@@ -312,6 +313,7 @@ if [ -z "$FOR_DOMU" ] ; then
 	cat >> $BUILD_CONF <<EOF
 export XLAPP_TOTIME="${XLAPP_TOTIME}"
 export XLAPP_LFS="${XLAPP_LFS}"
+export XLAPP_URL_PREFIX='${XLAPP_URL_PREFIX}'
 export XLAPP_FILES_SOURCE="${XLAPP_FILES_SOURCE}"
 
 export XLAPP_HOST_PART="${XLAPP_HOST_PART}"
@@ -380,24 +382,24 @@ echo
 
 cat <<EOF
 	 Build Config File: ${BUILD_CONF}
-        Build files source: ${XLAPP_FILES_SOURCE}
 	          For domU? ${FOR_DOMU}
           
+    Build files URL prefix: ${XLAPP_URL_PREFIX} (empty string = default)
               source files: ${XLAPP_FILES_SOURCE}
 
          Installing LFS to: ${XLAPP_LFS}
                  MAKEFLAGS: ${MAKEFLAGS}
-                SKIP_TESTS: ${SKIP_TESTS} (empty string implies 'no')
-           XLAPP_USE_RAMFS: ${XLAPP_USE_RAMFS} (empty string implies 'no')
-            XLAPP_CONTINUE: ${XLAPP_CONTINUE} (empty string implies 'no')
+                SKIP_TESTS: ${SKIP_TESTS} (empty string = 'no')
+           XLAPP_USE_RAMFS: ${XLAPP_USE_RAMFS} (empty string = 'no')
+            XLAPP_CONTINUE: ${XLAPP_CONTINUE} (empty string = 'no')
 
-            HOST partition: ${XLAPP_HOST_PART} (empty string implies domU)
-             LFS partition: ${XLAPP_LFS_PART} (empty string implies domU)
-            BOOT partition: ${XLAPP_BOOT_PART} (empty string implies domU)
+            HOST partition: ${XLAPP_HOST_PART} (empty string = domU)
+             LFS partition: ${XLAPP_LFS_PART} (empty string = domU)
+            BOOT partition: ${XLAPP_BOOT_PART} (empty string = domU)
 
-      HOST filesystem type: ${XLAPP_HOST_FSTYPE} (empty string implies domU)
-       LFS filesystem type: ${XLAPP_LFS_FSTYPE} (empty string implies domU)
-      BOOT filesystem type: ${XLAPP_BOOT_FSTYPE} (empty string implies domU)
+      HOST filesystem type: ${XLAPP_HOST_FSTYPE} (empty string = domU)
+       LFS filesystem type: ${XLAPP_LFS_FSTYPE} (empty string = domU)
+      BOOT filesystem type: ${XLAPP_BOOT_FSTYPE} (empty string = domU)
     XLAPP CPU Architecture: ${XLAPP_ARCH}
 
                   New FQDN: ${XLAPP_DNS_FQDN}
