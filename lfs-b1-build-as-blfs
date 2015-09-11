@@ -16,7 +16,11 @@ pwd
 
 su -c "./build-all -s b1.01 -e b1.07" blfs
 
-./build-all -s b1.08 -e b1.30
+./build-all -s b1.08 -e b1.10
+
+su -c "./build-all -s b1.15 -e b1.25" blfs
+
+./build-all -s b1.30 -e b1.30
 
 su -c "./build-all -s b1.31 -e b1.69" blfs
 
