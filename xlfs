@@ -168,7 +168,7 @@ if [ -z $XLAPP_CONTINUE ] ; then # If XLAPP_CONTINUE is-NOT set, do prep/init.
 
     if [ -n "${XLAPP_URL_PREFIX}" ] ; then
 	XLAPP_FILES_WGET_LIST="$__SOURCE_DIR/src/_dl-${XLAPP_VERSION}"
-        sed -E "s,([0-9a-fA-F]*\ \ )(.*),${XLAPP_URL_PREFIX}/\2,g" ${XLAPP_FILES_MD5SUMS} > ${XLAPP_FILES_WGET_LIST}
+        sed -E "s,([0-9a-fA-F]*[[:space:]]*)(.*),${XLAPP_URL_PREFIX}/\2,g" ${XLAPP_FILES_MD5SUMS} > ${XLAPP_FILES_WGET_LIST}
     fi
 
     echo "  Checking MD5 sums on packages..."
