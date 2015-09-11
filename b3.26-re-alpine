@@ -1,0 +1,12 @@
+#! /bin/bash
+
+./configure --prefix=/usr \
+	--sysconfdir=/etc \
+	--without-ldap \
+	--without-krb5 \
+	--with-ssl-dir=/usr \
+	--with-passfile=.pine-passfile
+
+make
+
+sudo make install

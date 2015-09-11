@@ -8,7 +8,9 @@ UID :=				$(shell id -u)
 LDCONFIG := /usr/bin/sudo /sbin/ldconfig
 
 ########################################################################
-# mail
+#
+# DEFAULT
+#
 ########################################################################
 
 .PHONY:	all
@@ -17,15 +19,20 @@ all:
 	@echo "Available targets:"
 	@echo "  lapp         lapp-clean"
 	@echo "  nameserver   nameserver-clean"
-	#@echo "  mail         mail-clean"
+	@echo "  mail         mail-clean"
 	@echo
 
 .PHONY: verify
 verify:
 	@if [ 0 = $(UID) ] ; then echo ; echo "  Cannot run as root; log in as BLFS user." ; echo ; exit 1 ; fi
 
+
+########################################################################
+# mail
+########################################################################
+
 .PHONY: mail
-mail:	verify pcre db postgresql dovecot postfix alpine START_POSTFIX START_DOVECOT libbsd sendmail opendkim
+mail:	verify pcre db postgresql dovecot postfix re-alpine START_POSTFIX START_DOVECOT libbsd sendmail opendkim
 
 .PHONY:	libbsd
 libbsd:	.libbsd
@@ -69,10 +76,10 @@ START_DOVECOT:	.start_dovecot
 	$(B) b3*-START_DOVECOT
 	touch $@ && $(LDCONFIG)
 
-.PHONY:	alpine
-alpine: .alpine
-.alpine:
-	$(B) b3*-postfix
+.PHONY:	re-alpine
+re-alpine: .re-alpine
+.re-alpine:
+	$(B) b3*-re-alpine
 	touch $@ && $(LDCONFIG)
 
 ########################################################################
