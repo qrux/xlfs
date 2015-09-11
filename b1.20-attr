@@ -1,0 +1,17 @@
+#! /bin/bash
+
+sed -i -e 's|/@pkg_name@|&-@pkg_version@|' include/builddefs.in
+
+INSTALL_USER=root  \
+INSTALL_GROUP=root \
+./configure --prefix=/usr --disable-static
+
+make
+
+# These probably fail, because it's still the host kernel + FS.
+#make tests root-tests
+
+sudo make install install-dev install-lib
+sudo chmod -v 755 /usr/lib/libattr.so
+sudo mv -v /usr/lib/libattr.so.* /lib
+sudo ln -sfv ../../lib/libattr.so.1 /usr/lib/libattr.so

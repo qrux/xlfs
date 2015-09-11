@@ -1,0 +1,11 @@
+#! /bin/bash
+
+sed -i '/install.*STALIBNAME/d' libcap/Makefile
+
+make
+
+sudo make RAISE_SETFCAP=no prefix=/usr install
+sudo chmod -v 755 /usr/lib/libcap.so
+
+sudo mv -v /usr/lib/libcap.so.* /lib
+sudo ln -sfv ../../lib/$(readlink /usr/lib/libcap.so) /usr/lib/libcap.so

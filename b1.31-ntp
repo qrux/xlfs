@@ -1,7 +1,7 @@
 #! /bin/bash
 
-groupadd -g 87 ntp
-useradd -c "Network Time Protocol" -d /var/lib/ntp -u 87 \
+sudo /usr/sbin/groupadd -g 87 ntp
+sudo /usr/sbin/useradd -c "Network Time Protocol" -d /var/lib/ntp -u 87 \
 	-g ntp -s /sbin/false ntp
 
 ./configure --prefix=/usr \
@@ -16,17 +16,62 @@ make
 make check
 
 sudo make install
-sudo install -v o ntp -g ntp -d /var/lib/ntp
-sudo install -v -m755 -d /usr/share/doc/ntp-4.2.6p4
-sudo cp -v -R html/* /usr/share/doc/ntp-4.2.6p4/
+sudo install -v -o ntp -g ntp -d /var/lib/ntp
+
+#sudo install -v -m755 -d /usr/share/doc/ntp-4.2.6p4
+#sudo cp -v -R html/* /usr/share/doc/ntp-4.2.6p4/
 
 touch _etc_ntp.conf
-for SERVER in ${XLAPP_NTP_SERVERS} ; do
-	NS=$(echo $SERVER)
-	echo "server ${NS}" >> _etc_ntp.conf
-done
 
 cat >> _etc_ntp.conf <<EOF
+#
+# Refer to: http://support.ntp.org/bin/view/Support/AccessRestrictions
+#
+
+# Disables: ntpdc -c monlist (DDoS amplification attack)
+disable monitor
+
+# Refer to: http://www.eecis.udel.edu/~mills/ntp/html/accopt.html
+# Disables: lots of stuff.
+restrict default limited kod nomodify notrap nopeer noquery
+
+# Allows localhost to connect without restrictions.
+restrict 127.0.0.1
+# Uncommment to allow local network to connect without restrictions.
+#restrict 192.168.1.0 mask 255.255.255.0
+
+EOF
+
+set +e
+for SERVER in ${XLAPP_NTP_SERVERS} ; do
+	NS=$(echo $SERVER)
+	echo $NS | grep "^\([[:digit:]]\{1,3\}\)\.\([[:digit:]]\{1,3\}\)\.\([[:digit:]]\{1,3\}\)\.\([[:digit:]]\{1,3\}\)$"
+
+	if [ 0 -eq $? ] ; then
+		# This is dotted-decimal; use directly.
+		NS_HOSTNAME=$NS
+		echo "Using dotted-decimal NTP server directly: $NS"
+	else
+		# This is a textual hostname; look up IP.
+		echo "Looking up NTP server name: $NS..."
+		lookup_result=$(host $NS)
+		NS_IP=$(echo $lookup_result | grep -v IPv6 | awk '{print $4}')
+		echo "  NTP server IP address: ${NS_IP}"
+	fi
+
+	echo "# Sets a server.  Restricts access based on its IP." >> _etc_ntp.conf
+	echo "server ${NS}" >> _etc_ntp.conf
+	echo "restrict ${NS_IP} nomodify notrap nopeer noquery" >> _etc_ntp.conf
+done
+set -e
+
+cat >> _etc_ntp.conf <<EOF
+
+# Refer to: http://doc.ntp.org/4.2.0/drivers/driver1.html
+# Configures local clock as "clock of last resort" (e.g., when network not available).
+# Fudge line sets the stratum to something high, so it won't be accidentally used.
+server 127.127.1.1
+fudge 127.127.1.1 stratum 12
 
 driftfile /var/cache/ntp.drift
 pidfile   /var/run/ntpd.pid
