@@ -42,7 +42,7 @@ if [ 0 -eq "$JUST_TESTING" ] ; then
 	chmod 0755 *-jail
 
 	# Unpack the BLFS bootscripts for later
-	tar xf src/blfs-bootscripts-*.tar.*
+	for blfsbs in src/blfs-bootscripts-201* ; do tar xf $blfsbs ; done
 fi
 
 chroot "$LFS" /tools/bin/env -i \

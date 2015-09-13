@@ -190,10 +190,12 @@ sudo mv -vf root-hints $NAMED_JAIL/${NAMED_CONF}/root.hints
 
 sudo touch $NAMED_JAIL/${NAMED_CONF}/managed-keys.bind
 
-sudo tar xf src/blfs-bootscripts-*.tar*
+# unpack files...
+for blfsbs in src/blfs-bootscripts-* ; do sudo tar xf $blfsbs ; done
+#sudo tar xf src/blfs-bootscripts-*.tar*
 sudo chown -R blfs:blfs blfs-bootscripts-*
 
-cd blfs-bootscripts-*
+cd blfs-bootscripts-2012*
 
 sudo make install-bind
 sudo ln -sfv /etc/rc.d/init.d/bind /etc/rc.d/init.d/named
