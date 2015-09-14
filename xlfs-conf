@@ -28,6 +28,8 @@ Creates an LFS-like config file using the following parameters:
   -r              Use RAMFS to build the system
   -A              CPU arch: generic|core2|amd (gen x86_64, core2/xeon, k8,opt)
                     Defaults to 'generic' if argument not given.
+  -S              URL prefix (DEV OPTION - for a local src mirror)
+  -M              Regenerate SSH moduli (this can take 4 or more hours).
   -h              Usage (this information)
 ********************************************************************************
 
@@ -52,6 +54,7 @@ echo "xlfs-conf args: [ ${@} ]"
 FOR_DOMU=
 SKIP_TESTS=
 XLAPP_USE_RAMFS=
+XLFS_GENERATE_SSH_MODULI=
 XLAPP_CONTINUE=
 XLAPP_ETH_COUNT=0
 OPTERR=0 # Disables getopts errors (when called by domU).
@@ -70,6 +73,7 @@ while getopts "02:4:A:a:b:d:g:hj:k:l:np:rS:s:t:uyz:c:fhim:ns:v:w:" OPT ; do
 		j) MAKEFLAGS="-j ${OPTARG}";;
 		k) XLAPP_SSH_PUBKEY="${OPTARG}";;
 		l) XLAPP_LFS_PART="${OPTARG}";;
+		M) XLFS_GENERATE_SSH_MODULI=true;;
 		n) SKIP_TESTS=true;;
 		#o) OUTPUT_FILE="${OPTARG}";;
 		p) XLAPP_HOST_PART="${OPTARG}";;
@@ -372,6 +376,7 @@ export XLAPP_CONF_DISTRO="${XLAPP_CONF_DISTRO}"
 export XLAPP_CONF_DISTRO_CONTACT="qrux@xenfromscratch.org"
 export XLAPP_CONF_DISTRO_MINI="xfs"
 export XLAPP_SSH_PUBKEY="${XLAPP_SSH_PUBKEY}"
+export XLFS_GENERATE_SSH_MODULI="${XLFS_GENERATE_SSH_MODULI}"
 EOF
 
 . $BUILD_CONF
@@ -423,6 +428,7 @@ cat <<EOF
           "Distro" (short): ${XLAPP_CONF_DISTRO_MINI}
           "Distro Contact": ${XLAPP_CONF_DISTRO_CONTACT}
             SSH Public Key: ${XLAPP_SSH_PUBKEY}
+       Generate SSH moduli? ${XLFS_GENERATE_SSH_MODULI} (empty string = 'no')
     Root Password (hashed): ${XLAPP_ROOT_PASSWD_HASH}
 EOF
 echo

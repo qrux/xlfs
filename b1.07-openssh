@@ -44,12 +44,15 @@ else
 	sudo cp $SCP_PATH /usr/bin
 fi
 
-make tests 2>&1 | tee check.log
-__SSH_FATAL_ERROR_COUNT=$(grep FATAL check.log | wc -l)
-if [ 0 -lt $__SSH_FATAL_ERROR_COUNT ] ; then
-	grep FATAL check.log
-	echo "SSH testing failed; aborting"
-	false
+export MAKEFLAGS="-j1"
+if [ -z $SKIP_TESTS ] ; then
+	make tests 2>&1 | tee check.log
+	__SSH_FATAL_ERROR_COUNT=$(grep FATAL check.log | wc -l)
+	if [ 0 -lt $__SSH_FATAL_ERROR_COUNT ] ; then
+		grep FATAL check.log
+		echo "SSH testing failed; aborting"
+		false
+	fi
 fi
 
 sudo /usr/bin/make install
@@ -208,11 +211,13 @@ EOF
 sudo cp $SSH_CONF_FILE /etc/ssh/sshd_config
 
 sudo rm -f /etc/ssh/moduli
-sudo /usr/bin/ssh-keygen -G /etc/ssh/moduli.all -b 4096
-sudo /usr/bin/ssh-keygen -T /etc/ssh/moduli.safe -f /etc/ssh/moduli.all
-sudo mv /etc/ssh/moduli.safe /etc/ssh/moduli
-sudo rm /etc/ssh/moduli.all
+if [ -n "${XLFS_GENERATE_SSH_MODULI}" ] ; then
+	sudo /usr/bin/ssh-keygen -G /etc/ssh/moduli.all -b 4096
+	sudo /usr/bin/ssh-keygen -T /etc/ssh/moduli.safe -f /etc/ssh/moduli.all
+	sudo mv /etc/ssh/moduli.safe /etc/ssh/moduli
+	sudo rm /etc/ssh/moduli.all
+fi
 
 cd /etc/ssh
 sudo rm ssh_host_*key*
-sudo /usr/bin/ssh-keygen -t ed25519 -f ssh_host_ed25519_key < /dev/null
+sudo /usr/bin/ssh-keygen -N '' -t ed25519 -f ssh_host_ed25519_key < /dev/null
