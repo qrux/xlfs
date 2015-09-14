@@ -1,0 +1,11 @@
+#! /bin/bash
+
+cd /etc
+cat > sysctl.conf <<EOF
+# Good info: http://serverfault.com/questions/593598/hiding-linux-kernel-messages-from-console
+# Better info: http://unix.stackexchange.com/questions/13019/description-of-kernel-printk-values
+# The four values in printk denote various loglevels:
+#   console, default, minimum_console, default_console
+kernel.printk = 3 4 1 3
+EOF
+

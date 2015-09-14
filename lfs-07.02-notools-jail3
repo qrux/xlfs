@@ -12,7 +12,7 @@ cd /lfs
 pwd
 
 if [ 1 -ne $JUST_TESTING ] ; then
-	./build-all -s 7.02 -e 9.01
+	./build-all -s 7.01 -e 9.01
 else
-	./build-all -n -s 7.02 -e 9.01
+	./build-all -n -s 7.01 -e 9.01
 fi
