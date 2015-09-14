@@ -66,8 +66,8 @@ sudo /usr/bin/install -v -m755 -d /usr/share/doc/openssh-7.1p1
 sudo /usr/bin/install -v -m644    INSTALL LICENCE OVERVIEW README* /usr/share/doc/openssh-7.1p1
 
 SSH_CONF_FILE=_etc-ssh-sshd-config
-rm -f _etc-ssh-sshd_config
-touch _etc-ssh-sshd_config
+rm -f $SSH_CONF_FILE
+touch $SSH_CONF_FILE
 
 cat >> $SSH_CONF_FILE <<EOF
 # This is the sshd server system-wide configuration file.  See
