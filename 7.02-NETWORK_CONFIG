@@ -1,6 +1,8 @@
 #! /bin/bash
 
 cd /etc/sysconfig/
+echo "  Creating ifconfig.eth0..."
+
 cat > ifconfig.eth0 <<EOF
 ONBOOT=yes
 PHYS=eth0
@@ -9,4 +11,30 @@ IP=${XLAPP_HOST_IP}
 GATEWAY=${XLAPP_HOST_GW}
 PREFIX=${XLAPP_HOST_PREFIX}
 EOF
+
+# The first entry is special; it needs a GATEWAY entry.
+# Other interfaces won't need it.
+
+specs="$(echo $XLAPP_HOST_IPS | cut -d ' ' -f 2-)"
+
+ETH_IDX=1
+for spec in $specs ; do
+	PHYS="eth${ETH_IDX}"
+	file="ifconfig.${PHYS}"
+	echo "  Creating ${file} for IPv4 spec $spec..."
+
+	# For input validation on IPv4 spec (a.b.c.d/netmask), see xlfs.conf.
+	addr=$(  echo $spec | cut -d \/ -f 1)
+	prefix=$(echo $spec | cut -d \/ -f 2)
+
+	cat > ${file} <<EOF
+ONBOOT=yes
+PHYS=${PHYS}
+SERVICE="ipv4-static"
+IP=${addr}
+PREFIX=${prefix}
+EOF
+
+	ETH_IDX=$((1 + $ETH_IDX))
+done
 
