@@ -9,11 +9,11 @@ INSTALL_GROUP=root \
 make
 
 export MAKEFLAGS="-j1"
-if [ -z $SKIP_TESTS ] ; then
+#if [ -z $SKIP_TESTS ] ; then
 	# These probably fail, because it's still the host kernel + FS.
         #make tests root-tests 2>&1 | tee ${__TEST_OUTPUT}
         #test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
-fi
+#fi
 
 sudo make install install-dev install-lib
 sudo chmod -v 755 /usr/lib/libattr.so
