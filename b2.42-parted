@@ -10,7 +10,12 @@ makeinfo --plaintext -o doc/parted.txt doc/parted.texi
 
 #sed -i '/t0251-gpt-unicode.sh/d' tests/Makefile
 
-#make check
+export MAKEFLAGS="-j 1"
+if [ -z $SKIP_TESTS ] ; then
+	# These tests might not be compatible with host system kernel or FS tools...?
+        #make check 2>&1 | tee ${__TEST_OUTPUT}
+        #test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
+fi
 
 make install
 install -v -m755 -d /usr/share/doc/parted-3.2/html

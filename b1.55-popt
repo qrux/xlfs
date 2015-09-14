@@ -4,6 +4,10 @@
 
 make
 
-make check
+export MAKEFLAGS="-j 1"
+if [ -z $SKIP_TESTS ] ; then
+        make check 2>&1 | tee ${__TEST_OUTPUT}
+        test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
+fi
 
 sudo make install

@@ -18,7 +18,10 @@ export MAKEFLAGS="-j 1"
 
 make
 
-make test
+if [ -z $SKIP_TESTS ] ; then
+	make test 2>&1 | tee ${__TEST_OUTPUT}
+	test 0 -ne ${PIPESTATUS[0]} && exit ${PIPESTATUS[0]}
+fi
 
 sudo make MANDIR=/usr/share/man MANSUFFIX=ssl install
 sudo install -dv -m755   /usr/share/doc/openssl-1.0.2d
