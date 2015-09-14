@@ -70,7 +70,7 @@ echo "################################################################"
 chroot "$LFS" /usr/bin/env -i \
     HOME=/root TERM="$TERM" PS1='\u:\w\$ ' \
     PATH=/bin:/usr/bin:/sbin:/usr/sbin \
-        /bin/bash +h /lfs/lfs-07.02-notools-jail3 $JUST_TESTING
+        /bin/bash +h /lfs/lfs-07.01-notools-jail3 $JUST_TESTING
 
 echo "################################################################"
 echo "#"
