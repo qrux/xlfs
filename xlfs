@@ -350,5 +350,7 @@ echo "#  * dom0-capable kernel [ $LFS_KERNEL ] installed to /boot."
 echo "#"
 echo "#  * Reboot system after boot-adjustment to build XLAPP (Phase 2)..."
 echo "#"
+echo "#  * SSH key: $(cat $LFS/etc/ssh/ssh_host_ed25519_key.pub)"
+echo "#"
 echo "########################################################################"
 
