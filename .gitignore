@@ -5,3 +5,5 @@ lfs-05-build-as-lfs
 .idea
 
 lapp/Makefile
+
+.DS_Store
