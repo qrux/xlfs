@@ -1,0 +1,7 @@
+#! /bin/bash
+
+sed -i 's/getline/get_line/' src/*.[ch] &&
+make LOCKINGTEST=/tmp install &&
+make install-suid
+
+
