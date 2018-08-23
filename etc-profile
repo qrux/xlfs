@@ -4,24 +4,86 @@
 #
 ##################################################
 
-if [ "xterm-256color" = $TERM ] ; then
-        if [ "Darwin" = $(uname -s) ] ; then
-                if [ "10" = $(uname -r | cut -d \. -f 1) ] ; then
+_SYSTEM=$(uname -s)
+
+find_darwin_major ()
+{
+	echo $(uname -r | cut -d \. -f 1)
+}
+
+########################################################################
+#
+# Change flags for common commands based on `uname -s` ($_SYSTEM)
+#
+########################################################################
+
+LANG="C"
+LS_FLAGS="-F"
+LS_COLORS=""
+PS_FLAGS="aux"
+PS_SUFFIX="sort"
+DF_FLAGS="-h"
+
+if [ "Darwin" = $_SYSTEM ] ; then
+	if [ "xterm-256color" = $TERM ] ; then
+                if [ "10" = $(find_darwin_major) ] ; then
                         echo "  Changing terminal-type to xterm-color."
                         TERM="xterm-color"
                         export TERM
                 fi
-        fi
+	fi
+
+	LANG="en_US.UTF-8"
+
+	LS_FLAGS="-G -F"
+
+	LSCOLORS="DxGxcxdxCxegedabagacad"
+
+	PS_FLAGS="axo user,pid,vsz,rss,%mem,command -m"
+	PS_SUFFIX="sed 's/\ *$//' | grep -v grep"
+
+	DF_FLAGS="-Phl"
+elif [ "Linux" = ${_SYSTEM} ] ; then
+	LANG="C"
+
+	LS_FLAGS="--color -F -N -T 0"
+	LS_COLORS="di=1;93:fi=0:ln=1;36:pi=106:so=35:bd=1;33:cd=1;31:or=31:mi=0:ex=35:*.rpm=90"
+	#if [ -z $LS_COLORS ] ; then
+		#LS_COLORS="di=93"
+	#else
+		#LS_COLORS="$LS_COLORS:di=93"
+	#fi
+
+	PS_FLAGS="axo user,pid,vsz,rsz,%mem,cmd --sort=vsize"
+	PS_SUFFIX="grep -v grep"
+	DF_FLAGS="-h"
+elif [ "SunOS" = ${_SYSTEM} ] ; then
+	PS_FLAGS="-ef"
+	PS_SUFFIX="sort"
+else
+	echo "Unknown system ${_SYSTEM}; using defaults..."
 fi
 
-if [ "Darwin" = $(uname -s) ] ; then
-	LANG="en_US.UTF-8"
-	export LANG
-elif uname -r | grep -q xlapp ; then
-	LANG=C
-	LC_COLLATE=C
-	export LANG LC_COLLATE
-fi
+export LANG LS_FLAGS LSCOLORS LS_COLORS
+
+_BIN_LS="/bin/ls"
+_BIN_PS="/bin/ps"
+_BIN_DF="/bin/df"
+
+LS="${_BIN_LS} ${LS_FLAGS}"
+export LS
+
+df ()
+{
+	ARGS="${@}"
+	${_BIN_DF} ${DF_FLAGS} ${ARGS}
+}
+
+########################################################################
+#
+# Prompt stuff
+#
+########################################################################
 
 path () 
 { 
@@ -70,25 +132,11 @@ export PS1
 
 unset _bred _bgrn _sgr0
 
+########################################################################
 #
-# Are we on a Mac?  If so, change the LANG setting
-# (so we have full UTF-8 capabilities).
+# Common Aliases
 #
-OS_NAME=`uname`
-if [ $OS_NAME = "Darwin" ] ; then
-	LS="/bin/ls -G -F" ; export LS
-	export LSCOLORS="DxGxcxdxCxegedabagacad"
-elif [ $OS_NAME = "Linux" ] ; then
-	LS="/bin/ls --color -F -N -T 0" ; export LS
-	if [ -z $LS_COLORS ] ; then
-		export LS_COLORS="di=93"
-	else
-		export LS_COLORS="$LS_COLORS:di=93"
-	fi
-else
-	LS="/bin/ls -F"
-fi
-
+########################################################################
 
 alias ls="${LS} -C"
 alias la="${LS} -aC"
@@ -98,14 +146,18 @@ alias dir="${LS} -l"
 alias dira="${LS} -al"
 alias dirr="${LS} -alR"
 alias dirt="${LS} -lrt"
+alias dirah="${LS} -alh"
+alias dirrah="${LS} -Ralh"
+alias diraht="${LS} -alhrt"
 
 alias mv='/bin/mv -i'
 alias cp='/bin/cp -i'
 
-alias j="jobs"
-alias today="date '+%-d %b %Y'"
+alias      j="jobs"
+alias  today="date '+%-d %b %Y'"
 alias todate="date '+%Y%m%d'"
 alias totime="date '+%Y%m%d_%H%M%S'"
+alias    now="date '+%Y%m%d_%H%M%S'"
 
 #
 # Berkeley Exit Function
@@ -126,8 +178,7 @@ alias totime="date '+%Y%m%d_%H%M%S'"
 h()
 {
         PATTERN=$1
-
-        if [ "$PATTERN" = "" ] ; then
+        if [ -z "$PATTERN" ] ; then
                 history
         else
                 history | grep $PATTERN
@@ -139,15 +190,7 @@ h()
 #
 killproc ()
 {
-	kill `ps aux | grep "${1}" | grep -v grep | awk '{print $2}'`
-}
-
-#
-# hidden grep
-#
-_grep()
-{
-	grep "${@}"
+	kill `ps ${PS_FLAGS} | grep "${1}" | grep -v grep | awk '{print $2}'`
 }
 
 #
@@ -157,28 +200,11 @@ p ()
 {
 	ARGS="${*}"
 
-	if [ "$ARGS" = "" ] ; then
-		if [ `uname -s` = "SunOS" ] ; then
-			/bin/ps -ef | sort
-		elif [ `uname -s` = "Linux" ] ; then
-			/bin/ps axo user,pid,vsz,rsz,%mem,cmd --sort=vsize | grep -v grep
-		elif [ `uname -s` = "Darwin" ] ; then
-			/bin/ps axo user,pid,vsz,rss,%mem,command -m | sed 's/\ *$//' | grep -v grep
-		else
-			/bin/ps aux | sort
-		fi
+	if [ -z "$ARGS" ] ; then
+		${_BIN_PS} ${PS_FLAGS} | eval ${PS_SUFFIX}
 	else
-		if [ `uname -s` = "SunOS" ] ; then
-			/bin/ps -ef | egrep "$ARGS" | grep -v grep | sort
-		elif [ `uname -s` = "Linux" ] ; then
-			/bin/ps axo user,pid,vsz,rsz,%mem,cmd --sort=vsize | egrep "$ARGS" | grep -v grep
-		elif [ `uname -s` = "Darwin" ] ; then
-			/bin/ps axo user,pid,vsz,rss,%mem,command -m | sed 's/\ *$//' | egrep "$ARGS" | grep -v grep
-		else
-			/bin/ps aux | egrep "$ARGS" | grep -v grep | sort
-		fi
+		${_BIN_PS} ${PS_FLAGS} | egrep "$ARGS" | eval ${PS_SUFFIX}
 	fi
-
 }
 
 #
@@ -188,14 +214,10 @@ pv ()
 {
 	ARGS="${*}"
 
-	if [ `uname -s` = "SunOS" ] ; then
-		/bin/ps -ef | egrep -v "$ARGS" | grep -v grep
-	elif [ `uname -s` = "Linux" ] ; then
-		/bin/ps axo user,pid,vsz,rsz,%mem,cmd --sort=vsize | egrep -v "$ARGS" | grep -v grep
-	elif [ `uname -s` = "Darwin" ] ; then
-		/bin/ps axo user,pid,vsz,rss,%mem,command -m | sed 's/\ *$//' | egrep -v "$ARGS" | grep -v grep
+	if [ -z "$ARGS" ] ; then
+		p
 	else
-		/bin/ps aux | egrep -v "$ARGS" | grep -v grep
+		${_BIN_PS} ${PS_FLAGS} | egrep -v "$ARGS" | eval ${PS_SUFFIX}
 	fi
 }
 
@@ -211,6 +233,12 @@ pme ()
 # POSIX man behavior
 #
 export MAN_POSIXLY_CORRECT=1
+
+if [ -d /opt/local/bin ] ; then
+	# MacPorts Installer addition: adding an appropriate PATH variable for use with MacPorts.
+	export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+	# Finished adapting your PATH environment variable for use with MacPorts.
+fi
 
 #
 # Personal bin
@@ -229,3 +257,5 @@ if [ -e $HOME/.alias-$USER ] ; then
 fi
 
 unset PERSONAL_ALIAS
+
+
