@@ -435,6 +435,12 @@ EOF
 		echo "  Adding other directories..."
 		mkdir {dev,proc,opt,sys,tmp}
 
+		echo "  Adding blfs/lfs home directories..."
+		mkdir -p home/{lfs,blfs}
+		cd home/blfs
+		ln -s /lfs xlfs
+		cd -
+
 		echo "  Changing perms on /tmp..."
 		chmod 0777 tmp
 
