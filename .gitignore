@@ -1,8 +1,7 @@
+*.swp
+.DS_Store
+.idea
 machine.config
 dot.bashrc-lfs
 lfs-05-build-as-lfs
-*.swp
-.idea
-
 lapp/Makefile
-.DS_Store
