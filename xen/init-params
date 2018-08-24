@@ -1,0 +1,150 @@
+#! /bin/bash
+
+usage() {
+	cat <<EOF
+
+Usage: $0 [OPTION]... target-FQDN
+
+Initializes DomU parameters using this particular Dom0 host.
+
+********************************************************************************
+  -a lang         Lang (e.g. an entry from 'locale -a')
+  -d fqdn         DNS server (can be given multiple times)
+  -g e.f.g.h      Gateway
+  -k keyfile      Key name in SSH key (field 3 of ~/.ssh/authorized_keys)
+  -v vg[:type]    Use volume group 'vg' (must exist) [OPT] with FS type 'type'
+  -z tz           TZ (e.g. tzselect output)
+  -h              Usage (this information)
+  -i              Usage: xlfs-conf
+********************************************************************************
+
+See: make-domu
+See: create-guest
+
+EOF
+	exit 1
+}
+
+XLFS_CONF=xlfs-conf
+DEFAULT_TARGET_LANG="C"
+DEFAULT_TARGET_TZ="America/Los_Angeles"
+
+unset IS_TEST
+OPTERR=0 # Disables getopts errors (when called by domU).
+while getopts "a:d:g:hi:k:t:v:z:" OPT ; do
+	case "${OPT}" in
+		a) XLFS_TARGET_LANG="${OPTARG}";;
+		d) XLFS_DNS_SERVERS="${XLFS_DNS_SERVERS} ${OPTARG}";;
+		g) XLFS_HOST_GW="${OPTARG}";;
+		h) usage;;
+        i) ../${XLFS_CONF} -h;;
+		k) XLFS_SSH_PUBKEY_ENTRY="${OPTARG}";;
+        v) XLFS_VOL_GROUP_SPEC="$OPTARG";;
+		z) XLFS_TARGET_TZ="${OPTARG}";;
+		*) if [ -z ${FOR_DOMU} ] ; then echo "Unrecognized option $OPT." ; fi;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+WORKING_DIR=$1
+
+if [ -z $WORKING_DIR ] ; then
+    WORKING_DIR=/root/guests
+fi
+
+if [ ! -d $WORKING_DIR ] ; then
+    mkdir -pv $WORKING_DIR
+fi
+
+if [ ! -d $WORKING_DIR ] ; then
+    WORKING_DIR=/tmp
+fi
+
+if [ -z $XLFS_VOL_GROUP_SPEC ] ; then
+    echo "No volume group specified for disk volumes; aborting."
+    exit 1
+fi
+
+VOL_GROUP=$(echo $XLFS_VOL_GROUP_SPEC | cut -d : -f 1)
+
+which vgdisplay > /dev/null 2>&1
+if [ 0 -eq $? ] ; then
+    echo -n "Searching for Volume Group: "
+    vgdisplay -s $VOL_GROUP
+
+    if [ 0 -ne $? ] ; then
+        echo "Cannot find volume group [ $VOL_GROUP ]; aborting."
+        exit 1
+    fi
+else
+    IS_TEST=true
+fi
+
+SSH_AUTH_KEYFILE=~/.ssh/authorized_keys
+
+if [ ! -f $SSH_AUTH_KEYFILE ] ; then
+    echo "Cannot find SSH key file; aborting."
+    exit 1
+fi
+
+#echo "Using SSH key entry: $XLFS_SSH_PUBKEY_ENTRY"
+
+if [ -z $XLFS_SSH_PUBKEY_ENTRY ] ; then
+    echo "No SSH public key entry given; aborting."
+    exit 1
+fi
+
+XLFS_SSH_PUBKEY="$(grep "^ssh.*\ .*\ ${XLFS_SSH_PUBKEY_ENTRY}\$" $SSH_AUTH_KEYFILE)"
+
+if [ -z "$XLFS_SSH_PUBKEY" ] ; then
+    echo "No SSH public key entry found for [ $XLFS_SSH_PUBKEY_ENTRY ]; aborting."
+    exit 1
+fi
+
+test -z $XLFS_TARGET_LANG && XLFS_TARGET_LANG="$DEFAULT_TARGET_LANG"
+test -z $XLFS_TARGET_TZ   &&   XLFS_TARGET_TZ="$DEFAULT_TARGET_TZ"
+
+test -z $XLFS_HOST_GW && \
+    XLFS_HOST_GW="$(netstat -nr | egrep "^0.0.0.0|^default" | grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" | awk '{print $2}')"
+
+test -z $XLFS_DNS_SERVERS && \
+    XLFS_DNS_SERVERS="$(grep ^nameserver /etc/resolv.conf | head -1 | awk '{print $2}')"
+
+DOMU_DEFAULT_CONF=${WORKING_DIR}/domu-default.conf
+NOW=$(date '+%Y%m%d_%H%M%S')
+
+if [ -z "$IS_TEST" ] ; then
+    if [ -e $DOMU_DEFAULT_CONF ] ; then
+        echo -n "Moving older config out of the way: "
+        mv -v $DOMU_DEFAULT_CONF ${DOMU_DEFAULT_CONF}-${NOW}
+    fi
+
+    rm -fv $DOMU_DEFAULT_CONF
+    touch $DOMU_DEFAULT_CONF
+else
+    DOMU_DEFAULT_CONF="${DOMU_DEFAULT_CONF}-${NOW}"
+fi
+
+cat >> $DOMU_DEFAULT_CONF <<EOF
+export DOMU_DEFAULT_CONF="${DOMU_DEFAULT_CONF}"
+
+export XLFS_VOL_GROUP_SPEC="${XLFS_VOL_GROUP_SPEC}"
+
+export XLFS_HOST_GW="${XLFS_HOST_GW}"
+export XLFS_DNS_SERVERS="${XLFS_DNS_SERVERS}"
+
+export XLFS_TARGET_LANG="${XLFS_TARGET_LANG}"
+export XLFS_TARGET_TZ="${XLFS_TARGET_TZ}"
+
+export XLFS_SSH_PUBKEY="${XLFS_SSH_PUBKEY}"
+EOF
+
+echo "########################################################################"
+cat $DOMU_DEFAULT_CONF
+echo "########################################################################"
+
+if [ -z "$IS_TEST" ] ; then
+    echo "# $0 done; DomU configuration -> [ $DOMU_DEFAULT_CONF ]."
+else
+    echo "# TEST!TEST!TEST! - $0 done; DomU configuration -> [ $DOMU_DEFAULT_CONF ]."
+fi

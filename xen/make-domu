@@ -53,7 +53,8 @@ at the end of the X/LAPP Phase 1 build can results in an unusable domU.
 VOL_GROUP must point to an existing LVM2 Volume Group.  Other logical-volume
 management systems are not support at this time.  This is the preferred
 mechanism for creating a disk device for use by the VM.  Using a loopback
-disk-image for a PV domU is STRONGLY DISCOURAGED.
+disk-image for a PV domU is STRONGLY DISCOURAGED.  NOTE! - loopback disk-image
+is no longer supported; only LVM2 logical volumes are supported at this stage.
 
 The 'type' sub-argument of -v must be one of ext2, ext3, ext4.  Others may
 work, but are used entirely at your caution.  FSTYPE must support creation via
@@ -74,13 +75,12 @@ written to it.  The xl-compatible configuration file will be written to
 will be named by the domU-FQDN (first non-option argument).
 
   -v vg:type	Use volume group 'vg' (must exist) with FS type 'type'
-                  (this option is mutually exclusive from -f)
   -f            Force the creation of the logical volume
   -2 FSSIZE     Create a filesystem this large (in GiB)
   -m VM_MEM     Allocate this much memory for the VM (in MiB)
   -c VM_CPUS    [OPT] Allocate this many CPUs for the VM
   -w SWAP_MUL	[OPT] Use this amount of swap (multiplier to VM_MEM)
-  -n		Don't do any writing; just create the xl-conf file.
+  -n            Don't do any writing; just create the xl-conf file.
   -h            Usage (this information)
   -i            Usage: xlfs-conf
 
@@ -138,7 +138,12 @@ echo "build config: $BUILD_CONF"
 test ! -e /proc/cpuinfo && usage
 test ! -d /proc/xen     && usage
 
-VIRT_CPUS=$(cat /proc/cpuinfo | grep -cE "^processor\s+:")
+if [ -z "$VIRT_CPUS" ] ; then
+	VIRT_CPUS=$(cat /proc/cpuinfo | grep -cE "^processor\s+:")
+	echo "vCPU count unspecified; exiting."
+	echo "  (Specify a number less than $VIRT_CPUS.)"
+	exit 1
+fi
 
 if [ -z "$VOL_GROUP" ] ; then
 	echo "Volume group must be specified with -v."
@@ -437,6 +442,8 @@ EOF
 
 		echo "  Adding blfs/lfs home directories..."
 		mkdir -p home/{lfs,blfs}
+		chown 101:101 /home/lfs
+		chown 202:202 /home/blfs
 		cd home/blfs
 		ln -s /lfs xlfs
 		cd -
