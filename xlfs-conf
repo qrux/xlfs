@@ -18,7 +18,7 @@ Creates an LFS-like config file using the following parameters:
   -b part:type    Boot partition:fstype
   -k "key"        SSH key
   -4 a.b.c.d/p    IP address/prefix (can be given multiple times)
-  -g e.f.g.h"     Gateway
+  -g e.f.g.h      Gateway
   -d fqdn         DNS server (can be given multiple times)
   -t fqdn         NTP server (can be given multiple times)
   -a lang         Lang (e.g. an entry from 'locale -a')
@@ -388,7 +388,7 @@ echo
 cat <<EOF
 	 Build Config File: ${BUILD_CONF}
 	          For domU? ${FOR_DOMU}
-          
+
     Build files URL prefix: ${XLAPP_URL_PREFIX} (empty string = default)
               source files: ${XLAPP_FILES_SOURCE}
 
